@@ -1,0 +1,53 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "xterminium",
+  "version": "0.1.0",
+  "identifier": "com.xterminium.app",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:8080",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "xterminium",
+        "width": 900,
+        "height": 620,
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/64x64.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "linux": {
+      "deb": {
+        "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0"],
+        "postInstallScript": "./postinst",
+        "files": {
+          "/usr/share/icons/hicolor/scalable/apps/xterminium.svg": "../public/terminal.svg"
+        }
+      }
+    },
+    "category": "DeveloperTool",
+    "android": {
+      "debugApplicationIdSuffix": ".debug"
+    }
+  }
+}
