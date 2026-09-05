@@ -16,6 +16,7 @@
   let newUser = $state('');
   let newIp = $state('');
   let newPort = $state('22');
+  let newKey = $state('');
 
   $effect(() => {
     if (show) {
@@ -34,6 +35,7 @@
       user: newUser.trim(),
       ip: newIp.trim(),
       port: newPort.trim() || '22',
+      key: newKey.trim() || undefined,
     };
 
     hosts.push(host);
@@ -43,6 +45,7 @@
     newUser = '';
     newIp = '';
     newPort = '22';
+    newKey = '';
     showAddForm = false;
   }
 
@@ -90,6 +93,7 @@
           <input class="w-16 bg-[#0d0e17] border border-white/10 rounded text-slate-200 px-2 py-1.5 text-xs outline-none focus:border-sky-400 transition-colors" type="text" placeholder="Porta" bind:value={newPort} />
         </div>
         <input class="bg-[#0d0e17] border border-white/10 rounded text-slate-200 px-2 py-1.5 text-xs outline-none focus:border-sky-400 transition-colors" type="text" placeholder="IP / Hostname (ex: 192.168.1.10)" bind:value={newIp} required />
+        <input class="bg-[#0d0e17] border border-white/10 rounded text-slate-200 px-2 py-1.5 text-xs outline-none focus:border-sky-400 transition-colors" type="text" placeholder="Chave Privada (ex: ~/.ssh/id_rsa - opcional)" bind:value={newKey} />
         <button type="submit" class="bg-sky-400 hover:bg-sky-500 text-slate-950 font-semibold rounded py-1.5 text-xs transition-colors cursor-pointer">Salvar</button>
       </form>
     {/if}

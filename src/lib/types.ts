@@ -4,6 +4,7 @@ export interface SshHost {
   user: string;
   ip: string;
   port?: string;
+  key?: string;
 }
 
 export interface ShortcutAction {
@@ -21,6 +22,8 @@ export interface SavedPath {
 export const defaultShortcuts: Record<string, string> = {
   copy: 'Ctrl+Shift+C',
   paste: 'Ctrl+Shift+V',
+  selectAll: 'Ctrl+Shift+A',
+  autocomplete: 'Ctrl+Space',
   stop: 'Ctrl+C',
   newTab: 'Ctrl+Shift+T',
   newWindow: 'Ctrl+Shift+N',

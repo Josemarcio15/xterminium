@@ -100,6 +100,30 @@
         </button>
       </div>
 
+      <!-- Selecionar Tudo -->
+      <div class="flex justify-between items-center px-2.5 py-1.5 rounded-md bg-[#1d2030]">
+        <span class="text-xs font-medium text-slate-200">Selecionar Tudo</span>
+        <button 
+          class="bg-[#10121c] border border-white/15 text-sky-400 px-2 py-1 rounded text-[11px] font-mono cursor-pointer hover:border-sky-400 hover:bg-sky-400/10 transition-all {recordingActionId === 'selectAll' ? '!bg-sky-400 !text-slate-950 font-bold animate-pulse' : ''}" 
+          onclick={() => (recordingActionId = 'selectAll')}
+          onkeydown={(e) => recordingActionId === 'selectAll' && handleRecordKeyDown(e, 'selectAll')}
+        >
+          {recordingActionId === 'selectAll' ? 'Pressione teclas...' : (shortcuts.selectAll || 'Ctrl+Shift+A')}
+        </button>
+      </div>
+
+      <!-- Autocomplete de VPS -->
+      <div class="flex justify-between items-center px-2.5 py-1.5 rounded-md bg-[#1d2030]">
+        <span class="text-xs font-medium text-slate-200">Autocomplete VPS</span>
+        <button 
+          class="bg-[#10121c] border border-white/15 text-sky-400 px-2 py-1 rounded text-[11px] font-mono cursor-pointer hover:border-sky-400 hover:bg-sky-400/10 transition-all {recordingActionId === 'autocomplete' ? '!bg-sky-400 !text-slate-950 font-bold animate-pulse' : ''}" 
+          onclick={() => (recordingActionId = 'autocomplete')}
+          onkeydown={(e) => recordingActionId === 'autocomplete' && handleRecordKeyDown(e, 'autocomplete')}
+        >
+          {recordingActionId === 'autocomplete' ? 'Pressione teclas...' : (shortcuts.autocomplete || 'Ctrl+Space')}
+        </button>
+      </div>
+
       <!-- Parar terminal -->
       <div class="flex justify-between items-center px-2.5 py-1.5 rounded-md bg-[#1d2030]">
         <span class="text-xs font-medium text-slate-200">Parar Terminal (SIGINT)</span>

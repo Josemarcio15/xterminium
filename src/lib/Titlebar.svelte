@@ -10,7 +10,7 @@
   export interface TabItem {
     id: string;
     title: string;
-    type: 'local' | 'ssh';
+    type: 'local' | 'ssh' | 'sftp';
   }
 
   interface Props {
@@ -21,9 +21,11 @@
     onNewTab: () => void;
     onConnectSsh: (host: SshHost) => void;
     onNavigatePath: (path: string) => void;
+    onToggleFileManager?: () => void;
+    showFileManager?: boolean;
   }
 
-  let { tabs, activeTabId, onSelectTab, onCloseTab, onNewTab, onConnectSsh, onNavigatePath }: Props = $props();
+  let { tabs, activeTabId, onSelectTab, onCloseTab, onNewTab, onConnectSsh, onNavigatePath, onToggleFileManager, showFileManager }: Props = $props();
 
   let showPathsModal = $state(false);
   let showSshModal = $state(false);
@@ -80,7 +82,7 @@
           class="tab flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium cursor-pointer border transition-all whitespace-nowrap {activeTabId === tab.id ? 'bg-[#1b1e2c] text-slate-100 border-white/[0.12]' : 'bg-white/[0.03] text-slate-400 border-transparent hover:bg-white/[0.08] hover:text-slate-300'}"
           onclick={() => onSelectTab(tab.id)}
         >
-          <span class="w-1.5 h-1.5 rounded-full {tab.type === 'ssh' ? 'bg-sky-400 shadow-[0_0_6px_#38bdf8]' : 'bg-[#00e699]'}"></span>
+          <span class="w-1.5 h-1.5 rounded-full {tab.type === 'ssh' ? 'bg-sky-400 shadow-[0_0_6px_#38bdf8]' : tab.type === 'sftp' ? 'bg-indigo-400 shadow-[0_0_6px_#818cf8]' : 'bg-[#00e699]'}"></span>
           <span class="max-w-[140px] overflow-hidden text-ellipsis">{tab.title}</span>
           <span 
             class="bg-transparent border-none text-inherit text-sm leading-none px-0.5 rounded cursor-pointer opacity-60 hover:opacity-100 hover:bg-white/15" 
@@ -136,6 +138,19 @@
         onClose={() => (showSshModal = false)} 
         onConnect={(h) => { showSshModal = false; onConnectSsh(h); }} 
       />
+    </div>
+
+    <!-- Botão Explorador SFTP / Arquivos -->
+    <div class="relative">
+      <button 
+        class="bg-transparent border-none outline-none p-1.5 rounded-md cursor-pointer flex items-center justify-center transition-all hover:bg-white/10 hover:text-white {showFileManager ? 'bg-sky-400/15 text-sky-400' : 'text-slate-400'}" 
+        onclick={() => onToggleFileManager?.()} 
+        title="Explorador de Arquivos Duplo (SFTP / Transferência)"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+        </svg>
+      </button>
     </div>
 
     <!-- Botão Atalhos -->
