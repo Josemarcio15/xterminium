@@ -1,9 +1,13 @@
 use portable_pty::{native_pty_system, CommandBuilder, MasterPty, PtySize};
 use std::collections::HashMap;
 use std::io::{Read, Write};
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use tauri::{AppHandle, Emitter, State};
+
+pub mod sftp_manager;
+use sftp_manager::{get_local_home_dir, list_local_directory, FileEntry, SftpState};
 
 struct PtySession {
     writer: Arc<Mutex<Box<dyn Write + Send>>>,
@@ -186,7 +190,43 @@ fn spawn_pty(
         .map_err(|e| e.to_string())?;
 
     let cmd_name = command.unwrap_or_else(|| {
-        std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string())
+        #[cfg(target_os = "windows")]
+        {
+            // No Windows: prioriza PowerShell, com fallback para CMD
+            if let Ok(system_root) = std::env::var("SystemRoot") {
+                let ps_path = format!("{}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", system_root);
+                if std::path::Path::new(&ps_path).exists() {
+                    return ps_path;
+                }
+            }
+            "powershell.exe".to_string()
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            // No Linux / macOS:
+            // 1. Respeita a variável $SHELL do usuário se o binário existir
+            if let Ok(user_shell) = std::env::var("SHELL") {
+                if !user_shell.is_empty() && std::path::Path::new(&user_shell).exists() {
+                    return user_shell;
+                }
+            }
+            // 2. Se não existir, tenta encontrar o Zsh
+            let zsh_candidates = ["/bin/zsh", "/usr/bin/zsh", "/usr/local/bin/zsh"];
+            for candidate in &zsh_candidates {
+                if std::path::Path::new(candidate).exists() {
+                    return candidate.to_string();
+                }
+            }
+            // 3. Fallback para Bash
+            let bash_candidates = ["/bin/bash", "/usr/bin/bash"];
+            for candidate in &bash_candidates {
+                if std::path::Path::new(candidate).exists() {
+                    return candidate.to_string();
+                }
+            }
+            // 4. Fallback final para sh padrão POSIX
+            "/bin/sh".to_string()
+        }
     });
 
     let mut cmd = CommandBuilder::new(cmd_name);
@@ -195,8 +235,12 @@ fn spawn_pty(
             cmd.arg(arg);
         }
     }
+    
+    // Diretório inicial: HOME no Linux/macOS ou USERPROFILE no Windows
     if let Ok(home) = std::env::var("HOME") {
         cmd.cwd(home);
+    } else if let Ok(user_profile) = std::env::var("USERPROFILE") {
+        cmd.cwd(user_profile);
     }
 
     // Define variáveis de ambiente essenciais para o terminal reconhecer cores e comandos como clear
@@ -257,12 +301,83 @@ fn new_window(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+async fn sftp_connect(
+    host: String,
+    port: Option<u16>,
+    user: String,
+    password: Option<String>,
+    key_path: Option<String>,
+    sftp_state: State<'_, SftpState>,
+) -> Result<String, String> {
+    let port = port.unwrap_or(22);
+    sftp_state
+        .connect(
+            &host,
+            port,
+            &user,
+            password.as_deref(),
+            key_path.as_deref(),
+        )
+        .await
+}
+
+#[tauri::command]
+async fn sftp_disconnect(sftp_state: State<'_, SftpState>) -> Result<(), String> {
+    sftp_state.disconnect().await;
+    Ok(())
+}
+
+#[tauri::command]
+async fn sftp_list_remote(
+    path: String,
+    sftp_state: State<'_, SftpState>,
+) -> Result<Vec<FileEntry>, String> {
+    sftp_state.list_remote_dir(&path).await
+}
+
+#[tauri::command]
+async fn sftp_list_local(path: Option<String>) -> Result<Vec<FileEntry>, String> {
+    let target_path = match path {
+        Some(p) if !p.is_empty() => PathBuf::from(p),
+        _ => get_local_home_dir(),
+    };
+    list_local_directory(&target_path).await
+}
+
+#[tauri::command]
+fn sftp_get_local_home() -> Result<String, String> {
+    Ok(get_local_home_dir().to_string_lossy().to_string())
+}
+
+#[tauri::command]
+async fn sftp_upload_item(
+    local_path: String,
+    remote_dir: String,
+    sftp_state: State<'_, SftpState>,
+) -> Result<(), String> {
+    let local = PathBuf::from(&local_path);
+    sftp_state.upload_item_recursive(&local, &remote_dir).await
+}
+
+#[tauri::command]
+async fn sftp_download_item(
+    remote_path: String,
+    local_dir: String,
+    sftp_state: State<'_, SftpState>,
+) -> Result<(), String> {
+    let local = PathBuf::from(&local_dir);
+    sftp_state.download_item_recursive(&remote_path, &local).await
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let pty_state = PtyState::default();
+    let sftp_state = SftpState::default();
 
     tauri::Builder::default()
         .manage(pty_state)
+        .manage(sftp_state)
         .invoke_handler(tauri::generate_handler![
             spawn_pty,
             write_pty,
@@ -273,7 +388,14 @@ pub fn run() {
             read_clipboard,
             write_clipboard,
             load_config,
-            save_config
+            save_config,
+            sftp_connect,
+            sftp_disconnect,
+            sftp_list_remote,
+            sftp_list_local,
+            sftp_get_local_home,
+            sftp_upload_item,
+            sftp_download_item
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {

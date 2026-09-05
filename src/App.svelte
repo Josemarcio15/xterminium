@@ -5,23 +5,48 @@
   import Titlebar from './lib/Titlebar.svelte';
   import TerminalView from './lib/TerminalView.svelte';
   import ResizeHandles from './lib/ResizeHandles.svelte';
+  import FileManagerModal from './lib/FileManagerModal.svelte';
   import { type SshHost } from './lib/types';
 
   interface TabData {
     id: string;
     title: string;
-    type: 'local' | 'ssh';
+    type: 'local' | 'ssh' | 'sftp';
     sshInfo?: SshHost;
+    initialPath?: string;
   }
 
   let tabs = $state<TabData[]>([]);
   let activeTabId = $state<string>('');
   let terminalRefs: Record<string, ReturnType<typeof TerminalView>> = {};
+  let currentTerminalCwd = $state('');
 
   function createTab(type: 'local' | 'ssh', sshHost?: SshHost) {
     const id = crypto.randomUUID();
     const title = type === 'local' ? 'New Tab' : (sshHost?.label || `${sshHost?.user}@${sshHost?.ip}`);
     tabs.push({ id, title, type, sshInfo: sshHost });
+    activeTabId = id;
+  }
+
+  function openSftpTab(sshHost?: SshHost) {
+    // Se já houver uma aba SFTP com este servidor (ou genérica), apenas foca nela
+    const existing = tabs.find(
+      (t) => t.type === 'sftp' && (!sshHost || t.sshInfo?.id === sshHost.id)
+    );
+    if (existing) {
+      activeTabId = existing.id;
+      return;
+    }
+
+    const id = crypto.randomUUID();
+    const title = sshHost ? `📁 ${sshHost.label || sshHost.ip}` : '📁 SFTP';
+    tabs.push({
+      id,
+      title,
+      type: 'sftp',
+      sshInfo: sshHost,
+      initialPath: currentTerminalCwd,
+    });
     activeTabId = id;
   }
 
@@ -101,6 +126,9 @@
               if (tab.title !== dirName) {
                 tab.title = dirName;
               }
+              if (tab.id === activeTabId) {
+                currentTerminalCwd = cwd;
+              }
             }
           } catch {}
         }
@@ -122,10 +150,15 @@
   <Titlebar
     {tabs}
     {activeTabId}
+    showFileManager={tabs.some((t) => t.type === 'sftp' && t.id === activeTabId)}
     onSelectTab={switchTab}
     onCloseTab={closeTab}
     onNewTab={() => createTab('local')}
     onConnectSsh={(host) => createTab('ssh', host)}
+    onToggleFileManager={() => {
+      const activeTab = tabs.find((t) => t.id === activeTabId);
+      openSftpTab(activeTab?.type === 'ssh' ? activeTab.sshInfo : undefined);
+    }}
     onNavigatePath={(path) => {
       navigateSilently(path);
     }}
@@ -133,14 +166,29 @@
 
   <main class="flex-1 min-h-0 relative bg-[#0f111a]">
     {#each tabs as tab (tab.id)}
-      <TerminalView
-        bind:this={terminalRefs[tab.id]}
-        id={tab.id}
-        type={tab.type}
-        sshInfo={tab.sshInfo}
-        active={activeTabId === tab.id}
-        onNewTab={() => createTab('local')}
-      />
+      {#if tab.type === 'sftp'}
+        <div class="w-full h-full" style:display={activeTabId === tab.id ? 'block' : 'none'}>
+          <FileManagerModal
+            isOpen={true}
+            isViewMode={true}
+            initialLocalPath={tab.initialPath || currentTerminalCwd}
+            currentSshInfo={tab.sshInfo}
+            onClose={() => {
+              const fakeEvent = new MouseEvent('click');
+              closeTab(tab.id, fakeEvent);
+            }}
+          />
+        </div>
+      {:else}
+        <TerminalView
+          bind:this={terminalRefs[tab.id]}
+          id={tab.id}
+          type={tab.type}
+          sshInfo={tab.sshInfo}
+          active={activeTabId === tab.id}
+          onNewTab={() => createTab('local')}
+        />
+      {/if}
     {/each}
   </main>
   <ResizeHandles />
