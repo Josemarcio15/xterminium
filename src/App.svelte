@@ -2,11 +2,11 @@
   import { onMount, tick } from 'svelte';
   import { listen } from '@tauri-apps/api/event';
   import { invoke } from '@tauri-apps/api/core';
-  import Titlebar from './lib/Titlebar.svelte';
-  import TerminalView from './lib/TerminalView.svelte';
-  import ResizeHandles from './lib/ResizeHandles.svelte';
-  import FileManagerModal from './lib/FileManagerModal.svelte';
-  import { type SshHost } from './lib/types';
+  import Titlebar from './shared/layout/Titlebar.svelte';
+  import ResizeHandles from './shared/layout/ResizeHandles.svelte';
+  import TerminalView from './features/terminal/components/TerminalView.svelte';
+  import FileManagerModal from './features/sftp/components/FileManagerModal.svelte';
+  import { type SshHost } from './core/types';
 
   interface TabData {
     id: string;

@@ -1,8 +1,14 @@
 import { invoke } from '@tauri-apps/api/core';
-import { type SshHost, type SavedPath, defaultShortcuts } from './types';
+import { 
+  type SshHost, 
+  type SavedPath, 
+  type CustomCommand, 
+  defaultShortcuts, 
+  defaultCustomCommands 
+} from '../types';
 
 export class ConfigService {
-  // Carrega hosts SSH de ~/.config/xterminium/ssh.json
+  // Hosts SSH
   static async loadSshHosts(): Promise<SshHost[]> {
     try {
       const content = await invoke<string>('load_config', { filename: 'ssh' });
@@ -24,9 +30,9 @@ export class ConfigService {
     }
   }
 
+  // Atalhos de Teclado
   private static cachedShortcuts: Record<string, string> | null = null;
 
-  // Carrega atalhos de ~/.config/xterminium/shortcuts.json
   static async loadShortcuts(): Promise<Record<string, string>> {
     if (this.cachedShortcuts) {
       return this.cachedShortcuts;
@@ -57,7 +63,7 @@ export class ConfigService {
     }
   }
 
-  // Carrega caminhos salvos de ~/.config/xterminium/paths.json
+  // Caminhos Salvos (Paths)
   static async loadPaths(): Promise<SavedPath[]> {
     try {
       const content = await invoke<string>('load_config', { filename: 'paths' });
@@ -78,5 +84,39 @@ export class ConfigService {
       console.error('Erro ao salvar ~/.config/xterminium/paths.json', e);
     }
   }
-}
 
+  // Comandos Customizados
+  private static cachedCommands: CustomCommand[] | null = null;
+
+  static async loadCustomCommands(): Promise<CustomCommand[]> {
+    if (this.cachedCommands) {
+      return this.cachedCommands;
+    }
+    try {
+      const content = await invoke<string>('load_config', { filename: 'commands' });
+      if (content && content.trim()) {
+        const parsed = JSON.parse(content);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          this.cachedCommands = parsed;
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error('Erro ao ler ~/.config/xterminium/commands.json', e);
+    }
+
+    const defaults = [...defaultCustomCommands];
+    this.cachedCommands = defaults;
+    return defaults;
+  }
+
+  static async saveCustomCommands(commands: CustomCommand[]): Promise<void> {
+    this.cachedCommands = [...commands];
+    try {
+      const json = JSON.stringify(commands, null, 2);
+      await invoke('save_config', { filename: 'commands', content: json });
+    } catch (e) {
+      console.error('Erro ao salvar ~/.config/xterminium/commands.json', e);
+    }
+  }
+}

@@ -1,18 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import {
-    listLocalFiles,
-    listRemoteFiles,
-    uploadFile,
-    downloadFile,
-    connectSftp,
-    disconnectSftp,
-    formatFileSize,
+    SftpService,
     type FileItem,
     type SftpConnectionConfig,
-  } from './sftp';
-  import { type SshHost } from './types';
-  import { ConfigService } from './config';
+    ConfigService,
+  } from '../../../core/services';
+  import { type SshHost } from '../../../core/types';
+  import { configStore } from '../../../core/stores/config.svelte';
 
   interface Props {
     isOpen?: boolean;
@@ -95,7 +90,7 @@
   async function loadLocal(path?: string) {
     loadingLocal = true;
     try {
-      const items = await listLocalFiles(path);
+      const items = await SftpService.listLocal(path);
       localFiles = items;
       if (path) {
         localPath = path;
@@ -143,7 +138,7 @@
         port: sshPort,
         key_path: sshKey,
       };
-      const home = await connectSftp(config);
+      const home = await SftpService.connect(config);
       isConnected = true;
       remotePath = home;
       transferStatus = 'Conectado com sucesso!';
@@ -158,7 +153,7 @@
 
   async function handleDisconnect() {
     try {
-      await disconnectSftp();
+      await SftpService.disconnect();
     } catch (_) {}
     isConnected = false;
     remoteFiles = [];
@@ -169,7 +164,7 @@
   async function loadRemote(path: string) {
     loadingRemote = true;
     try {
-      const items = await listRemoteFiles(path);
+      const items = await SftpService.listRemote(path);
       remoteFiles = items;
       remotePath = path;
       selectedRemote = null;
@@ -202,7 +197,7 @@
     isTransferring = true;
     transferStatus = `Enviando ${selectedLocal.name} para o servidor...`;
     try {
-      await uploadFile(selectedLocal.path, remotePath);
+      await SftpService.upload(selectedLocal.path, remotePath);
       transferStatus = `Sucesso: ${selectedLocal.name} enviado!`;
       await loadRemote(remotePath);
     } catch (err: any) {
@@ -218,7 +213,7 @@
     isTransferring = true;
     transferStatus = `Baixando ${selectedRemote.name} para o seu computador...`;
     try {
-      await downloadFile(selectedRemote.path, localPath);
+      await SftpService.download(selectedRemote.path, localPath);
       transferStatus = `Sucesso: ${selectedRemote.name} baixado!`;
       await loadLocal(localPath);
     } catch (err: any) {
@@ -329,7 +324,7 @@
                     <span class="truncate">{item.name}</span>
                   </div>
                   <span class="text-[10px] text-gray-500 font-mono ml-2">
-                    {item.is_dir ? 'Pasta' : formatFileSize(item.size)}
+                    {item.is_dir ? 'Pasta' : SftpService.formatFileSize(item.size)}
                   </span>
                 </div>
               {/each}
@@ -486,7 +481,7 @@
                       <span class="truncate">{item.name}</span>
                     </div>
                     <span class="text-[10px] text-gray-500 font-mono ml-2">
-                      {item.is_dir ? 'Pasta' : formatFileSize(item.size)}
+                      {item.is_dir ? 'Pasta' : SftpService.formatFileSize(item.size)}
                     </span>
                     </div>
                   {/each}

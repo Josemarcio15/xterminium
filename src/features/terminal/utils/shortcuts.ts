@@ -51,5 +51,4 @@ export function matchesShortcut(e: KeyboardEvent, combo: string): boolean {
   return eventCombo === normalizeShortcut(combo);
 }
 
-// Tipo para as funções de comando
 export type CommandHandler = () => void | Promise<void>;

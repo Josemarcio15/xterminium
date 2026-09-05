@@ -4,9 +4,9 @@
   import { FitAddon } from '@xterm/addon-fit';
   import '@xterm/xterm/css/xterm.css';
   import { invoke } from '@tauri-apps/api/core';
-  import { type SshHost } from './types';
-  import { ConfigService } from './config';
-  import { normalizeShortcut, parseKeyboardEvent } from './shortcuts';
+  import { type SshHost, type CustomCommand } from '../../../core/types';
+  import { ConfigService, PtyService } from '../../../core/services';
+  import { normalizeShortcut, parseKeyboardEvent } from '../utils/shortcuts';
   import SshAutocompleteDropdown from './SshAutocompleteDropdown.svelte';
 
   interface Props {
@@ -56,25 +56,28 @@
         invoke<string>('read_clipboard')
           .then((text) => (!text ? navigator.clipboard.readText() : text))
           .then((text) => {
-            if (text) invoke('write_pty', { id, data: text }).catch(console.error);
+            if (text) PtyService.writePty(id, text).catch(console.error);
           })
-          .catch(() => {});
+          .catch(console.error);
       },
       selectAll: () => {
         term.selectAll();
       },
       stop: () => {
-        invoke('write_pty', { id, data: '\x03' }).catch(console.error);
+        PtyService.writePty(id, '\x03').catch(console.error);
       },
       newTab: () => {
         onNewTab();
       },
       newWindow: () => {
-        invoke('new_window').catch(console.error);
+        invoke('open_new_window').catch(console.error);
+      },
+      clear: () => {
+        term.clear();
       },
     };
 
-    // Pré-carrega atalhos em cache
+    // Atalhos dinâmicos
     let shortcuts = await ConfigService.loadShortcuts();
 
     // Carrega hosts SSH disponíveis para autocomplete
@@ -159,7 +162,7 @@
     if (type === 'ssh' && sshInfo) {
       const portArg = sshInfo.port && sshInfo.port !== '22' ? ['-p', sshInfo.port] : [];
       const keyArg = sshInfo.key ? ['-i', sshInfo.key] : [];
-      invoke('spawn_pty', {
+      PtyService.spawnPty({
         id,
         cols: term.cols,
         rows: term.rows,
@@ -167,7 +170,7 @@
         args: [...keyArg, ...portArg, `${sshInfo.user}@${sshInfo.ip}`],
       }).catch(console.error);
     } else {
-      invoke('spawn_pty', {
+      PtyService.spawnPty({
         id,
         cols: term.cols,
         rows: term.rows,
@@ -179,7 +182,7 @@
       if (showDropdown && (data.includes('\r') || data.includes('\n') || data === '\x03' || data === '\x15')) {
         closeAutocomplete();
       }
-      invoke('write_pty', { id, data }).catch(console.error);
+      PtyService.writePty(id, data).catch(console.error);
     });
 
     setTimeout(() => {
@@ -190,19 +193,25 @@
 
   // Estado do Autocomplete
   let availableSshHosts = $state<SshHost[]>([]);
+  let availableCustomCommands = $state<CustomCommand[]>([]);
   let showDropdown = $state(false);
   let filteredHosts = $state<SshHost[]>([]);
   let selectedHostIndex = $state(0);
   let dropdownPosition = $state({ x: 100, y: 100 });
-  let detectedCommandType = $state<'scp' | 'ssh'>('scp');
+  let activeMatchedCommand = $state<CustomCommand | null>(null);
   let currentMatchedQuery = '';
 
   async function triggerManualAutocomplete() {
     if (type !== 'local') return;
 
-    // Recarrega hosts atualizados
+    // Recarrega hosts e comandos atualizados
     try {
-      availableSshHosts = await ConfigService.loadSshHosts();
+      const [hosts, customCmds] = await Promise.all([
+        ConfigService.loadSshHosts(),
+        ConfigService.loadCustomCommands(),
+      ]);
+      availableSshHosts = hosts;
+      availableCustomCommands = customCmds;
     } catch {
       // Ignora erro
     }
@@ -221,21 +230,30 @@
       textBeforeCursor = fullLine.slice(0, buffer.cursorX);
     }
 
-    // Identifica o comando no contexto: scp ou ssh
-    const isScp = /(?:^|[;&|\s])scp(?:\s+|$)/.test(textBeforeCursor);
-    const isSsh = /(?:^|[;&|\s])ssh(?:\s+|$)/.test(textBeforeCursor);
+    // Identifica se algum dos comandos configurados está presente na linha antes do cursor
+    let matchedCmd: CustomCommand | null = null;
+    for (const cmd of availableCustomCommands) {
+      const regex = new RegExp(`(?:^|[;&|\\s])${cmd.command}(?:\\s+|$)`, 'i');
+      if (regex.test(textBeforeCursor)) {
+        matchedCmd = cmd;
+        break;
+      }
+    }
 
-    // Se nenhum comando específico foi digitado, assume 'scp' ou lista as VPS para conectar
-    const cmd: 'scp' | 'ssh' = isScp ? 'scp' : (isSsh ? 'ssh' : 'scp');
+    // Se nenhum comando configurado foi detectado, usa o primeiro comando ou fallback
+    if (!matchedCmd && availableCustomCommands.length > 0) {
+      matchedCmd = availableCustomCommands[0];
+    }
+    activeMatchedCommand = matchedCmd;
 
     // Verifica se o usuário já começou a digitar algum prefixo do host antes do cursor
-    // Ex: "scp arquivo.tar Deb" -> "Deb"
-    // Ex: "scp arquivo.tar " -> ""
     const match = textBeforeCursor.match(/([a-zA-Z0-9_\-\.]+)$/);
     const query = match ? match[1] : '';
 
-    // Se a query for o próprio comando ("scp" ou "ssh") ou flag ("-r"), não filtra por esse termo
-    const validQuery = (query === 'scp' || query === 'ssh' || query.startsWith('-')) ? '' : query;
+    // Se a query for o próprio comando configurado ou flag ("-r", etc.), não filtra por esse termo
+    const knownCommands = availableCustomCommands.map((c) => c.command.toLowerCase());
+    const isCommandWord = knownCommands.includes(query.toLowerCase());
+    const validQuery = (isCommandWord || query.startsWith('-')) ? '' : query;
 
     if (validQuery.length > 0) {
       const q = validQuery.toLowerCase();
@@ -254,7 +272,6 @@
 
     if (filteredHosts.length > 0) {
       selectedHostIndex = 0;
-      detectedCommandType = cmd;
       updateDropdownPosition();
       showDropdown = true;
     } else {
@@ -299,21 +316,34 @@
     // Quantidade de caracteres que o usuário já digitou e precisam ser apagados
     const backspaces = '\x7f'.repeat(currentMatchedQuery.length);
 
+    // Substitui placeholders no template e nos args
+    const port = host.port || '22';
+    const key = host.key || '';
+    const user = host.user || '';
+    const ip = host.ip || '';
+    const label = host.label || '';
+
+    const formatString = (str?: string) => {
+      if (!str) return '';
+      return str
+        .replace(/\{user\}/g, user)
+        .replace(/\{ip\}/g, ip)
+        .replace(/\{port\}/g, port)
+        .replace(/\{key\}/g, key)
+        .replace(/\{label\}/g, label);
+    };
+
     let replacement = '';
-    if (detectedCommandType === 'scp') {
-      // Formata como usuario@ip:~/
-      replacement = `${host.user}@${host.ip}:~/`;
+    if (activeMatchedCommand) {
+      const templateStr = formatString(activeMatchedCommand.template);
+      const suffixStr = formatString(activeMatchedCommand.suffixArgs);
+      replacement = `${templateStr}${suffixStr}`;
     } else {
-      // ssh usuario@ip (ou adiciona a porta se não for 22)
-      if (host.port && host.port !== '22') {
-        replacement = `-p ${host.port} ${host.user}@${host.ip}`;
-      } else {
-        replacement = `${host.user}@${host.ip}`;
-      }
+      replacement = `${user}@${ip}`;
     }
 
-    // Envia ao PTY os backspaces para remover a query digitada (se houver) e insere o texto completo
-    invoke('write_pty', { id, data: backspaces + replacement }).catch(console.error);
+    // Envia ao PTY os backspaces para remover a query digitada (se houver) e insere o texto formatado
+    PtyService.writePty(id, backspaces + replacement).catch(console.error);
 
     closeAutocomplete();
     term.focus();
@@ -334,16 +364,12 @@
     if (fitAddon && term) {
       fitAddon.fit();
       term.focus();
-      invoke('resize_pty', {
-        id,
-        cols: term.cols,
-        rows: term.rows,
-      }).catch(console.error);
+      PtyService.resizePty(id, term.cols, term.rows).catch(console.error);
     }
   }
 
   onDestroy(() => {
-    invoke('close_pty', { id }).catch(console.error);
+    PtyService.closePty(id).catch(console.error);
     if (term) term.dispose();
   });
 </script>
@@ -358,7 +384,7 @@
     hosts={filteredHosts}
     selectedIndex={selectedHostIndex}
     position={dropdownPosition}
-    commandType={detectedCommandType}
+    commandName={activeMatchedCommand?.command || 'vps'}
     onSelect={applyAutocomplete}
   />
 {/if}
