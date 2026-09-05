@@ -1,15 +1,15 @@
 <script lang="ts">
-  import { type SshHost } from './types';
+  import { type SshHost } from '../../../core/types';
 
   interface Props {
     hosts: SshHost[];
     selectedIndex: number;
     position: { x: number; y: number };
-    commandType: 'scp' | 'ssh';
+    commandName?: string;
     onSelect: (host: SshHost) => void;
   }
 
-  let { hosts, selectedIndex, position, commandType, onSelect }: Props = $props();
+  let { hosts, selectedIndex, position, commandName = 'vps', onSelect }: Props = $props();
 </script>
 
 {#if hosts.length > 0}
@@ -21,7 +21,7 @@
     <div class="px-2.5 py-1 text-[10px] uppercase font-bold tracking-wider text-slate-400 border-b border-white/5 flex items-center justify-between">
       <span class="flex items-center gap-1.5">
         <span class="w-1.5 h-1.5 rounded-full bg-sky-400 shadow-[0_0_6px_#38bdf8]"></span>
-        Hosts Salvos ({commandType.toUpperCase()})
+        Hosts Salvos ({commandName.toUpperCase()})
       </span>
       <span class="text-[9px] text-slate-500 lowercase font-normal">Tab / Enter</span>
     </div>
@@ -50,7 +50,7 @@
 
           <div class="text-right shrink-0">
             <span class="text-[10px] text-sky-400/80 bg-sky-950/40 px-1.5 py-0.5 rounded border border-sky-400/20">
-              {commandType === 'scp' ? 'destino' : 'conectar'}
+              selecionar
             </span>
           </div>
         </button>

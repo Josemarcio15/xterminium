@@ -76,4 +76,3 @@
   onmousedown={(e) => startResize('SouthEast', e)}
   role="presentation"
 ></div>
-

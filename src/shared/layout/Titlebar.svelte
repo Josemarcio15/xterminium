@@ -1,17 +1,12 @@
 <script lang="ts">
   import { getCurrentWindow } from '@tauri-apps/api/window';
-  import SshModal from './SshModal.svelte';
-  import ShortcutsModal from './ShortcutsModal.svelte';
-  import PathsModal from './PathsModal.svelte';
-  import { type SshHost } from './types';
+  import SshModal from '../../features/settings/modals/SshModal.svelte';
+  import ShortcutsModal from '../../features/settings/modals/ShortcutsModal.svelte';
+  import PathsModal from '../../features/settings/modals/PathsModal.svelte';
+  import CommandTriggersModal from '../../features/settings/modals/CommandTriggersModal.svelte';
+  import { type SshHost, type TabItem } from '../../core/types';
 
   const appWindow = getCurrentWindow();
-
-  export interface TabItem {
-    id: string;
-    title: string;
-    type: 'local' | 'ssh' | 'sftp';
-  }
 
   interface Props {
     tabs: TabItem[];
@@ -27,10 +22,19 @@
 
   let { tabs, activeTabId, onSelectTab, onCloseTab, onNewTab, onConnectSsh, onNavigatePath, onToggleFileManager, showFileManager }: Props = $props();
 
+  let showMenu = $state(false);
   let showPathsModal = $state(false);
   let showSshModal = $state(false);
+  let showCommandsModal = $state(false);
   let showShortcutsModal = $state(false);
   let tabsScrollArea: HTMLDivElement | null = $state(null);
+
+  function closeAllModals() {
+    showPathsModal = false;
+    showSshModal = false;
+    showCommandsModal = false;
+    showShortcutsModal = false;
+  }
 
   function handleStartDragging(e: MouseEvent) {
     if (
@@ -98,15 +102,18 @@
   </div>
 
   <div class="actions-area flex items-center h-full shrink-0">
-    <!-- Botão Diretórios Salvos (Paths) -->
+    <!-- Botão Diretórios Favoritos / Atalho Rápido -->
     <div class="relative">
       <button 
         class="bg-transparent border-none outline-none p-1.5 rounded-md cursor-pointer flex items-center justify-center transition-all hover:bg-white/10 hover:text-white {showPathsModal ? 'bg-sky-400/15 text-sky-400' : 'text-slate-400'}" 
-        onclick={() => { showPathsModal = !showPathsModal; showSshModal = false; showShortcutsModal = false; }} 
+        onclick={() => { closeAllModals(); showPathsModal = !showPathsModal; }} 
         title="Diretórios favoritos (cd rápido)"
       >
+        <!-- Ícone de Atalho / Pasta com seta de atalho -->
         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          <path d="M15 3h6v6"></path>
+          <path d="M10 14L21 3"></path>
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
         </svg>
       </button>
 
@@ -118,61 +125,102 @@
       />
     </div>
 
-    <!-- Botão SSH -->
+    <!-- Menu Hamburguer com Ferramentas -->
     <div class="relative">
       <button 
-        class="bg-transparent border-none outline-none p-1.5 rounded-md cursor-pointer flex items-center justify-center transition-all hover:bg-white/10 hover:text-white {showSshModal ? 'bg-sky-400/15 text-sky-400' : 'text-slate-400'}" 
-        onclick={() => { showSshModal = !showSshModal; showPathsModal = false; showShortcutsModal = false; }} 
-        title="Conexões SSH salvas"
+        class="bg-transparent border-none outline-none p-1.5 rounded-md cursor-pointer flex items-center justify-center transition-all hover:bg-white/10 hover:text-white {showMenu || showSshModal || showCommandsModal || showShortcutsModal || showFileManager ? 'bg-sky-400/15 text-sky-400' : 'text-slate-400'}" 
+        onclick={() => (showMenu = !showMenu)} 
+        title="Menu de Ferramentas e Configurações"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
-          <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
-          <line x1="6" y1="6" x2="6.01" y2="6"></line>
-          <line x1="6" y1="18" x2="6.01" y2="18"></line>
+        <!-- Ícone Hambúrguer SVG -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="6" x2="20" y2="6"></line>
+          <line x1="4" y1="12" x2="20" y2="12"></line>
+          <line x1="4" y1="18" x2="20" y2="18"></line>
         </svg>
       </button>
 
+      <!-- Dropdown do Menu Hambúrguer -->
+      {#if showMenu}
+        <button 
+          type="button" 
+          class="fixed inset-0 z-[140] bg-transparent border-none cursor-default" 
+          onclick={() => (showMenu = false)}
+          aria-label="Fechar menu"
+        ></button>
+        <div 
+          class="absolute top-9 right-0 w-56 bg-[#171926] border border-white/10 rounded-lg shadow-2xl p-1.5 z-[150] flex flex-col gap-0.5 text-xs text-slate-300"
+          role="menu"
+          tabindex="-1"
+        >
+          <!-- Item: Conexões SSH -->
+          <button 
+            type="button"
+            class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-white/10 hover:text-white transition-all text-left w-full cursor-pointer border-none bg-transparent"
+            onclick={() => { showMenu = false; closeAllModals(); showSshModal = true; }}
+          >
+            <svg class="text-sky-400 shrink-0" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+              <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+              <line x1="6" y1="6" x2="6.01" y2="6"></line>
+              <line x1="6" y1="18" x2="6.01" y2="18"></line>
+            </svg>
+            <span class="flex-1">Conexões SSH</span>
+          </button>
+
+          <!-- Item: Comandos & Autocomplete -->
+          <button 
+            type="button"
+            class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-white/10 hover:text-white transition-all text-left w-full cursor-pointer border-none bg-transparent"
+            onclick={() => { showMenu = false; closeAllModals(); showCommandsModal = true; }}
+          >
+            <svg class="text-amber-400 shrink-0" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="4 17 10 11 4 5"></polyline>
+              <line x1="12" y1="19" x2="20" y2="19"></line>
+            </svg>
+            <span class="flex-1">Comandos de VPS</span>
+          </button>
+
+          <!-- Item: SFTP / Explorador Duplo -->
+          <button 
+            type="button"
+            class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-white/10 hover:text-white transition-all text-left w-full cursor-pointer border-none bg-transparent"
+            onclick={() => { showMenu = false; closeAllModals(); onToggleFileManager?.(); }}
+          >
+            <svg class="text-indigo-400 shrink-0" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+            </svg>
+            <span class="flex-1">Explorador SFTP</span>
+          </button>
+
+          <div class="h-[1px] bg-white/10 my-1"></div>
+
+          <!-- Item: Atalhos de Teclado -->
+          <button 
+            type="button"
+            class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-white/10 hover:text-white transition-all text-left w-full cursor-pointer border-none bg-transparent"
+            onclick={() => { showMenu = false; closeAllModals(); showShortcutsModal = true; }}
+          >
+            <svg class="text-slate-400 shrink-0" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+              <line x1="7" y1="16" x2="17" y2="16"></line>
+            </svg>
+            <span class="flex-1">Atalhos de Teclado</span>
+          </button>
+        </div>
+      {/if}
+
+      <!-- Modais Renderizados -->
       <SshModal 
         show={showSshModal} 
         onClose={() => (showSshModal = false)} 
         onConnect={(h) => { showSshModal = false; onConnectSsh(h); }} 
       />
-    </div>
 
-    <!-- Botão Explorador SFTP / Arquivos -->
-    <div class="relative">
-      <button 
-        class="bg-transparent border-none outline-none p-1.5 rounded-md cursor-pointer flex items-center justify-center transition-all hover:bg-white/10 hover:text-white {showFileManager ? 'bg-sky-400/15 text-sky-400' : 'text-slate-400'}" 
-        onclick={() => onToggleFileManager?.()} 
-        title="Explorador de Arquivos Duplo (SFTP / Transferência)"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
-        </svg>
-      </button>
-    </div>
-
-    <!-- Botão Atalhos -->
-    <div class="relative">
-      <button 
-        class="bg-transparent border-none outline-none p-1.5 rounded-md cursor-pointer flex items-center justify-center transition-all hover:bg-white/10 hover:text-white {showShortcutsModal ? 'bg-sky-400/15 text-sky-400' : 'text-slate-400'}" 
-        onclick={() => { showShortcutsModal = !showShortcutsModal; showPathsModal = false; showSshModal = false; }} 
-        title="Atalhos de Teclado"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
-          <line x1="6" y1="8" x2="6.01" y2="8"></line>
-          <line x1="10" y1="8" x2="10.01" y2="8"></line>
-          <line x1="14" y1="8" x2="14.01" y2="8"></line>
-          <line x1="18" y1="8" x2="18.01" y2="8"></line>
-          <line x1="6" y1="12" x2="6.01" y2="12"></line>
-          <line x1="10" y1="12" x2="10.01" y2="12"></line>
-          <line x1="14" y1="12" x2="14.01" y2="12"></line>
-          <line x1="18" y1="12" x2="18.01" y2="12"></line>
-          <line x1="7" y1="16" x2="17" y2="16"></line>
-        </svg>
-      </button>
+      <CommandTriggersModal 
+        show={showCommandsModal} 
+        onClose={() => (showCommandsModal = false)} 
+      />
 
       <ShortcutsModal 
         show={showShortcutsModal} 
