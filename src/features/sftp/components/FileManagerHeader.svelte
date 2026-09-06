@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Button from '@/shared/components/Button.svelte';
+
   interface Props {
     title?: string;
     showHiddenFiles: boolean;
@@ -22,9 +24,9 @@
   }: Props = $props();
 </script>
 
-<div class="flex items-center justify-between px-4 py-2.5 bg-[#13151f] border-b border-white/10 shrink-0 select-none relative">
+<div class="flex items-center justify-between px-4 py-2.5 bg-[var(--bg-titlebar)] border-b border-[var(--border-subtle)] shrink-0 select-none relative">
   <div class="flex items-center gap-2">
-    <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg class="w-4 h-4 text-[var(--accent-sftp)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         stroke-linecap="round"
         stroke-linejoin="round"
@@ -32,16 +34,16 @@
         d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
       />
     </svg>
-    <span class="font-semibold text-white tracking-wide text-xs">{title}</span>
+    <span class="font-semibold text-[var(--text-base)] tracking-wide text-xs">{title}</span>
   </div>
 
   <div class="flex items-center gap-3 relative">
-    <label class="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-200 cursor-pointer select-none">
+    <label class="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-base)] cursor-pointer select-none">
       <input
         type="checkbox"
         checked={showHiddenFiles}
         onchange={(e) => onToggleHiddenFiles(e.currentTarget.checked)}
-        class="w-3.5 h-3.5 rounded border-white/20 bg-black/40 text-blue-500 focus:ring-0 cursor-pointer"
+        class="w-3.5 h-3.5 rounded border-[var(--border-subtle)] bg-[var(--bg-item-input)] text-blue-500 focus:ring-0 cursor-pointer"
       />
       <span>Mostrar ocultos</span>
     </label>
@@ -75,7 +77,7 @@
       <!-- Botão Sininho de Notificações -->
       <button
         onclick={onOpenNotifications}
-        class="p-1.5 rounded-lg border border-white/10 hover:border-amber-500/30 bg-white/5 hover:bg-amber-500/10 text-gray-300 hover:text-amber-300 transition-all cursor-pointer relative flex items-center justify-center group active:scale-95"
+        class="p-1.5 rounded-lg border border-[var(--border-subtle)] hover:border-amber-500/40 bg-[var(--bg-item)] hover:bg-amber-500/10 text-[var(--text-muted)] hover:text-amber-400 transition-all cursor-pointer relative flex items-center justify-center group active:scale-95"
         title="Notificações da conexão SFTP"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:rotate-12">
@@ -85,7 +87,7 @@
 
         <!-- Badge com contagem de notificações -->
         {#if notificationCount > 0}
-          <span class="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-0.5 bg-purple-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-[#13151f] shadow">
+          <span class="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-0.5 bg-[var(--accent-sftp)] text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-[var(--bg-titlebar)] shadow">
             {notificationCount > 9 ? '9+' : notificationCount}
           </span>
         {/if}
@@ -93,17 +95,18 @@
     </div>
 
     {#if !isViewMode}
-      <button
+      <Button
+        variant="danger"
+        size="xs"
         onclick={onCloseModal}
-        class="px-2.5 py-1 text-xs font-medium text-gray-400 hover:text-white bg-white/5 hover:bg-red-500/20 hover:border-red-500/40 border border-transparent rounded transition-all cursor-pointer flex items-center gap-1.5"
         title="Fechar e encerrar conexão"
       >
         <span>Fechar</span>
-        <svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg class="w-3.5 h-3.5 ml-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
         </svg>
-      </button>
+      </Button>
     {/if}
   </div>
 </div>

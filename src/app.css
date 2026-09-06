@@ -1,18 +1,134 @@
 @import "tailwindcss";
 
-:root {
-  color-scheme: dark;
-  background-color: #121212;
-  color: #f3f4f6;
-  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, Menlo, Monaco, Consolas, monospace;
+@theme {
+  --color-bg-base: var(--bg-base);
+  --color-bg-titlebar: var(--bg-titlebar);
+  --color-bg-panel: var(--bg-panel);
+  --color-bg-item: var(--bg-item);
+  --color-bg-item-hover: var(--bg-item-hover);
+  --color-bg-item-input: var(--bg-item-input);
+  --color-bg-tab-active: var(--bg-tab-active);
+  --color-bg-tab-hover: var(--bg-tab-hover);
+
+  --color-accent-primary: var(--accent-primary);
+  --color-accent-secondary: var(--accent-secondary);
+  --color-accent-sftp: var(--accent-sftp);
+  --color-accent-warn: var(--accent-warn);
+
+  --color-text-base: var(--text-base);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-faint);
+  --color-text-special: var(--text-special);
+
+  --color-border-subtle: var(--border-subtle);
+  --color-border-panel: var(--border-panel);
+
+  --color-btn-primary-bg: var(--btn-primary-bg);
+  --color-btn-primary-text: var(--btn-primary-text);
+  --color-btn-primary-hover: var(--btn-primary-hover);
+
+  --color-btn-secondary-bg: var(--btn-secondary-bg);
+  --color-btn-secondary-text: var(--btn-secondary-text);
+  --color-btn-secondary-hover: var(--btn-secondary-hover);
+
+  --color-btn-danger-bg: var(--btn-danger-bg);
+  --color-btn-danger-text: var(--btn-danger-text);
+  --color-btn-danger-hover: var(--btn-danger-hover);
+
+  --color-btn-success-bg: var(--btn-success-bg);
+  --color-btn-success-text: var(--btn-success-text);
+
+  --color-btn-glass-bg: var(--btn-glass-bg);
+  --color-btn-glass-text: var(--btn-glass-text);
+  --color-btn-glass-hover: var(--btn-glass-hover);
+
+  --color-btn-border: var(--btn-border);
 }
 
-html, body, #app {
+:root {
+  color-scheme: dark;
+  color: var(--text-base);
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, Menlo, Monaco, Consolas, monospace;
+
+  /* ─── Theme tokens ─────────────────────────────────────────────── */
+  --bg-base:          #0f111a;   /* terminal + main background       */
+  --bg-titlebar:      #13151f;   /* titlebar / header                */
+  --bg-panel:         #171926;   /* dropdowns, modais                */
+  --bg-item:          #1d2030;   /* rows / list items                */
+  --bg-item-hover:    #25293d;   /* item no hover                    */
+  --bg-item-input:    #10121c;   /* inputs dentro de itens           */
+  --bg-tab-active:    #1b1e2c;   /* aba ativa                        */
+  --bg-tab-hover:     #222638;   /* aba inativa no hover             */
+
+  --accent-primary:   #38bdf8;   /* sky-400 — SSH, ativo, foco       */
+  --accent-secondary: #00e699;   /* verde — terminal local, cursor   */
+  --accent-sftp:      #818cf8;   /* indigo — SFTP                    */
+  --accent-warn:      #fbbf24;   /* amber — comandos VPS             */
+
+  --text-base:        #e6e6e6;   /* texto principal                  */
+  --text-muted:       #94a3b8;   /* slate-400 — textos secundários   */
+  --text-faint:       #64748b;   /* slate-500 — textos muito suaves  */
+  --text-special:     #fcd34d;   /* amber-300 — templates / comandos */
+
+  --border-subtle:    rgba(255, 255, 255, 0.08);
+  --border-panel:     rgba(255, 255, 255, 0.10);
+
+  --terminal-bg:      #0f111a;
+  --terminal-fg:      #e6e6e6;
+  --terminal-cursor-local: #00e699;
+  --terminal-cursor-ssh:   #38bdf8;
+  --terminal-selection:    rgba(255, 255, 255, 0.2);
+
+  --btn-primary-bg:       #0284c7;
+  --btn-primary-text:     #ffffff;
+  --btn-primary-hover:    #0369a1;
+
+  --btn-secondary-bg:     #1d2030;
+  --btn-secondary-text:   #94a3b8;
+  --btn-secondary-hover:  #25293d;
+
+  --btn-danger-bg:        #dc2626;
+  --btn-danger-text:      #ffffff;
+  --btn-danger-hover:     #b91c1c;
+
+  --btn-success-bg:       #059669;
+  --btn-success-text:     #ffffff;
+
+  --btn-glass-bg:         rgba(255, 255, 255, 0.06);
+  --btn-glass-text:       #e6e6e6;
+  --btn-glass-hover:      rgba(255, 255, 255, 0.12);
+
+  --btn-border:           rgba(255, 255, 255, 0.15);
+  --btn-radius:           6px;
+  --window-radius:        10px;
+
+  /* Elevated / Sombras controladas */
+  --shadow-btn:           0 1px 2px rgba(0, 0, 0, 0.15);
+  --shadow-item:          0 1px 2px rgba(0, 0, 0, 0.08);
+  --shadow-panel:         0 12px 36px rgba(0, 0, 0, 0.22);
+  --theme-elevation:      1;
+}
+
+html, body {
   width: 100vw;
   height: 100vh;
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background-color: #0f111a;
+  background-color: transparent !important;
 }
+
+#app {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--window-radius);
+  overflow: hidden;
+  background-color: var(--bg-base);
+}
+
+/* Itens e botões elevados */
+.bg-\[var\(--bg-item\)\] {
+  box-shadow: var(--shadow-item);
+}
+
 

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Button from '@/shared/components/Button.svelte';
+
   interface Props {
     isOpen: boolean;
     title: string;
@@ -126,27 +128,23 @@
       {/if}
 
       <!-- Botões de Ação -->
-      <div class="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
-        <button
-          type="button"
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-[var(--border-subtle)]">
+        <Button
+          variant="secondary"
+          size="sm"
           onclick={onClose}
-          class="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
         >
           {cancelText}
-        </button>
+        </Button>
 
-        <button
-          type="button"
+        <Button
+          variant={variant === 'danger' ? 'danger' : variant === 'warning' ? 'warn' : 'primary'}
+          size="sm"
           onclick={handleConfirm}
           disabled={inputMode && !textValue.trim()}
-          class="px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-md transition-all cursor-pointer flex items-center gap-1.5 {variant === 'danger'
-            ? 'bg-red-600 hover:bg-red-500 text-white'
-            : variant === 'warning'
-            ? 'bg-amber-600 hover:bg-amber-500 text-white'
-            : 'bg-blue-600 hover:bg-blue-500 text-white'} {inputMode && !textValue.trim() ? 'opacity-50 cursor-not-allowed' : ''}"
         >
           {confirmText}
-        </button>
+        </Button>
       </div>
     </div>
   </div>

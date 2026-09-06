@@ -3,9 +3,12 @@ import {
   type SshHost, 
   type SavedPath, 
   type CustomCommand, 
+  type AppTheme,
   defaultShortcuts, 
-  defaultCustomCommands 
+  defaultCustomCommands,
+  defaultTheme,
 } from '../types';
+
 
 export class ConfigService {
   // Hosts SSH
@@ -119,4 +122,49 @@ export class ConfigService {
       console.error('Erro ao salvar ~/.config/xterminium/commands.json', e);
     }
   }
+
+  // Tema
+  static async loadTheme(): Promise<AppTheme> {
+    try {
+      const content = await invoke<string>('load_config', { filename: 'theme' });
+      if (content && content.trim()) {
+        return { ...defaultTheme, ...JSON.parse(content) };
+      }
+    } catch (e) {
+      console.error('Erro ao ler ~/.config/xterminium/theme.json', e);
+    }
+    return { ...defaultTheme };
+  }
+
+  static async saveTheme(theme: AppTheme): Promise<void> {
+    try {
+      const json = JSON.stringify(theme, null, 2);
+      await invoke('save_config', { filename: 'theme', content: json });
+    } catch (e) {
+      console.error('Erro ao salvar ~/.config/xterminium/theme.json', e);
+    }
+  }
+
+  // Temas Customizados
+  static async loadCustomThemes(): Promise<AppTheme[]> {
+    try {
+      const content = await invoke<string>('load_config', { filename: 'custom_themes' });
+      if (content && content.trim()) {
+        return JSON.parse(content);
+      }
+    } catch (e) {
+      console.error('Erro ao ler ~/.config/xterminium/custom_themes.json', e);
+    }
+    return [];
+  }
+
+  static async saveCustomThemes(themes: AppTheme[]): Promise<void> {
+    try {
+      const json = JSON.stringify(themes, null, 2);
+      await invoke('save_config', { filename: 'custom_themes', content: json });
+    } catch (e) {
+      console.error('Erro ao salvar ~/.config/xterminium/custom_themes.json', e);
+    }
+  }
 }
+

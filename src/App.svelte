@@ -7,6 +7,7 @@
   import TerminalView from './features/terminal/components/TerminalView.svelte';
   import FileManagerModal from './features/sftp/components/FileManagerModal.svelte';
   import { type SshHost } from './core/types';
+  import { configStore } from './core/stores/config.svelte';
 
   interface TabData {
     id: string;
@@ -96,6 +97,7 @@
   }
 
   onMount(() => {
+    configStore.init();
     createTab('local');
 
     let unlisten: (() => void) | undefined;
@@ -146,7 +148,7 @@
   });
 </script>
 
-<div class="flex flex-col w-screen h-screen overflow-hidden bg-[#0f111a]">
+<div class="flex flex-col w-full h-full overflow-hidden rounded-[var(--window-radius)] bg-[var(--bg-base)]">
   <Titlebar
     {tabs}
     {activeTabId}
@@ -164,7 +166,7 @@
     }}
   />
 
-  <main class="flex-1 min-h-0 relative bg-[#0f111a]">
+  <main class="flex-1 min-h-0 relative bg-[var(--bg-base)]">
     {#each tabs as tab (tab.id)}
       {#if tab.type === 'sftp'}
         <div class="w-full h-full" style:display={activeTabId === tab.id ? 'block' : 'none'}>

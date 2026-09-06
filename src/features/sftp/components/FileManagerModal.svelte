@@ -17,6 +17,7 @@
   import ChecksumModal from './ChecksumModal.svelte';
   import NotificationsModal from './NotificationsModal.svelte';
   import { ConfirmModal } from '../../../shared/components';
+  import IconButton from '@/shared/components/IconButton.svelte';
 
   interface Props {
     isOpen?: boolean;
@@ -119,7 +120,7 @@
 
 {#if isOpen}
   {#snippet content()}
-    <div class="w-full h-full flex flex-col overflow-hidden bg-[#0f111a] text-sm text-gray-200">
+    <div class="w-full h-full flex flex-col overflow-hidden bg-[var(--bg-base)] text-sm text-[var(--text-base)]">
       <!-- Cabeçalho Principal Modularizado com Sininho e Notificações -->
       <FileManagerHeader
         showHiddenFiles={showHiddenFiles}
@@ -170,7 +171,7 @@
 
         <!-- PAINEL REMOTO (DIREITA) -->
         {#if !conn.isConnected}
-          <div class="flex-1 flex flex-col bg-[#12141d] border border-white/5 rounded-lg overflow-hidden">
+          <div class="flex-1 flex flex-col bg-[var(--bg-panel)] border border-[var(--border-subtle)] rounded-lg overflow-hidden">
             <ServerListPanel
               hosts={conn.savedHosts}
               isConnecting={conn.isConnecting}
@@ -180,9 +181,10 @@
           </div>
         {:else}
           {#snippet remoteActions()}
-            <button
+            <IconButton
               onclick={conn.disconnect}
-              class="p-1 text-red-400 hover:text-red-200 hover:bg-red-500/20 rounded border border-red-500/30 transition-all cursor-pointer flex items-center justify-center"
+              variant="danger"
+              size="sm"
               title="Desconectar do SFTP"
               aria-label="Desconectar"
             >
@@ -191,7 +193,7 @@
                 <polyline points="16 17 21 12 16 7"></polyline>
                 <line x1="21" y1="12" x2="9" y2="12"></line>
               </svg>
-            </button>
+            </IconButton>
           {/snippet}
 
           <FileListPanel
@@ -232,7 +234,7 @@
       }}
     >
       <div
-        class="bg-[#181a24] border border-white/10 rounded-xl shadow-2xl w-[92vw] max-w-5xl h-[80vh] flex flex-col overflow-hidden text-sm text-gray-200"
+        class="bg-[var(--bg-panel)] border border-[var(--border-panel)] rounded-xl shadow-2xl w-[92vw] max-w-5xl h-[80vh] flex flex-col overflow-hidden text-sm text-[var(--text-base)]"
       >
         {@render content()}
       </div>

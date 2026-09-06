@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Button from '@/shared/components/Button.svelte';
+
   interface Props {
     isOpen: boolean;
     sshUser: string;
@@ -47,26 +49,26 @@
     }}
   >
     <div
-      class="bg-[#181a26] border border-white/10 rounded-xl shadow-2xl w-full max-w-sm p-5 text-gray-200 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-150"
+      class="bg-[var(--bg-panel)] border border-[var(--border-panel)] rounded-xl shadow-2xl w-full max-w-sm p-5 text-[var(--text-base)] flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-150"
     >
       <!-- Cabeçalho do Mini Modal -->
-      <div class="flex items-center justify-between pb-2 border-b border-white/10">
+      <div class="flex items-center justify-between pb-2 border-b border-[var(--border-subtle)]">
         <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+          <div class="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500 dark:text-indigo-400">
             <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
               <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
             </svg>
           </div>
           <div>
-            <h3 class="text-sm font-semibold text-white">Autenticação SFTP</h3>
-            <p class="text-[11px] text-gray-400 font-mono">{sshUser}@{sshHost}</p>
+            <h3 class="text-sm font-semibold text-[var(--text-base)]">Autenticação SFTP</h3>
+            <p class="text-[11px] text-[var(--text-muted)] font-mono">{sshUser}@{sshHost}</p>
           </div>
         </div>
         <button
           type="button"
           onclick={onClose}
-          class="text-gray-400 hover:text-white p-1 rounded hover:bg-white/5 transition-colors cursor-pointer"
+          class="text-[var(--text-muted)] hover:text-[var(--text-base)] p-1 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
           title="Cancelar"
         >
           <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -78,7 +80,7 @@
 
       <form onsubmit={handleSubmit} class="flex flex-col gap-3">
         <div>
-          <label for="sftp-auth-password" class="block text-xs font-medium text-gray-300 mb-1.5">
+          <label for="sftp-auth-password" class="block text-xs font-medium text-[var(--text-base)] mb-1.5">
             Senha SSH da VPS
           </label>
           <div class="relative flex items-center">
@@ -88,13 +90,13 @@
               type={showPasswordText ? 'text' : 'password'}
               bind:value={authPassword}
               placeholder="Digite a senha..."
-              class="w-full bg-[#11131c] border border-white/10 rounded-lg px-3 py-2 pr-10 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition-all"
+              class="w-full bg-[var(--bg-item-input)] border border-[var(--border-subtle)] rounded-lg px-3 py-2 pr-10 text-xs text-[var(--text-base)] placeholder-[var(--text-faint)] focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition-all"
               autocomplete="current-password"
             />
             <button
               type="button"
               onclick={() => (showPasswordText = !showPasswordText)}
-              class="absolute right-2.5 text-gray-400 hover:text-gray-200 transition-colors cursor-pointer p-1"
+              class="absolute right-2.5 text-[var(--text-muted)] hover:text-[var(--text-base)] transition-colors cursor-pointer p-1"
               title={showPasswordText ? 'Ocultar senha' : 'Ver senha'}
             >
               {#if showPasswordText}
@@ -113,30 +115,26 @@
             </button>
           </div>
           {#if passwordError}
-            <p class="text-[11px] text-red-400 mt-1.5">{passwordError}</p>
+            <p class="text-[11px] text-red-500 dark:text-red-400 mt-1.5">{passwordError}</p>
           {/if}
         </div>
 
-        <div class="flex items-center justify-end gap-2 pt-2 border-t border-white/5">
-          <button
-            type="button"
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-[var(--border-subtle)]">
+          <Button
+            variant="secondary"
+            size="sm"
             onclick={onClose}
-            class="px-3 py-1.5 text-xs text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-all cursor-pointer"
           >
             Cancelar
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
-            disabled={isConnecting}
-            class="px-4 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-lg hover:shadow-indigo-500/20 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            variant="primary"
+            size="sm"
+            loading={isConnecting}
           >
-            {#if isConnecting}
-              <span class="inline-block animate-spin">⟳</span>
-              <span>Conectando...</span>
-            {:else}
-              <span>Autenticar</span>
-            {/if}
-          </button>
+            Autenticar
+          </Button>
         </div>
       </form>
     </div>
