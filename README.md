@@ -28,6 +28,22 @@
   <img src="./screenshots/shortcuts_modal.png" alt="Atalhos de Teclado" width="32%" />
 </p>
 
+<p align="center">
+  <b>Comandos &amp; Autocomplete VPS Configurável</b><br/>
+  <img src="./screenshots/command_triggers.png" alt="Comandos & Autocomplete VPS" width="600px" />
+</p>
+
+<p align="center">
+  <b>Sistema de Temas &amp; Aparência</b><br/>
+  <img src="./screenshots/theme_dark.png" alt="Temas - Default Dark" width="49%" />
+  <img src="./screenshots/theme_light.png" alt="Temas - Light Mode" width="49%" />
+</p>
+
+<p align="center">
+  <b>Formas, Arredondamento &amp; Elevação</b><br/>
+  <img src="./screenshots/theme_shapes.png" alt="Temas - Formas e Arredondamento" width="600px" />
+</p>
+
 ---
 
 ## 🎨 Como obter o mesmo visual dos prints

@@ -73,7 +73,7 @@
         onNewTab();
       },
       newWindow: () => {
-        invoke('open_new_window').catch(console.error);
+        invoke('new_window').catch(console.error);
       },
       clear: () => {
         term.clear();
