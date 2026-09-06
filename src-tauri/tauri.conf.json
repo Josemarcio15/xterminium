@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "xterminium",
-  "version": "0.0.5-alpha",
+  "version": "0.0.6-alpha",
   "identifier": "com.xterminium.app",
   "build": {
     "frontendDist": "../dist",

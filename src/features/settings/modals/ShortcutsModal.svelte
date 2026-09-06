@@ -66,6 +66,7 @@
       { id: 'paste', label: 'Colar', defaultKey: configStore.shortcuts.paste },
       { id: 'selectAll', label: 'Selecionar Tudo', defaultKey: configStore.shortcuts.selectAll || 'Ctrl+Shift+A' },
       { id: 'autocomplete', label: 'Autocomplete VPS', defaultKey: configStore.shortcuts.autocomplete || 'Ctrl+Space' },
+      { id: 'directoryAutocomplete', label: 'Autocomplete Diretórios', defaultKey: configStore.shortcuts.directoryAutocomplete || 'Shift+Space' },
       { id: 'stop', label: 'Parar Terminal (SIGINT)', defaultKey: configStore.shortcuts.stop },
       { id: 'newTab', label: 'Nova Aba', defaultKey: configStore.shortcuts.newTab },
       { id: 'newWindow', label: 'Nova Janela', defaultKey: configStore.shortcuts.newWindow },

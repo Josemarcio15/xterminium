@@ -4,10 +4,11 @@
   import { FitAddon } from '@xterm/addon-fit';
   import '@xterm/xterm/css/xterm.css';
   import { invoke } from '@tauri-apps/api/core';
-  import { type SshHost, type CustomCommand } from '../../../core/types';
+  import { type SshHost, type CustomCommand, type SavedPath } from '../../../core/types';
   import { ConfigService, PtyService } from '../../../core/services';
   import { normalizeShortcut, parseKeyboardEvent } from '../utils/shortcuts';
   import SshAutocompleteDropdown from './SshAutocompleteDropdown.svelte';
+  import DirectoryAutocompleteDropdown from './DirectoryAutocompleteDropdown.svelte';
 
   interface Props {
     id: string;
@@ -97,17 +98,26 @@
         return false;
       }
 
-      // Se o dropdown de autocomplete estiver ativo, capturar setas, Tab, Enter e Esc
+      // Atalho para disparar autocomplete de diretórios (configurável, padrão Shift+Space)
+      const dirShortcut = normalizeShortcut(shortcuts.directoryAutocomplete || 'Shift+Space');
+      if (pressed && pressed === dirShortcut) {
+        triggerDirectoryAutocomplete();
+        return false;
+      }
+
+      // Se o dropdown de autocomplete VPS estiver ativo, capturar setas, Tab, Enter e Esc
       if (showDropdown && filteredHosts.length > 0) {
-        if (e.key === 'ArrowDown') {
+        if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
+          e.preventDefault();
           selectedHostIndex = (selectedHostIndex + 1) % filteredHosts.length;
           return false;
         }
-        if (e.key === 'ArrowUp') {
+        if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
+          e.preventDefault();
           selectedHostIndex = (selectedHostIndex - 1 + filteredHosts.length) % filteredHosts.length;
           return false;
         }
-        if (e.key === 'Tab' || e.key === 'Enter') {
+        if (e.key === 'Enter') {
           e.preventDefault();
           e.stopPropagation();
           const selected = filteredHosts[selectedHostIndex];
@@ -120,6 +130,35 @@
           e.preventDefault();
           e.stopPropagation();
           closeAutocomplete();
+          return false;
+        }
+      }
+
+      // Se o dropdown de diretórios estiver ativo, capturar setas, Tab, Enter e Esc
+      if (showDirDropdown && filteredPaths.length > 0) {
+        if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
+          e.preventDefault();
+          selectedDirIndex = (selectedDirIndex + 1) % filteredPaths.length;
+          return false;
+        }
+        if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
+          e.preventDefault();
+          selectedDirIndex = (selectedDirIndex - 1 + filteredPaths.length) % filteredPaths.length;
+          return false;
+        }
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          e.stopPropagation();
+          const selected = filteredPaths[selectedDirIndex];
+          if (selected) {
+            applyDirectoryAutocomplete(selected);
+          }
+          return false;
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          e.stopPropagation();
+          closeDirAutocomplete();
           return false;
         }
       }
@@ -178,9 +217,12 @@
     }
 
     term.onData((data) => {
-      // Fecha o dropdown se o usuário der Enter ou Ctrl+C
+      // Fecha os dropdowns se o usuário der Enter ou Ctrl+C
       if (showDropdown && (data.includes('\r') || data.includes('\n') || data === '\x03' || data === '\x15')) {
         closeAutocomplete();
+      }
+      if (showDirDropdown && (data.includes('\r') || data.includes('\n') || data === '\x03' || data === '\x15')) {
+        closeDirAutocomplete();
       }
       PtyService.writePty(id, data).catch(console.error);
     });
@@ -191,7 +233,7 @@
     }, 50);
   });
 
-  // Estado do Autocomplete
+  // Estado do Autocomplete de VPS
   let availableSshHosts = $state<SshHost[]>([]);
   let availableCustomCommands = $state<CustomCommand[]>([]);
   let showDropdown = $state(false);
@@ -200,6 +242,14 @@
   let dropdownPosition = $state({ x: 100, y: 100 });
   let activeMatchedCommand = $state<CustomCommand | null>(null);
   let currentMatchedQuery = '';
+
+  // Estado do Autocomplete de Diretórios
+  let availablePaths = $state<SavedPath[]>([]);
+  let showDirDropdown = $state(false);
+  let filteredPaths = $state<SavedPath[]>([]);
+  let selectedDirIndex = $state(0);
+  let dirDropdownPosition = $state({ x: 100, y: 100 });
+  let currentDirMatchedQuery = '';
 
   async function triggerManualAutocomplete() {
     if (type !== 'local') return;
@@ -310,6 +360,94 @@
     currentMatchedQuery = '';
   }
 
+  // --- Autocomplete de Diretórios ---
+
+  async function triggerDirectoryAutocomplete() {
+    if (type !== 'local') return;
+
+    try {
+      availablePaths = await ConfigService.loadPaths();
+    } catch {
+      // Ignora erro
+    }
+
+    if (!availablePaths || availablePaths.length === 0 || !term) return;
+
+    // Obtém o texto antes do cursor
+    const buffer = term.buffer.active;
+    const cursorY = buffer.cursorY;
+    const lineObj = buffer.getLine(buffer.baseY + cursorY);
+    let textBeforeCursor = '';
+    if (lineObj) {
+      const fullLine = lineObj.translateToString(true);
+      textBeforeCursor = fullLine.slice(0, buffer.cursorX);
+    }
+
+    // Tenta pegar o último token como query de filtro
+    const match = textBeforeCursor.match(/([^\s]+)$/);
+    const query = match ? match[1] : '';
+
+    if (query.length > 0) {
+      const q = query.toLowerCase();
+      filteredPaths = availablePaths.filter((p) =>
+        p.name.toLowerCase().includes(q) || p.path.toLowerCase().includes(q)
+      );
+      currentDirMatchedQuery = query;
+    } else {
+      filteredPaths = [...availablePaths];
+      currentDirMatchedQuery = '';
+    }
+
+    if (filteredPaths.length > 0) {
+      selectedDirIndex = 0;
+      updateDirDropdownPosition();
+      showDirDropdown = true;
+    } else {
+      closeDirAutocomplete();
+    }
+  }
+
+  function updateDirDropdownPosition() {
+    if (!container || !term) return;
+    const rect = container.getBoundingClientRect();
+    const core = (term as any)._core;
+    const cellWidth = core?._renderService?.dimensions?.css?.cell?.width || 9;
+    const cellHeight = core?._renderService?.dimensions?.css?.cell?.height || 17;
+
+    const cursorX = term.buffer.active.cursorX;
+    const cursorY = term.buffer.active.cursorY;
+
+    const posX = rect.left + cursorX * cellWidth;
+    const posY = rect.top + (cursorY + 1.2) * cellHeight;
+    const finalY = posY + 200 > window.innerHeight ? Math.max(10, posY - 220) : posY;
+
+    dirDropdownPosition = {
+      x: Math.min(posX, window.innerWidth - 340),
+      y: finalY,
+    };
+  }
+
+  function closeDirAutocomplete() {
+    showDirDropdown = false;
+    filteredPaths = [];
+    selectedDirIndex = 0;
+    currentDirMatchedQuery = '';
+  }
+
+  function applyDirectoryAutocomplete(savedPath: SavedPath) {
+    if (!savedPath) return;
+
+    // Apaga o prefixo digitado (se houver) e insere apenas o path
+    const backspaces = '\x7f'.repeat(currentDirMatchedQuery.length);
+    PtyService.writePty(id, backspaces + savedPath.path).catch(console.error);
+
+    closeDirAutocomplete();
+    term.focus();
+    requestAnimationFrame(() => {
+      term.focus();
+    });
+  }
+
   function applyAutocomplete(host: SshHost) {
     if (!host) return;
 
@@ -386,6 +524,15 @@
     position={dropdownPosition}
     commandName={activeMatchedCommand?.command || 'vps'}
     onSelect={applyAutocomplete}
+  />
+{/if}
+
+{#if showDirDropdown && active}
+  <DirectoryAutocompleteDropdown
+    paths={filteredPaths}
+    selectedIndex={selectedDirIndex}
+    position={dirDropdownPosition}
+    onSelect={applyDirectoryAutocomplete}
   />
 {/if}
 

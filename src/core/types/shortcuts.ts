@@ -9,6 +9,7 @@ export const defaultShortcuts: Record<string, string> = {
   paste: 'Ctrl+Shift+V',
   selectAll: 'Ctrl+Shift+A',
   autocomplete: 'Ctrl+Space',
+  directoryAutocomplete: 'Shift+Space',
   stop: 'Ctrl+C',
   newTab: 'Ctrl+Shift+T',
   newWindow: 'Ctrl+Shift+N',

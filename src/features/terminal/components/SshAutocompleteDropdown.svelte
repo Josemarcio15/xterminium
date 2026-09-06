@@ -23,7 +23,7 @@
         <span class="w-1.5 h-1.5 rounded-full bg-sky-400 shadow-[0_0_6px_#38bdf8]"></span>
         Hosts Salvos ({commandName.toUpperCase()})
       </span>
-      <span class="text-[9px] text-slate-500 lowercase font-normal">Tab / Enter</span>
+      <span class="text-[9px] text-slate-500 lowercase font-normal">Tab ↕ · Enter</span>
     </div>
 
     <!-- Lista de hosts sugeridos -->
