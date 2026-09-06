@@ -1,6 +1,6 @@
 [package]
 name = "xterminium"
-version = "0.0.2-alpha"
+version = "0.0.5-alpha"
 description = "A modern, fast and customizable desktop terminal emulator built with Tauri and Svelte"
 license = "MIT"
 edition = "2021"
@@ -27,4 +27,6 @@ russh = "0.45"
 russh-keys = "0.45"
 russh-sftp = "2.0"
 async-trait = "0.1"
+futures = "0.3.34"
+sha2 = "0.10.9"
 
