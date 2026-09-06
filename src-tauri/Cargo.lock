@@ -5655,9 +5655,10 @@ dependencies = [
 
 [[package]]
 name = "xterminium"
-version = "0.0.2-alpha"
+version = "0.0.5-alpha"
 dependencies = [
  "async-trait",
+ "futures",
  "log",
  "portable-pty",
  "russh",
@@ -5665,6 +5666,7 @@ dependencies = [
  "russh-sftp",
  "serde",
  "serde_json",
+ "sha2",
  "tauri",
  "tauri-build",
  "tauri-plugin-log",

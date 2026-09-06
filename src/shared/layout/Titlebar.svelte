@@ -89,13 +89,18 @@
           <span class="w-1.5 h-1.5 rounded-full {tab.type === 'ssh' ? 'bg-sky-400 shadow-[0_0_6px_#38bdf8]' : tab.type === 'sftp' ? 'bg-indigo-400 shadow-[0_0_6px_#818cf8]' : 'bg-[#00e699]'}"></span>
           <span class="max-w-[140px] overflow-hidden text-ellipsis">{tab.title}</span>
           <span 
-            class="bg-transparent border-none text-inherit text-sm leading-none px-0.5 rounded cursor-pointer opacity-60 hover:opacity-100 hover:bg-white/15" 
+            class="bg-transparent border-none text-inherit text-xs leading-none p-0.5 rounded cursor-pointer opacity-60 hover:opacity-100 hover:bg-white/15 flex items-center justify-center" 
             onclick={(e) => onCloseTab(tab.id, e)} 
             onkeydown={(e) => e.key === 'Enter' && onCloseTab(tab.id, e as unknown as MouseEvent)}
             role="button" 
             tabindex="0" 
             title="Fechar aba"
-          >×</span>
+          >
+            <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </span>
         </button>
       {/each}
     </div>

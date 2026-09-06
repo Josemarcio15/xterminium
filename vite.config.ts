@@ -9,4 +9,16 @@ export default defineConfig({
     port: 8080,
     strictPort: true,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/@xterm')) {
+            return 'xterm-vendor';
+          }
+        },
+      },
+    },
+  },
 })
+

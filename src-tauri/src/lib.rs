@@ -6,8 +6,8 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use tauri::{AppHandle, Emitter, State};
 
-pub mod sftp_manager;
-use sftp_manager::{get_local_home_dir, list_local_directory, FileEntry, SftpState};
+pub mod sftp;
+use sftp::{get_local_home_dir, list_local_directory, FileEntry, SftpState};
 
 struct PtySession {
     writer: Arc<Mutex<Box<dyn Write + Send>>>,
@@ -120,7 +120,7 @@ fn read_clipboard(_app: AppHandle) -> Result<String, String> {
                 }
             }
         }
-        if let Ok(output) = std::process::Command::new("xclip").args(&["-selection", "clipboard", "-o"]).output() {
+        if let Ok(output) = std::process::Command::new("xclip").args(["-selection", "clipboard", "-o"]).output() {
             if output.status.success() {
                 if let Ok(text) = String::from_utf8(output.stdout) {
                     return Ok(text);
@@ -148,7 +148,7 @@ fn write_clipboard(text: String) -> Result<(), String> {
         }
 
         if let Ok(mut child) = std::process::Command::new("xclip")
-            .args(&["-selection", "clipboard"])
+            .args(["-selection", "clipboard"])
             .stdin(Stdio::piped())
             .spawn()
         {
@@ -351,23 +351,139 @@ fn sftp_get_local_home() -> Result<String, String> {
 }
 
 #[tauri::command]
-async fn sftp_upload_item(
-    local_path: String,
-    remote_dir: String,
+async fn sftp_create_dir(
+    path: String,
     sftp_state: State<'_, SftpState>,
 ) -> Result<(), String> {
-    let local = PathBuf::from(&local_path);
-    sftp_state.upload_item_recursive(&local, &remote_dir).await
+    sftp_state.create_remote_dir(&path).await
 }
 
 #[tauri::command]
-async fn sftp_download_item(
-    remote_path: String,
-    local_dir: String,
+async fn sftp_create_file(
+    path: String,
     sftp_state: State<'_, SftpState>,
 ) -> Result<(), String> {
-    let local = PathBuf::from(&local_dir);
-    sftp_state.download_item_recursive(&remote_path, &local).await
+    sftp_state.create_remote_file(&path).await
+}
+
+#[tauri::command]
+async fn sftp_rename(
+    old_path: String,
+    new_path: String,
+    sftp_state: State<'_, SftpState>,
+) -> Result<(), String> {
+    sftp_state.rename_remote(&old_path, &new_path).await
+}
+
+#[tauri::command]
+async fn sftp_remove_file(
+    path: String,
+    sftp_state: State<'_, SftpState>,
+) -> Result<(), String> {
+    sftp_state.remove_remote_file(&path).await
+}
+
+#[tauri::command]
+async fn sftp_remove_dir(
+    path: String,
+    sftp_state: State<'_, SftpState>,
+) -> Result<(), String> {
+    sftp_state.remove_remote_dir(&path).await
+}
+
+#[tauri::command]
+async fn sftp_download_file(
+    app: AppHandle,
+    remote_path: String,
+    local_path: String,
+    sftp_state: State<'_, SftpState>,
+) -> Result<(), String> {
+    sftp_state.download_file(&app, &remote_path, &local_path).await
+}
+
+#[tauri::command]
+async fn sftp_upload_file(
+    app: AppHandle,
+    local_path: String,
+    remote_path: String,
+    sftp_state: State<'_, SftpState>,
+) -> Result<(), String> {
+    sftp_state.upload_file(&app, &local_path, &remote_path).await
+}
+
+#[tauri::command]
+async fn sftp_calculate_local_hash(
+    local_path: String,
+    sftp_state: State<'_, SftpState>,
+) -> Result<String, String> {
+    sftp_state.calculate_local_sha256(&local_path).await
+}
+
+#[tauri::command]
+async fn sftp_calculate_remote_hash(
+    remote_path: String,
+    sftp_state: State<'_, SftpState>,
+) -> Result<String, String> {
+    sftp_state.calculate_remote_sha256(&remote_path).await
+}
+
+#[tauri::command]
+async fn sftp_create_local_dir(
+    path: String,
+    sftp_state: State<'_, SftpState>,
+) -> Result<(), String> {
+    sftp_state.create_local_dir(&path).await
+}
+
+#[tauri::command]
+async fn sftp_create_local_file(
+    path: String,
+    sftp_state: State<'_, SftpState>,
+) -> Result<(), String> {
+    sftp_state.create_local_file(&path).await
+}
+
+#[tauri::command]
+async fn sftp_rename_local(
+    old_path: String,
+    new_path: String,
+    sftp_state: State<'_, SftpState>,
+) -> Result<(), String> {
+    sftp_state.rename_local(&old_path, &new_path).await
+}
+
+#[tauri::command]
+async fn sftp_remove_local_file(
+    path: String,
+    sftp_state: State<'_, SftpState>,
+) -> Result<(), String> {
+    sftp_state.remove_local_file(&path).await
+}
+
+#[tauri::command]
+async fn sftp_remove_local_dir(
+    path: String,
+    sftp_state: State<'_, SftpState>,
+) -> Result<(), String> {
+    sftp_state.remove_local_dir(&path).await
+}
+
+#[tauri::command]
+async fn sftp_exec_remote_sudo(
+    password: String,
+    command: String,
+    sftp_state: State<'_, SftpState>,
+) -> Result<(), String> {
+    sftp_state.exec_remote_sudo(&password, &command).await
+}
+
+#[tauri::command]
+async fn sftp_exec_local_sudo(
+    password: String,
+    command: String,
+    sftp_state: State<'_, SftpState>,
+) -> Result<(), String> {
+    sftp_state.exec_local_sudo(&password, &command).await
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -394,8 +510,22 @@ pub fn run() {
             sftp_list_remote,
             sftp_list_local,
             sftp_get_local_home,
-            sftp_upload_item,
-            sftp_download_item
+            sftp_create_dir,
+            sftp_create_file,
+            sftp_rename,
+            sftp_remove_file,
+            sftp_remove_dir,
+            sftp_create_local_dir,
+            sftp_create_local_file,
+            sftp_rename_local,
+            sftp_remove_local_file,
+            sftp_remove_local_dir,
+            sftp_download_file,
+            sftp_upload_file,
+            sftp_calculate_local_hash,
+            sftp_calculate_remote_hash,
+            sftp_exec_remote_sudo,
+            sftp_exec_local_sudo
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {

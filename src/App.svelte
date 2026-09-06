@@ -39,7 +39,7 @@
     }
 
     const id = crypto.randomUUID();
-    const title = sshHost ? `📁 ${sshHost.label || sshHost.ip}` : '📁 SFTP';
+    const title = sshHost ? (sshHost.label || sshHost.ip) : 'SFTP';
     tabs.push({
       id,
       title,
