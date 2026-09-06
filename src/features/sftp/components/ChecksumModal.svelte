@@ -1,5 +1,6 @@
 <script lang="ts">
   import { SftpService, type FileItem } from '../../../core/services';
+  import Button from '@/shared/components/Button.svelte';
 
   interface Props {
     isOpen: boolean;
@@ -81,27 +82,27 @@
   >
     <!-- Modal container que expande até o tamanho do hash sem cortar (min-w e max-w dinâmico) -->
     <div
-      class="bg-[#12141d] border border-white/10 rounded-xl shadow-2xl p-6 flex flex-col gap-5 text-gray-200 w-auto min-w-[560px] max-w-[95vw] transition-all"
+      class="bg-[var(--bg-panel)] border border-[var(--border-panel)] rounded-xl shadow-2xl p-6 flex flex-col gap-5 text-[var(--text-base)] w-auto min-w-[560px] max-w-[95vw] transition-all"
       onclick={(e) => e.stopPropagation()}
     >
       <!-- Cabeçalho -->
-      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+      <div class="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
         <div class="flex items-center gap-2.5">
-          <div class="p-2 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-400">
+          <div class="p-2 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-500 dark:text-indigo-400">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
               <path d="m9 12 2 2 4-4"></path>
             </svg>
           </div>
           <div>
-            <h3 class="font-semibold text-sm text-white">Verificação de Integridade (SHA-256)</h3>
-            <p class="text-xs text-gray-400">Comparação criptográfica do arquivo local e remoto</p>
+            <h3 class="font-semibold text-sm text-[var(--text-base)]">Verificação de Integridade (SHA-256)</h3>
+            <p class="text-xs text-[var(--text-muted)]">Comparação criptográfica do arquivo local e remoto</p>
           </div>
         </div>
 
         <button
           onclick={onClose}
-          class="text-gray-400 hover:text-white p-1 rounded-md hover:bg-white/5 transition-colors cursor-pointer"
+          class="text-[var(--text-muted)] hover:text-[var(--text-base)] p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
           title="Fechar"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -114,12 +115,12 @@
       <!-- Status de Correspondência (quando ambos forem verificados) -->
       {#if localFile && remoteFile}
         <div class="flex items-center gap-2 px-3 py-2 rounded-lg border text-xs {hashesMatch
-          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-300'
           : (loadingLocal || loadingRemote
-              ? 'bg-blue-500/10 border-blue-500/30 text-blue-300'
-              : 'bg-amber-500/10 border-amber-500/30 text-amber-300')}">
+              ? 'bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-300'
+              : 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-300')}">
           {#if loadingLocal || loadingRemote}
-            <div class="w-3 h-3 rounded-full border-2 border-blue-400 border-t-transparent animate-spin"></div>
+            <div class="w-3 h-3 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"></div>
             <span>Calculando hashes em paralelo...</span>
           {:else if hashesMatch}
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -141,18 +142,18 @@
       <div class="flex flex-col gap-4">
         <!-- Hash Local -->
         {#if localFile}
-          <div class="flex flex-col gap-1.5 bg-black/40 p-3.5 rounded-lg border border-white/5">
+          <div class="flex flex-col gap-1.5 bg-[var(--bg-item)] p-3.5 rounded-lg border border-[var(--border-subtle)]">
             <div class="flex items-center justify-between text-xs">
-              <span class="text-purple-300 font-semibold flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-purple-400"></span>
-                Arquivo Local: <span class="text-white font-mono">{localFile.name}</span>
+              <span class="text-purple-600 dark:text-purple-300 font-semibold flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                Arquivo Local: <span class="text-[var(--text-base)] font-mono">{localFile.name}</span>
               </span>
               {#if localHash}
-                <button
+                <Button
+                  size="xs"
+                  variant={copiedField === 'local' ? 'success' : 'secondary'}
                   onclick={() => copyToClipboard(localHash!, 'local')}
-                  class="text-[11px] px-2.5 py-1 rounded-md border transition-all cursor-pointer flex items-center gap-1.5 font-medium {copiedField === 'local'
-                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                    : 'bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 hover:text-white border-purple-500/30 active:scale-95'}"
+                  class="gap-1.5 font-medium"
                   title="Copiar hash SHA-256 local"
                 >
                   {#if copiedField === 'local'}
@@ -167,17 +168,17 @@
                     </svg>
                     <span>Copiar Hash</span>
                   {/if}
-                </button>
+                </Button>
               {/if}
             </div>
 
-            <div class="font-mono text-xs text-gray-300 break-all select-all tracking-wide bg-[#0c0e14] px-3 py-2 rounded border border-white/5">
+            <div class="font-mono text-xs text-[var(--text-base)] break-all select-all tracking-wide bg-[var(--bg-item-input)] px-3 py-2 rounded border border-[var(--border-subtle)]">
               {#if loadingLocal}
-                <span class="text-gray-500 italic animate-pulse">Calculando SHA-256 do arquivo local...</span>
+                <span class="text-[var(--text-muted)] italic animate-pulse">Calculando SHA-256 do arquivo local...</span>
               {:else if errorLocal}
-                <span class="text-red-400">{errorLocal}</span>
+                <span class="text-red-500 dark:text-red-400">{errorLocal}</span>
               {:else if localHash}
-                <span class="text-purple-200 font-medium">{localHash}</span>
+                <span class="text-purple-600 dark:text-purple-300 font-medium">{localHash}</span>
               {/if}
             </div>
           </div>
@@ -185,18 +186,18 @@
 
         <!-- Hash Remoto -->
         {#if remoteFile}
-          <div class="flex flex-col gap-1.5 bg-black/40 p-3.5 rounded-lg border border-white/5">
+          <div class="flex flex-col gap-1.5 bg-[var(--bg-item)] p-3.5 rounded-lg border border-[var(--border-subtle)]">
             <div class="flex items-center justify-between text-xs">
-              <span class="text-blue-300 font-semibold flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-blue-400"></span>
-                Arquivo Remoto (VPS): <span class="text-white font-mono">{remoteFile.name}</span>
+              <span class="text-blue-600 dark:text-blue-300 font-semibold flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                Arquivo Remoto (VPS): <span class="text-[var(--text-base)] font-mono">{remoteFile.name}</span>
               </span>
               {#if remoteHash}
-                <button
+                <Button
+                  size="xs"
+                  variant={copiedField === 'remote' ? 'success' : 'secondary'}
                   onclick={() => copyToClipboard(remoteHash!, 'remote')}
-                  class="text-[11px] px-2.5 py-1 rounded-md border transition-all cursor-pointer flex items-center gap-1.5 font-medium {copiedField === 'remote'
-                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                    : 'bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 hover:text-white border-purple-500/30 active:scale-95'}"
+                  class="gap-1.5 font-medium"
                   title="Copiar hash SHA-256 remoto"
                 >
                   {#if copiedField === 'remote'}
@@ -211,17 +212,17 @@
                     </svg>
                     <span>Copiar Hash</span>
                   {/if}
-                </button>
+                </Button>
               {/if}
             </div>
 
-            <div class="font-mono text-xs text-gray-300 break-all select-all tracking-wide bg-[#0c0e14] px-3 py-2 rounded border border-white/5">
+            <div class="font-mono text-xs text-[var(--text-base)] break-all select-all tracking-wide bg-[var(--bg-item-input)] px-3 py-2 rounded border border-[var(--border-subtle)]">
               {#if loadingRemote}
-                <span class="text-gray-500 italic animate-pulse">Calculando SHA-256 via streaming SFTP...</span>
+                <span class="text-[var(--text-muted)] italic animate-pulse">Calculando SHA-256 via streaming SFTP...</span>
               {:else if errorRemote}
-                <span class="text-red-400">{errorRemote}</span>
+                <span class="text-red-500 dark:text-red-400">{errorRemote}</span>
               {:else if remoteHash}
-                <span class="text-blue-200 font-medium">{remoteHash}</span>
+                <span class="text-blue-600 dark:text-blue-300 font-medium">{remoteHash}</span>
               {/if}
             </div>
           </div>
@@ -229,13 +230,14 @@
       </div>
 
       <!-- Rodapé -->
-      <div class="flex justify-end pt-2 border-t border-white/5">
-        <button
+      <div class="flex justify-end pt-2 border-t border-[var(--border-subtle)]">
+        <Button
+          variant="primary"
+          size="sm"
           onclick={onClose}
-          class="px-4 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-white border border-indigo-500/30 text-xs font-semibold shadow-sm transition-all cursor-pointer active:scale-95 flex items-center gap-1.5"
         >
-          <span>Fechar</span>
-        </button>
+          Fechar
+        </Button>
       </div>
     </div>
   </div>

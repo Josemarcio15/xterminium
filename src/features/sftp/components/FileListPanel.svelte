@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { FileItem } from '../../../core/services';
   import FileListItem from './FileListItem.svelte';
+  import IconButton from '@/shared/components/IconButton.svelte';
 
   interface Props {
     title: string;
@@ -70,14 +71,14 @@
   }}
 />
 
-<div class="flex-1 flex flex-col bg-[#12141d] border border-white/5 rounded-lg overflow-hidden select-none">
+<div class="flex-1 flex flex-col bg-[var(--bg-panel)] border border-[var(--border-subtle)] rounded-lg overflow-hidden select-none">
   <!-- Cabeçalho do Painel -->
-  <div class="p-2 bg-[#161822] border-b border-white/5 flex items-center justify-between gap-2 relative">
+  <div class="p-2 bg-[var(--bg-item)] border-b border-[var(--border-subtle)] flex items-center justify-between gap-2 relative">
     <div class="flex items-center gap-2 flex-1 min-w-0 transition-all">
       <span
         class="text-xs font-semibold px-2 py-0.5 rounded border shrink-0 {tagColor === 'purple'
-          ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
-          : 'bg-blue-500/20 text-blue-300 border-blue-500/30'}"
+          ? 'bg-purple-500/20 text-purple-600 dark:text-purple-300 border-purple-500/30'
+          : 'bg-blue-500/20 text-blue-600 dark:text-blue-300 border-blue-500/30'}"
       >
         {title}
       </span>
@@ -103,35 +104,30 @@
               }, 150);
             }}
             placeholder="Digite o caminho..."
-            class="flex-1 min-w-0 px-2 py-0.5 rounded text-xs font-mono focus:outline-none shadow-inner {tagColor === 'purple'
-              ? 'bg-purple-950/40 border border-purple-500/40 text-purple-100 focus:border-purple-400 focus:ring-1 focus:ring-purple-500/30'
-              : 'bg-blue-950/40 border border-blue-500/40 text-blue-100 focus:border-blue-400 focus:ring-1 focus:ring-blue-500/30'}"
+            class="flex-1 min-w-0 px-2 py-0.5 rounded text-xs font-mono focus:outline-none shadow-inner bg-[var(--bg-item-input)] border border-[var(--border-subtle)] text-[var(--text-base)] placeholder-[var(--text-faint)] focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)]/30"
           />
-          <button
+          <IconButton
             type="submit"
-            class="p-1 rounded text-white shadow transition-all cursor-pointer flex items-center justify-center shrink-0 {tagColor === 'purple'
-              ? 'bg-purple-600 hover:bg-purple-500'
-              : 'bg-blue-600 hover:bg-blue-500'}"
+            variant="primary"
+            size="xs"
             title="Ir para o caminho digitado"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="5" y1="12" x2="19" y2="12"></line>
               <polyline points="12 5 19 12 12 19"></polyline>
             </svg>
-          </button>
+          </IconButton>
         </form>
       {:else}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
           onclick={startEditingPath}
-          class="text-xs px-2 py-0.5 rounded cursor-pointer truncate flex-1 font-mono transition-all border flex items-center justify-between gap-1 group {tagColor === 'purple'
-            ? 'bg-purple-500/10 hover:bg-purple-500/20 text-purple-200/90 hover:text-white border-purple-500/20 hover:border-purple-500/40'
-            : 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-200/90 hover:text-white border-blue-500/20 hover:border-blue-500/40'}"
+          class="text-xs px-2 py-0.5 rounded cursor-pointer truncate flex-1 font-mono transition-all border flex items-center justify-between gap-1 group bg-[var(--bg-item-input)] hover:bg-[var(--bg-panel)] text-[var(--text-base)] border-[var(--border-subtle)] hover:border-[var(--border-panel)]"
           title="Clique para digitar o caminho manualmente"
         >
           <span class="truncate">{path || (loading ? 'Carregando...' : '/')}</span>
-          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-0 group-hover:opacity-80 shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-0 group-hover:opacity-80 shrink-0 text-[var(--text-muted)]">
             <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
           </svg>
         </div>
@@ -141,16 +137,17 @@
     <!-- Controles de Ação Compactos -->
     <div class="flex items-center gap-1.5 shrink-0 relative">
       <!-- Botão Subir Nível -->
-      <button
+      <IconButton
         onclick={onGoUp}
-        class="p-1.5 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white rounded border border-white/10 transition-all cursor-pointer flex items-center justify-center"
+        variant="secondary"
+        size="sm"
         title="Subir um nível de diretório"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="12" y1="19" x2="12" y2="5"></line>
           <polyline points="5 12 12 5 19 12"></polyline>
         </svg>
-      </button>
+      </IconButton>
 
       <!-- Botão Menu Hambúrguer -->
       <div class="relative">
@@ -160,8 +157,8 @@
             isMenuOpen = !isMenuOpen;
           }}
           class="p-1.5 rounded border transition-all flex items-center justify-center cursor-pointer {isMenuOpen
-            ? 'bg-white/15 text-white border-white/30'
-            : 'bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border-white/10'}"
+            ? 'bg-black/10 dark:bg-white/15 text-[var(--text-base)] border-[var(--border-panel)]'
+            : 'bg-[var(--bg-panel)] hover:bg-black/5 dark:hover:bg-white/10 text-[var(--text-muted)] hover:text-[var(--text-base)] border-[var(--border-subtle)]'}"
           title="Opções e Ações"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -177,7 +174,7 @@
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div
             onclick={(e) => e.stopPropagation()}
-            class="absolute right-0 top-full mt-1.5 w-48 bg-[#181a24] border border-white/15 rounded-lg shadow-2xl py-1 z-50 text-xs flex flex-col gap-0.5 backdrop-blur-md animate-in fade-in zoom-in-95 duration-100"
+            class="absolute right-0 top-full mt-1.5 w-48 bg-[var(--bg-panel)] border border-[var(--border-panel)] rounded-lg shadow-2xl py-1 z-50 text-xs flex flex-col gap-0.5 backdrop-blur-md animate-in fade-in zoom-in-95 duration-100"
           >
             <!-- Novo Arquivo (Local ou Remoto) -->
             {#if onCreateFile}
@@ -186,9 +183,9 @@
                   isMenuOpen = false;
                   onCreateFile();
                 }}
-                class="w-full px-3 py-1.5 text-left flex items-center gap-2 text-gray-300 hover:text-white hover:bg-blue-600/20 transition-colors cursor-pointer"
+                class="w-full px-3 py-1.5 text-left flex items-center gap-2 text-[var(--text-base)] hover:bg-blue-600/15 transition-colors cursor-pointer"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-500 dark:text-blue-400">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                   <polyline points="14 2 14 8 20 8"></polyline>
                   <line x1="12" y1="18" x2="12" y2="12"></line>
@@ -205,9 +202,9 @@
                   isMenuOpen = false;
                   onCreateFolder();
                 }}
-                class="w-full px-3 py-1.5 text-left flex items-center gap-2 text-gray-300 hover:text-white hover:bg-amber-500/20 transition-colors cursor-pointer"
+                class="w-full px-3 py-1.5 text-left flex items-center gap-2 text-[var(--text-base)] hover:bg-amber-500/15 transition-colors cursor-pointer"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-500 dark:text-amber-400">
                   <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
                   <line x1="12" y1="11" x2="12" y2="17"></line>
                   <line x1="9" y1="14" x2="15" y2="14"></line>
@@ -217,7 +214,7 @@
             {/if}
 
             {#if onRename || onDelete}
-              <div class="my-1 border-t border-white/5"></div>
+              <div class="my-1 border-t border-[var(--border-subtle)]"></div>
             {/if}
 
             <!-- Renomear Item Selecionado -->
@@ -229,10 +226,10 @@
                 }}
                 disabled={!selectedFile}
                 class="w-full px-3 py-1.5 text-left flex items-center gap-2 {selectedFile
-                  ? 'text-gray-300 hover:text-white hover:bg-purple-600/20 cursor-pointer'
-                  : 'text-gray-600 cursor-not-allowed opacity-50'}"
+                  ? 'text-[var(--text-base)] hover:bg-purple-600/15 cursor-pointer'
+                  : 'text-[var(--text-faint)] cursor-not-allowed opacity-50'}"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-purple-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-purple-500 dark:text-purple-400">
                   <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
                 </svg>
                 <span>Renomear</span>
@@ -248,10 +245,10 @@
                 }}
                 disabled={!selectedFile}
                 class="w-full px-3 py-1.5 text-left flex items-center gap-2 {selectedFile
-                  ? 'text-red-400 hover:text-red-200 hover:bg-red-500/20 cursor-pointer'
-                  : 'text-gray-600 cursor-not-allowed opacity-50'}"
+                  ? 'text-red-500 dark:text-red-400 hover:bg-red-500/15 cursor-pointer'
+                  : 'text-[var(--text-faint)] cursor-not-allowed opacity-50'}"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-500 dark:text-red-400">
                   <polyline points="3 6 5 6 21 6"></polyline>
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                 </svg>
@@ -260,7 +257,7 @@
             {/if}
 
             {#if extraActionsSnippet}
-              <div class="my-1 border-t border-white/5"></div>
+              <div class="my-1 border-t border-[var(--border-subtle)]"></div>
               <div class="px-2 py-1 flex items-center">
                 {@render extraActionsSnippet()}
               </div>
@@ -274,9 +271,9 @@
   <!-- Lista de Arquivos -->
   <div class="flex-1 overflow-y-auto p-1 space-y-0.5">
     {#if loading}
-      <div class="p-4 text-center text-xs text-gray-500">Lendo arquivos...</div>
+      <div class="p-4 text-center text-xs text-[var(--text-muted)]">Lendo arquivos...</div>
     {:else if files.length === 0}
-      <div class="p-4 text-center text-xs text-gray-500">Pasta vazia</div>
+      <div class="p-4 text-center text-xs text-[var(--text-muted)]">Pasta vazia</div>
     {:else}
       {#each files as item (item.path)}
         <FileListItem

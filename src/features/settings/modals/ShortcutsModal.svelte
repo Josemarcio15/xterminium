@@ -2,6 +2,7 @@
   import { configStore } from '../../../core/stores/config.svelte';
   import { parseKeyboardEvent } from '../../terminal/utils/shortcuts';
   import Modal from '../../../shared/components/Modal.svelte';
+  import Button from '@/shared/components/Button.svelte';
 
   interface Props {
     show: boolean;
@@ -49,16 +50,17 @@
   {/snippet}
 
   {#snippet actions()}
-    <button 
-      class="bg-transparent border border-white/10 text-slate-400 px-2 py-0.5 rounded text-[11px] hover:bg-white/10 hover:text-white cursor-pointer transition-all" 
+    <Button
+      variant="secondary"
+      size="xs"
       onclick={() => configStore.resetShortcuts()}
       title="Restaurar padrão"
     >
       Padrão
-    </button>
+    </Button>
   {/snippet}
 
-  <p class="text-[11px] text-slate-400 mb-2.5">Salvo em <code class="bg-white/10 text-sky-400 px-1 py-0.5 rounded font-mono">~/.config/xterminium/shortcuts.json</code></p>
+  <p class="text-[11px] text-[var(--text-muted)] mb-2.5">Salvo em <code class="bg-[var(--bg-item)] border border-[var(--border-subtle)] text-sky-600 dark:text-sky-400 px-1 py-0.5 rounded font-mono">~/.config/xterminium/shortcuts.json</code></p>
 
   <div class="flex flex-col gap-1.5">
     {#each [
@@ -70,20 +72,22 @@
       { id: 'newTab', label: 'Nova Aba', defaultKey: configStore.shortcuts.newTab },
       { id: 'newWindow', label: 'Nova Janela', defaultKey: configStore.shortcuts.newWindow },
     ] as item}
-      <div class="flex justify-between items-center px-2.5 py-1.5 rounded-md bg-[#1d2030] {recordingActionId === item.id ? 'ring-1 ring-sky-400' : ''}">
-        <span class="text-xs font-medium text-slate-200">{item.label}</span>
+      <div class="flex justify-between items-center px-2.5 py-1.5 rounded-lg bg-[var(--bg-item)] border border-[var(--border-subtle)] {recordingActionId === item.id ? 'ring-1 ring-sky-400' : ''}">
+        <span class="text-xs font-medium text-[var(--text-base)]">{item.label}</span>
         <div class="flex items-center gap-1.5">
-          <button 
-            class="bg-[#10121c] border border-white/15 text-sky-400 px-2 py-1 rounded text-[11px] font-mono cursor-pointer hover:border-sky-400 hover:bg-sky-400/10 transition-all {recordingActionId === item.id ? '!bg-sky-400 !text-slate-950 font-bold animate-pulse' : ''}" 
+          <Button 
+            variant="glass"
+            size="xs"
+            class="font-mono text-[11px] {recordingActionId === item.id ? '!bg-sky-400 !text-slate-950 font-bold animate-pulse' : ''}" 
             onclick={() => (recordingActionId = item.id)}
             onkeydown={(e) => recordingActionId === item.id && handleRecordKeyDown(e, item.id)}
           >
             {recordingActionId === item.id ? 'Pressione teclas...' : item.defaultKey}
-          </button>
+          </Button>
           <!-- Botão Lápis SVG para editar atalho -->
           <button
             type="button"
-            class="text-slate-400 hover:text-sky-300 hover:bg-sky-400/15 p-1 rounded text-xs transition-all cursor-pointer border-none bg-transparent flex items-center justify-center"
+            class="text-[var(--text-muted)] hover:text-sky-300 hover:bg-sky-400/15 p-1 rounded text-xs transition-all cursor-pointer border-none bg-transparent flex items-center justify-center"
             onclick={() => (recordingActionId = item.id)}
             title="Alterar atalho"
           >

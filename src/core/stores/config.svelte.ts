@@ -2,8 +2,11 @@ import {
   type SshHost, 
   type CustomCommand, 
   type SavedPath,
+  type AppTheme,
   defaultCustomCommands,
-  defaultShortcuts 
+  defaultShortcuts,
+  defaultTheme,
+  applyThemeToDom,
 } from '../types';
 import { ConfigService } from '../services/config.service';
 
@@ -12,20 +15,27 @@ export class ConfigStore {
   commands = $state<CustomCommand[]>([]);
   shortcuts = $state<Record<string, string>>({ ...defaultShortcuts });
   paths = $state<SavedPath[]>([]);
+  theme = $state<AppTheme>({ ...defaultTheme });
+  customThemes = $state<AppTheme[]>([]);
   initialized = $state(false);
 
   async init() {
     if (this.initialized) return;
-    const [h, c, s, p] = await Promise.all([
+    const [h, c, s, p, t, ct] = await Promise.all([
       ConfigService.loadSshHosts(),
       ConfigService.loadCustomCommands(),
       ConfigService.loadShortcuts(),
       ConfigService.loadPaths(),
+      ConfigService.loadTheme(),
+      ConfigService.loadCustomThemes(),
     ]);
     this.hosts = h;
     this.commands = c;
     this.shortcuts = s;
     this.paths = p;
+    this.theme = t;
+    this.customThemes = ct;
+    applyThemeToDom(t);
     this.initialized = true;
   }
 
@@ -101,6 +111,52 @@ export class ConfigStore {
     this.paths = this.paths.filter((p) => p.id !== id);
     await ConfigService.savePaths(this.paths);
   }
+
+  // Tema
+  applyTheme(theme: AppTheme) {
+    this.theme = { ...theme };
+    applyThemeToDom(this.theme);
+  }
+
+  async saveTheme() {
+    await ConfigService.saveTheme(this.theme);
+  }
+
+  async resetTheme() {
+    this.applyTheme({ ...defaultTheme });
+    await ConfigService.saveTheme(this.theme);
+  }
+
+  // Temas Customizados
+  async addCustomTheme(theme: AppTheme) {
+    // Evita nome duplicado
+    const exists = this.customThemes.findIndex((t) => t.name === theme.name);
+    if (exists !== -1) {
+      this.customThemes[exists] = { ...theme };
+    } else {
+      this.customThemes.push({ ...theme });
+    }
+    await ConfigService.saveCustomThemes(this.customThemes);
+  }
+
+  async renameCustomTheme(oldName: string, newName: string) {
+    const idx = this.customThemes.findIndex((t) => t.name === oldName);
+    if (idx !== -1) {
+      this.customThemes[idx] = { ...this.customThemes[idx], name: newName };
+      // Se o tema ativo for esse, atualiza também
+      if (this.theme.name === oldName) {
+        this.theme = { ...this.theme, name: newName };
+        await ConfigService.saveTheme(this.theme);
+      }
+      await ConfigService.saveCustomThemes(this.customThemes);
+    }
+  }
+
+  async deleteCustomTheme(name: string) {
+    this.customThemes = this.customThemes.filter((t) => t.name !== name);
+    await ConfigService.saveCustomThemes(this.customThemes);
+  }
 }
 
 export const configStore = new ConfigStore();
+
