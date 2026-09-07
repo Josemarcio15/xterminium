@@ -8,24 +8,18 @@
 ## 📸 Screenshots
 
 <p align="center">
-  <b>Terminal Principal com Shell Zsh & af-magic</b><br/>
-  <img src="./screenshots/terminal_main.png" alt="xterminium Terminal Principal" width="850px" />
-</p>
-
-<p align="center">
   <b>Explorador de Arquivos & SFTP Integrado (Dual-Pane)</b><br/>
   <img src="./screenshots/sftp_dual_pane.png" alt="xterminium SFTP Dual-Pane" width="850px" />
 </p>
 
 <p align="center">
-  <img src="./screenshots/autocomplete_ssh.png" alt="Autocomplete SSH" width="49%" />
   <img src="./screenshots/autocomplete_scp.png" alt="Autocomplete SCP" width="49%" />
+  <img src="./screenshots/ssh_connections.png" alt="Conexões SSH Salvas" width="49%" />
 </p>
 
 <p align="center">
-  <img src="./screenshots/ssh_connections.png" alt="Conexões SSH Salvas" width="32%" />
-  <img src="./screenshots/saved_paths.png" alt="Diretórios Salvos" width="32%" />
-  <img src="./screenshots/shortcuts_modal.png" alt="Atalhos de Teclado" width="32%" />
+  <img src="./screenshots/saved_paths.png" alt="Diretórios Salvos" width="49%" />
+  <img src="./screenshots/command_triggers.png" alt="Comandos & Autocomplete VPS" width="49%" />
 </p>
 
 <p align="center">
