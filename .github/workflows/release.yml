@@ -1,0 +1,91 @@
+name: Release
+
+# Dispara quando você faz: git tag v0.0.6-alpha && git push --tags
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release-linux:
+    name: Build & Release (Linux .deb)
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write   # necessário para criar o GitHub Release e fazer upload do .deb
+
+    steps:
+      # 1. Baixa o código
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Configura Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      # 3. Configura Rust (versão mínima do projeto)
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: '1.77.2'
+
+      # 4. Cache do Cargo para builds mais rápidas
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            src-tauri/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      # 5. Dependências de sistema necessárias para Tauri + WebKit no Ubuntu
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libxdo-dev \
+            libssl-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            patchelf
+
+      # 6. Instala dependências do frontend
+      - name: Install frontend dependencies
+        run: npm ci
+
+      # 7. Builda com tauri-action — cria o Release e faz upload do .deb automaticamente
+      - name: Build Tauri & Publish Release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}          # ex: v0.0.6-alpha
+          releaseName: 'xterminium ${{ github.ref_name }}'
+          releaseBody: |
+            ## ⬇️ Instalação / Atualização (Linux)
+
+            Cole no terminal:
+            ```bash
+            bash <(curl -fsSL https://raw.githubusercontent.com/Josemarcio15/xterminium/main/install.sh)
+            ```
+
+            Ou baixe o `.deb` abaixo e instale manualmente:
+            ```bash
+            sudo dpkg -i xterminium_*.deb
+            ```
+          releaseDraft: false
+          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') }}
+          includeUpdaterJson: false
