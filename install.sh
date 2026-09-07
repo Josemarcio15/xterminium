@@ -6,7 +6,7 @@
 set -euo pipefail
 
 REPO="Josemarcio15/xterminium"
-API="https://api.github.com/repos/${REPO}/releases/latest"
+API="https://api.github.com/repos/${REPO}/releases"
 TMP_DEB="/tmp/xterminium_latest.deb"
 
 # ── Cores ───────────────────────────────────────────────────
@@ -40,10 +40,7 @@ fetch_release() {
     TAG=$(printf '%s' "$response" | grep -o '"tag_name": *"[^"]*"' | head -1 | cut -d'"' -f4)
     [[ -z "$TAG" ]] && error "Não foi possível determinar a versão mais recente."
 
-    # Remove 'v' do início para montar o nome do asset
-    local version="${TAG#v}"
-
-    # Extrai a URL do .deb
+    # Extrai a URL do .deb do primeiro release (mais recente)
     DEB_URL=$(printf '%s' "$response" \
         | grep -o '"browser_download_url": *"[^"]*\.deb"' \
         | head -1 \
