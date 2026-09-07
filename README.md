@@ -150,6 +150,21 @@ Gerenciamento de atalhos persistido em `~/.config/xterminium/shortcuts.json`:
 
 ---
 
+## ⬇️ Instalação Rápida (Linux)
+
+Instale ou atualize o xterminium com um único comando — sem adicionar repositórios, sem configuração extra:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/Josemarcio15/xterminium/main/install.sh)
+```
+
+> O script detecta automaticamente a versão mais recente no GitHub Releases, baixa o `.deb` e instala com `dpkg`.  
+> Se o xterminium já estiver instalado e atualizado, ele avisa e sai sem fazer nada.
+
+**Requisitos mínimos:** `curl`, `dpkg`, `sudo` — já presentes em qualquer Ubuntu/Debian/Pop!_OS padrão.
+
+---
+
 ## 🚀 Como Rodar Localmente
 
 ### Pré-requisitos
