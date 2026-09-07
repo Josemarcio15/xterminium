@@ -4,23 +4,54 @@ A terminal emulator built with Tauri v2 (Rust) and Svelte 5. Focuses on SSH/SFTP
 
 ---
 
+## 📸 Screenshots
+
 <p align="center">
-  <img src="./screenshots/sftp_dual_pane.png" alt="SFTP Dual-Pane" width="860px" />
+  <b>Terminal Principal com Shell Zsh & af-magic</b><br/>
+  <img src="./screenshots/terminal_main.png" alt="xterminium Terminal Principal" width="850px" />
 </p>
 
 <p align="center">
-  <img src="./screenshots/autocomplete_scp.png" alt="SCP Autocomplete" width="49%" />
-  <img src="./screenshots/ssh_connections.png" alt="SSH Connections" width="49%" />
+  <b>Explorador de Arquivos & SFTP Integrado (Dual-Pane)</b><br/>
+  <img src="./screenshots/sftp_dual_pane.png" alt="xterminium SFTP Dual-Pane" width="850px" />
 </p>
 
 <p align="center">
-  <img src="./screenshots/saved_paths.png" alt="Saved Paths" width="49%" />
-  <img src="./screenshots/command_triggers.png" alt="Command Triggers" width="49%" />
+  <img src="./screenshots/autocomplete_ssh.png" alt="Autocomplete SSH" width="850px" />
 </p>
 
 <p align="center">
-  <img src="./screenshots/theme_dark.png" alt="Dark Theme" width="49%" />
-  <img src="./screenshots/theme_light.png" alt="Light Theme" width="49%" />
+  <img src="./screenshots/autocomplete_scp.png" alt="Autocomplete SCP" width="850px" />
+</p>
+
+<p align="center">
+  <img src="./screenshots/ssh_connections.png" alt="Conexões SSH Salvas" width="850px" />
+</p>
+
+<p align="center">
+  <img src="./screenshots/saved_paths.png" alt="Diretórios Salvos" width="850px" />
+</p>
+
+<p align="center">
+  <img src="./screenshots/shortcuts_modal.png" alt="Atalhos de Teclado" width="850px" />
+</p>
+
+<p align="center">
+  <b>Comandos &amp; Autocomplete VPS Configurável</b><br/>
+  <img src="./screenshots/command_triggers.png" alt="Comandos & Autocomplete VPS" width="850px" />
+</p>
+
+<p align="center">
+  <b>Sistema de Temas &amp; Aparência</b><br/>
+  <img src="./screenshots/theme_dark.png" alt="Temas - Default Dark" width="850px" />
+</p>
+
+<p align="center">
+  <img src="./screenshots/theme_light.png" alt="Temas - Light Mode" width="850px" />
+</p>
+
+<p align="center">
+  <img src="./screenshots/theme_shapes.png" alt="Temas - Formas e Arredondamento" width="850px" />
 </p>
 
 ---
