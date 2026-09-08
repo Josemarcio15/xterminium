@@ -46,13 +46,25 @@ pub async fn list_local_directory(dir_path: &Path) -> Result<Vec<FileEntry>, Str
     Ok(entries)
 }
 
-/// Determina a pasta home local de forma segura
+/// Determina a pasta home local de forma segura (Linux, macOS, Windows)
 pub fn get_local_home_dir() -> PathBuf {
     if let Ok(home) = std::env::var("HOME") {
-        PathBuf::from(home)
-    } else {
-        PathBuf::from(".")
+        if !home.is_empty() {
+            return PathBuf::from(home);
+        }
     }
+    if let Ok(userprofile) = std::env::var("USERPROFILE") {
+        if !userprofile.is_empty() {
+            return PathBuf::from(userprofile);
+        }
+    }
+    if let (Ok(drive), Ok(path)) = (std::env::var("HOMEDRIVE"), std::env::var("HOMEPATH")) {
+        let combined = format!("{}{}", drive, path);
+        if !combined.is_empty() {
+            return PathBuf::from(combined);
+        }
+    }
+    PathBuf::from(".")
 }
 
 /// Cria um novo diretório na máquina local

@@ -61,10 +61,41 @@ pub async fn connect_session(
         }
     }
 
-    // 2. Tentar chave privada específica se informada e ainda não autenticado
+    // 2. Tentar chave privada específica ou chave padrão do sistema (~/.ssh/id_rsa, id_ed25519)
     if !authenticated {
-        if let Some(path) = key_path {
-            match russh_keys::load_secret_key(path, key_passphrase) {
+        let resolved_key_path: Option<std::path::PathBuf> = if let Some(path_str) = key_path {
+            if !path_str.trim().is_empty() {
+                let p = path_str.trim();
+                let home = super::local_fs::get_local_home_dir();
+                if p.starts_with("~/") || p.starts_with("~\\") {
+                    Some(home.join(&p[2..]))
+                } else if p == "~" {
+                    Some(home)
+                } else {
+                    Some(std::path::PathBuf::from(p))
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        // Se nenhuma chave foi explicitamente informada, verifica se existem as chaves padrão no diretório ~/.ssh
+        let candidate_key = if let Some(p) = resolved_key_path {
+            Some(p)
+        } else {
+            let home = super::local_fs::get_local_home_dir();
+            let ssh_dir = home.join(".ssh");
+            let candidates = ["id_rsa", "id_ed25519", "id_ecdsa", "id_dsa"];
+            candidates
+                .iter()
+                .map(|c| ssh_dir.join(c))
+                .find(|p| p.exists())
+        };
+
+        if let Some(path) = candidate_key {
+            match russh_keys::load_secret_key(&path, key_passphrase) {
                 Ok(key) => {
                     if let Ok(true) = session.authenticate_publickey(user, Arc::new(key)).await {
                         authenticated = true;
@@ -72,10 +103,9 @@ pub async fn connect_session(
                 }
                 Err(err) => {
                     let err_str = format!("{:?}", err);
-                    log::warn!("Erro ao carregar chave SSH '{}': {}", path, err_str);
+                    log::warn!("Erro ao carregar chave SSH '{}': {}", path.display(), err_str);
                     // Se não foi fornecida uma passphrase, qualquer erro ao decodificar/carregar
-                    // uma chave privada existente (especialmente encrypted key / bad passphrase / etc)
-                    // indica que o usuário precisa fornecer a passphrase.
+                    // indica que a chave é criptografada e precisa de passphrase.
                     if key_passphrase.is_none() {
                         key_failed_due_to_passphrase = true;
                     }

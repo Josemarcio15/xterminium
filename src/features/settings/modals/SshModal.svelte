@@ -4,6 +4,8 @@
   import Modal from '../../../shared/components/Modal.svelte';
   import Button from '@/shared/components/Button.svelte';
 
+  import { SftpService } from '../../../core/services';
+
   interface Props {
     show: boolean;
     onClose: () => void;
@@ -20,10 +22,17 @@
   let formIp = $state('');
   let formPort = $state('22');
   let formKey = $state('');
+  let defaultSshKeyPath = $state('');
 
   $effect(() => {
     if (show) {
       configStore.init();
+      SftpService.getLocalHome().then((home) => {
+        if (home) {
+          const sep = home.includes('\\') ? '\\' : '/';
+          defaultSshKeyPath = `${home}${sep}.ssh${sep}id_rsa`;
+        }
+      }).catch(() => {});
     }
   });
 
@@ -33,7 +42,7 @@
     formUser = '';
     formIp = '';
     formPort = '22';
-    formKey = '';
+    formKey = defaultSshKeyPath || '~/.ssh/id_rsa';
     showForm = !showForm;
   }
 

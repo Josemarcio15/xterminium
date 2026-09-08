@@ -61,10 +61,10 @@ fn get_pty_cwd(id: String, state: State<PtyState>) -> Result<String, String> {
     let sessions = state.sessions.lock().map_err(|e| e.to_string())?;
     if let Some(session) = sessions.get(&id) {
         let child = session.child.lock().map_err(|e| e.to_string())?;
-        if let Some(pid) = child.process_id() {
+        if let Some(_pid) = child.process_id() {
             #[cfg(target_os = "linux")]
             {
-                if let Ok(target) = std::fs::read_link(format!("/proc/{}/cwd", pid)) {
+                if let Ok(target) = std::fs::read_link(format!("/proc/{}/cwd", _pid)) {
                     return Ok(target.to_string_lossy().to_string());
                 }
             }
@@ -132,7 +132,7 @@ fn read_clipboard(_app: AppHandle) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn write_clipboard(text: String) -> Result<(), String> {
+fn write_clipboard(_text: String) -> Result<(), String> {
     #[cfg(target_os = "linux")]
     {
         use std::process::Stdio;
@@ -141,7 +141,7 @@ fn write_clipboard(text: String) -> Result<(), String> {
             .spawn()
         {
             if let Some(mut stdin) = child.stdin.take() {
-                let _ = stdin.write_all(text.as_bytes());
+                let _ = stdin.write_all(_text.as_bytes());
             }
             let _ = child.wait();
             return Ok(());
@@ -153,7 +153,7 @@ fn write_clipboard(text: String) -> Result<(), String> {
             .spawn()
         {
             if let Some(mut stdin) = child.stdin.take() {
-                let _ = stdin.write_all(text.as_bytes());
+                let _ = stdin.write_all(_text.as_bytes());
             }
             let _ = child.wait();
             return Ok(());
