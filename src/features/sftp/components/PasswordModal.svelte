@@ -216,8 +216,8 @@
           </div>
         {/if}
 
-        <!-- 2. CAMPO DA SENHA DA VPS (Aparece se não tiver chave OU se a VPS exigir senha após validação) -->
-        {#if !hasKey || isPassphraseValidated || requireVpsPassword}
+        <!-- 2. CAMPO DA SENHA DA VPS (Aparece se não tiver chave OU se a VPS exigir senha após validação da passphrase) -->
+        {#if !hasKey || (hasKey && isPassphraseValidated && requireVpsPassword)}
           <form onsubmit={handleVpsPasswordSubmit} class="flex flex-col gap-2.5 animate-in fade-in slide-in-from-top-2 duration-150">
             <div>
               <label for="sftp-auth-password" class="block text-xs font-medium text-[var(--text-base)] mb-1.5 flex items-center gap-1.5">

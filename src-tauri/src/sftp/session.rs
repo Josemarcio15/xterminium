@@ -71,8 +71,12 @@ pub async fn connect_session(
                     }
                 }
                 Err(err) => {
-                    let err_str = format!("{:?}", err).to_lowercase();
-                    if err_str.contains("keyisencrypted") || err_str.contains("passphrase") || err_str.contains("password") {
+                    let err_str = format!("{:?}", err);
+                    log::warn!("Erro ao carregar chave SSH '{}': {}", path, err_str);
+                    // Se não foi fornecida uma passphrase, qualquer erro ao decodificar/carregar
+                    // uma chave privada existente (especialmente encrypted key / bad passphrase / etc)
+                    // indica que o usuário precisa fornecer a passphrase.
+                    if key_passphrase.is_none() {
                         key_failed_due_to_passphrase = true;
                     }
                 }
