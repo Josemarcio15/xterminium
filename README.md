@@ -49,13 +49,20 @@ A terminal emulator built with Tauri v2 (Rust) and Svelte 5. Focuses on SSH/SFTP
 
 ---
 
-## Install (Linux)
+## Install
 
+### Linux
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/Josemarcio15/xterminium/main/install.sh)
 ```
-
 Fetches the latest release from GitHub, downloads the `.deb`, and installs via `dpkg`. Exits early if already up to date. Requires `curl`, `dpkg`, and `sudo`.
+
+### Windows
+Abra o **PowerShell** e cole:
+```powershell
+irm https://raw.githubusercontent.com/Josemarcio15/xterminium/main/install.ps1 | iex
+```
+Consulta a versão mais recente no GitHub Releases, faz o download do instalador e instala/atualiza automaticamente.
 
 ---
 

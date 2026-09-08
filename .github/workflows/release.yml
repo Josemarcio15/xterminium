@@ -96,7 +96,11 @@ jobs:
             ```
 
             ### Windows
-            Baixe o instalador `.exe` (NSIS) ou `.msi` disponível nos assets abaixo e execute.
+            Abra o PowerShell e cole:
+            ```powershell
+            irm https://raw.githubusercontent.com/Josemarcio15/xterminium/main/install.ps1 | iex
+            ```
+            Ou baixe o instalador `.exe` / `.msi` nos assets abaixo e execute.
           releaseDraft: false
           prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') }}
           includeUpdaterJson: false
