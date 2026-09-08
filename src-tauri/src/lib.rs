@@ -74,14 +74,21 @@ fn get_pty_cwd(id: String, state: State<PtyState>) -> Result<String, String> {
     if let Ok(home) = std::env::var("HOME") {
         return Ok(home);
     }
+    if let Ok(userprofile) = std::env::var("USERPROFILE") {
+        return Ok(userprofile);
+    }
     Ok("".to_string())
 }
 
 fn get_config_dir() -> std::path::PathBuf {
-    if let Ok(config_home) = std::env::var("XDG_CONFIG_HOME") {
+    if let Ok(appdata) = std::env::var("APPDATA") {
+        std::path::PathBuf::from(appdata).join("xterminium")
+    } else if let Ok(config_home) = std::env::var("XDG_CONFIG_HOME") {
         std::path::PathBuf::from(config_home).join("xterminium")
     } else if let Ok(home) = std::env::var("HOME") {
         std::path::PathBuf::from(home).join(".config").join("xterminium")
+    } else if let Ok(userprofile) = std::env::var("USERPROFILE") {
+        std::path::PathBuf::from(userprofile).join(".config").join("xterminium")
     } else {
         std::path::PathBuf::from(".").join(".config").join("xterminium")
     }
