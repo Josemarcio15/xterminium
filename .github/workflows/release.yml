@@ -17,8 +17,10 @@ jobs:
         platform:
           - name: Linux
             os: ubuntu-22.04
+            args: --bundles deb
           - name: Windows
             os: windows-latest
+            args: --bundles nsis
 
     runs-on: ${{ matrix.platform.os }}
 
@@ -82,6 +84,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }} # ex: v0.0.7-alpha
           releaseName: 'xterminium ${{ github.ref_name }}'
+          args: ${{ matrix.platform.args }}
           releaseBody: |
             ## ⬇️ Instalação / Atualização
 
