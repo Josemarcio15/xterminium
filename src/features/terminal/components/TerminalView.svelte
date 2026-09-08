@@ -101,71 +101,75 @@
         return false;
       }
 
-      // Se o dropdown de autocomplete VPS estiver ativo, capturar setas, Tab, Shift+Tab/Backtab, Enter e Esc
-      if (showDropdown && filteredHosts.length > 0) {
-        const isBackTab = e.key === 'Backtab' || (e.key === 'Tab' && e.shiftKey);
-        const isNextTab = e.key === 'Tab' && !e.shiftKey;
+      // Se algum dropdown de autocomplete estiver ativo, capturar setas, Tab, Shift+Tab/Backtab, Enter e Esc
+      // IMPORTANTE: Fazemos isso ANTES de qualquer outro parsing ou atalho para garantir compatibilidade
+      // entre diferentes sistemas (especialmente no Linux onde Shift+Tab pode vir como 'Backtab', code 'Tab' ou keyCode 9).
+      const isAnyDropdownActive = (showDropdown && filteredHosts.length > 0) || (showDirDropdown && filteredPaths.length > 0);
+      if (isAnyDropdownActive) {
+        const isTabKey = e.key === 'Tab' || e.key === 'Backtab' || e.code === 'Tab' || e.keyCode === 9;
+        const isShift = e.shiftKey || e.key === 'Backtab';
 
-        if (e.key === 'ArrowDown' || isNextTab) {
-          e.preventDefault();
-          e.stopPropagation();
-          selectedHostIndex = (selectedHostIndex + 1) % filteredHosts.length;
-          return false;
-        }
-        if (e.key === 'ArrowUp' || isBackTab) {
-          e.preventDefault();
-          e.stopPropagation();
-          selectedHostIndex = (selectedHostIndex - 1 + filteredHosts.length) % filteredHosts.length;
-          return false;
-        }
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          e.stopPropagation();
-          const selected = filteredHosts[selectedHostIndex];
-          if (selected) {
-            applyAutocomplete(selected);
+        const isBackTab = isTabKey && isShift;
+        const isNextTab = isTabKey && !isShift;
+
+        if (showDropdown && filteredHosts.length > 0) {
+          if (e.key === 'ArrowDown' || isNextTab) {
+            e.preventDefault();
+            e.stopPropagation();
+            selectedHostIndex = (selectedHostIndex + 1) % filteredHosts.length;
+            return false;
           }
-          return false;
-        }
-        if (e.key === 'Escape') {
-          e.preventDefault();
-          e.stopPropagation();
-          closeAutocomplete();
-          return false;
-        }
-      }
-
-      // Se o dropdown de diretórios estiver ativo, capturar setas, Tab, Shift+Tab/Backtab, Enter e Esc
-      if (showDirDropdown && filteredPaths.length > 0) {
-        const isBackTab = e.key === 'Backtab' || (e.key === 'Tab' && e.shiftKey);
-        const isNextTab = e.key === 'Tab' && !e.shiftKey;
-
-        if (e.key === 'ArrowDown' || isNextTab) {
-          e.preventDefault();
-          e.stopPropagation();
-          selectedDirIndex = (selectedDirIndex + 1) % filteredPaths.length;
-          return false;
-        }
-        if (e.key === 'ArrowUp' || isBackTab) {
-          e.preventDefault();
-          e.stopPropagation();
-          selectedDirIndex = (selectedDirIndex - 1 + filteredPaths.length) % filteredPaths.length;
-          return false;
-        }
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          e.stopPropagation();
-          const selected = filteredPaths[selectedDirIndex];
-          if (selected) {
-            applyDirectoryAutocomplete(selected);
+          if (e.key === 'ArrowUp' || isBackTab) {
+            e.preventDefault();
+            e.stopPropagation();
+            selectedHostIndex = (selectedHostIndex - 1 + filteredHosts.length) % filteredHosts.length;
+            return false;
           }
-          return false;
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            const selected = filteredHosts[selectedHostIndex];
+            if (selected) {
+              applyAutocomplete(selected);
+            }
+            return false;
+          }
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            closeAutocomplete();
+            return false;
+          }
         }
-        if (e.key === 'Escape') {
-          e.preventDefault();
-          e.stopPropagation();
-          closeDirAutocomplete();
-          return false;
+
+        if (showDirDropdown && filteredPaths.length > 0) {
+          if (e.key === 'ArrowDown' || isNextTab) {
+            e.preventDefault();
+            e.stopPropagation();
+            selectedDirIndex = (selectedDirIndex + 1) % filteredPaths.length;
+            return false;
+          }
+          if (e.key === 'ArrowUp' || isBackTab) {
+            e.preventDefault();
+            e.stopPropagation();
+            selectedDirIndex = (selectedDirIndex - 1 + filteredPaths.length) % filteredPaths.length;
+            return false;
+          }
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            const selected = filteredPaths[selectedDirIndex];
+            if (selected) {
+              applyDirectoryAutocomplete(selected);
+            }
+            return false;
+          }
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            closeDirAutocomplete();
+            return false;
+          }
         }
       }
 
@@ -215,6 +219,11 @@
     }
 
     term.onData((data) => {
+      // Se algum dropdown estiver aberto e uma tecla de navegação (Tab, Backtab \x1b[Z, etc.) vazar para onData, ignore
+      if ((showDropdown || showDirDropdown) && (data === '\t' || data === '\x1b[Z')) {
+        return;
+      }
+
       // Fecha os dropdowns se o usuário der Enter ou Ctrl+C
       if (showDropdown && (data.includes('\r') || data.includes('\n') || data === '\x03' || data === '\x15')) {
         closeAutocomplete();
