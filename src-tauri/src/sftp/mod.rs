@@ -28,8 +28,9 @@ impl SftpState {
         user: &str,
         password: Option<&str>,
         key_path: Option<&str>,
+        key_passphrase: Option<&str>,
     ) -> Result<String, String> {
-        session::connect_session(&self.active_session, host, port, user, password, key_path).await
+        session::connect_session(&self.active_session, host, port, user, password, key_path, key_passphrase).await
     }
 
     /// Desconecta a sessão ativa

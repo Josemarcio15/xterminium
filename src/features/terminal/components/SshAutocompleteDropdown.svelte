@@ -11,6 +11,14 @@
   }
 
   let { hosts, selectedIndex, position, commandName = 'vps', onSelect }: Props = $props();
+
+  let itemRefs: (HTMLButtonElement | null)[] = $state([]);
+
+  $effect(() => {
+    if (selectedIndex >= 0 && itemRefs[selectedIndex]) {
+      itemRefs[selectedIndex]?.scrollIntoView({ block: 'nearest' });
+    }
+  });
 </script>
 
 {#if hosts.length > 0}
@@ -28,9 +36,10 @@
     </div>
 
     <!-- Lista de hosts sugeridos -->
-    <div class="max-h-48 overflow-y-auto overflow-x-hidden flex flex-col p-1 gap-0.5">
+    <div class="max-h-48 overflow-y-auto overflow-x-hidden flex flex-col p-1 gap-0.5 scroll-smooth">
       {#each hosts as host, idx}
         <button
+          bind:this={itemRefs[idx]}
           type="button"
           tabindex="-1"
           class="w-full text-left px-2 py-1.5 rounded flex items-center justify-between gap-2 border-none cursor-pointer transition-colors {idx === selectedIndex ? 'bg-sky-500/20 text-sky-200 border border-sky-500/40' : 'bg-transparent text-[var(--text-base)] hover:bg-white/5'}"

@@ -101,15 +101,20 @@
         return false;
       }
 
-      // Se o dropdown de autocomplete VPS estiver ativo, capturar setas, Tab, Enter e Esc
+      // Se o dropdown de autocomplete VPS estiver ativo, capturar setas, Tab, Shift+Tab/Backtab, Enter e Esc
       if (showDropdown && filteredHosts.length > 0) {
-        if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
+        const isBackTab = e.key === 'Backtab' || (e.key === 'Tab' && e.shiftKey);
+        const isNextTab = e.key === 'Tab' && !e.shiftKey;
+
+        if (e.key === 'ArrowDown' || isNextTab) {
           e.preventDefault();
+          e.stopPropagation();
           selectedHostIndex = (selectedHostIndex + 1) % filteredHosts.length;
           return false;
         }
-        if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
+        if (e.key === 'ArrowUp' || isBackTab) {
           e.preventDefault();
+          e.stopPropagation();
           selectedHostIndex = (selectedHostIndex - 1 + filteredHosts.length) % filteredHosts.length;
           return false;
         }
@@ -130,15 +135,20 @@
         }
       }
 
-      // Se o dropdown de diretórios estiver ativo, capturar setas, Tab, Enter e Esc
+      // Se o dropdown de diretórios estiver ativo, capturar setas, Tab, Shift+Tab/Backtab, Enter e Esc
       if (showDirDropdown && filteredPaths.length > 0) {
-        if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
+        const isBackTab = e.key === 'Backtab' || (e.key === 'Tab' && e.shiftKey);
+        const isNextTab = e.key === 'Tab' && !e.shiftKey;
+
+        if (e.key === 'ArrowDown' || isNextTab) {
           e.preventDefault();
+          e.stopPropagation();
           selectedDirIndex = (selectedDirIndex + 1) % filteredPaths.length;
           return false;
         }
-        if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
+        if (e.key === 'ArrowUp' || isBackTab) {
           e.preventDefault();
+          e.stopPropagation();
           selectedDirIndex = (selectedDirIndex - 1 + filteredPaths.length) % filteredPaths.length;
           return false;
         }

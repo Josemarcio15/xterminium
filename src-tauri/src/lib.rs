@@ -308,6 +308,7 @@ async fn sftp_connect(
     user: String,
     password: Option<String>,
     key_path: Option<String>,
+    key_passphrase: Option<String>,
     sftp_state: State<'_, SftpState>,
 ) -> Result<String, String> {
     let port = port.unwrap_or(22);
@@ -318,6 +319,7 @@ async fn sftp_connect(
             &user,
             password.as_deref(),
             key_path.as_deref(),
+            key_passphrase.as_deref(),
         )
         .await
 }

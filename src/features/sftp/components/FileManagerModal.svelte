@@ -246,6 +246,10 @@
     isOpen={conn.showPasswordModal}
     sshUser={conn.sshUser}
     sshHost={conn.sshHost}
+    hasKey={!!conn.sshKey}
+    initialPassphraseOnly={conn.initialPassphraseOnly}
+    requireVpsPassword={conn.requireVpsPassword}
+    errorMessage={conn.modalErrorMessage}
     isConnecting={conn.isConnecting}
     onSubmit={conn.handlePasswordSubmit}
     onClose={conn.closePasswordModal}

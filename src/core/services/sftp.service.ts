@@ -15,6 +15,7 @@ export interface SftpConnectionConfig {
   user: string;
   password?: string;
   key_path?: string;
+  key_passphrase?: string;
 }
 
 export interface SftpTransferProgress {
@@ -35,6 +36,7 @@ export class SftpService {
       user: config.user,
       password: config.password || null,
       keyPath: config.key_path || null,
+      keyPassphrase: config.key_passphrase || null,
     });
   }
 

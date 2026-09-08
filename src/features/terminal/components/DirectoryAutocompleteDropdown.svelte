@@ -10,6 +10,14 @@
   }
 
   let { paths, selectedIndex, position, onSelect }: Props = $props();
+
+  let itemRefs: (HTMLButtonElement | null)[] = $state([]);
+
+  $effect(() => {
+    if (selectedIndex >= 0 && itemRefs[selectedIndex]) {
+      itemRefs[selectedIndex]?.scrollIntoView({ block: 'nearest' });
+    }
+  });
 </script>
 
 {#if paths.length > 0}
@@ -27,9 +35,10 @@
     </div>
 
     <!-- Lista de diretórios -->
-    <div class="max-h-48 overflow-y-auto overflow-x-hidden flex flex-col p-1 gap-0.5">
+    <div class="max-h-48 overflow-y-auto overflow-x-hidden flex flex-col p-1 gap-0.5 scroll-smooth">
       {#each paths as savedPath, idx}
         <button
+          bind:this={itemRefs[idx]}
           type="button"
           tabindex="-1"
           class="w-full text-left px-2 py-1.5 rounded flex items-center justify-between gap-2 border-none cursor-pointer transition-colors {idx === selectedIndex ? 'bg-emerald-500/20 text-emerald-200 border border-emerald-500/40' : 'bg-transparent text-[var(--text-base)] hover:bg-white/5'}"

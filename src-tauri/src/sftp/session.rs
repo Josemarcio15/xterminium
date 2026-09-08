@@ -28,6 +28,7 @@ pub async fn connect_session(
     user: &str,
     password: Option<&str>,
     key_path: Option<&str>,
+    key_passphrase: Option<&str>,
 ) -> Result<String, String> {
     let client_config = client::Config {
         // Janela SSH de 8MB para vazão contínua em redes com latência
@@ -44,6 +45,7 @@ pub async fn connect_session(
         .map_err(|e| format!("Falha ao conectar via TCP/SSH ao host: {}", e))?;
 
     let mut authenticated = false;
+    let mut key_failed_due_to_passphrase = false;
 
     // 1. Tentar autenticação via SSH Agent (se disponível no sistema)
     if let Ok(mut agent) = russh_keys::agent::client::AgentClient::connect_env().await {
@@ -62,9 +64,17 @@ pub async fn connect_session(
     // 2. Tentar chave privada específica se informada e ainda não autenticado
     if !authenticated {
         if let Some(path) = key_path {
-            if let Ok(key) = russh_keys::load_secret_key(path, None) {
-                if let Ok(true) = session.authenticate_publickey(user, Arc::new(key)).await {
-                    authenticated = true;
+            match russh_keys::load_secret_key(path, key_passphrase) {
+                Ok(key) => {
+                    if let Ok(true) = session.authenticate_publickey(user, Arc::new(key)).await {
+                        authenticated = true;
+                    }
+                }
+                Err(err) => {
+                    let err_str = format!("{:?}", err).to_lowercase();
+                    if err_str.contains("keyisencrypted") || err_str.contains("passphrase") || err_str.contains("password") {
+                        key_failed_due_to_passphrase = true;
+                    }
                 }
             }
         }
@@ -80,7 +90,10 @@ pub async fn connect_session(
     }
 
     if !authenticated {
-        return Err("Falha na autenticação: Nenhuma chave no ssh-agent ou senha válida encontrada.".to_string());
+        if key_failed_due_to_passphrase && key_passphrase.is_none() {
+            return Err("PASSPHRASE_REQUIRED: A chave privada SSH requer uma passphrase.".to_string());
+        }
+        return Err("AUTH_FAILED: Falha na autenticação: Chave ou senha inválida para o host.".to_string());
     }
 
     // Abrir canal SFTP
