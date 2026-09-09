@@ -638,7 +638,8 @@ pub fn run() {
             sftp_calculate_remote_hash,
             sftp_exec_remote_sudo,
             sftp_exec_local_sudo,
-            run_update_installer
+            run_update_installer,
+            updater::get_app_version
         ])
 
         .setup(|app| {

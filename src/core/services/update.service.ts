@@ -40,8 +40,17 @@ export function isNewerVersion(current: string, latest: string): boolean {
 }
 
 export class UpdateService {
+  static async getCurrentVersion(): Promise<string> {
+    try {
+      return await invoke<string>('get_app_version');
+    } catch {
+      return CURRENT_VERSION;
+    }
+  }
+
   static async checkForUpdates(): Promise<UpdateCheckResult | null> {
     try {
+      const currentVersion = await this.getCurrentVersion();
       const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest`, {
         headers: {
           Accept: 'application/vnd.github.v3+json',
@@ -54,11 +63,11 @@ export class UpdateService {
 
       const release: GithubReleaseInfo = await res.json();
       const latestTag = release.tag_name || '';
-      const hasUpdate = isNewerVersion(CURRENT_VERSION, latestTag);
+      const hasUpdate = isNewerVersion(currentVersion, latestTag);
 
       return {
         hasUpdate,
-        currentVersion: CURRENT_VERSION,
+        currentVersion,
         latestVersion: latestTag.replace(/^v/i, ''),
         releaseNotes: release.body || '',
         releaseUrl: release.html_url || `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/latest`,

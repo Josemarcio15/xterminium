@@ -41,3 +41,9 @@ pub async fn run_update_installer() -> Result<(), String> {
     .await
     .map_err(|e| format!("Falha na task de atualização: {}", e))?
 }
+
+/// Retorna a versão atual da aplicação definida no Cargo.toml
+#[tauri::command]
+pub fn get_app_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
+}
