@@ -6,8 +6,10 @@
   import ResizeHandles from './shared/layout/ResizeHandles.svelte';
   import TerminalView from './features/terminal/components/TerminalView.svelte';
   import FileManagerModal from './features/sftp/components/FileManagerModal.svelte';
+  import UpdateModal from './features/settings/modals/UpdateModal.svelte';
   import { type SshHost } from './core/types';
   import { configStore } from './core/stores/config.svelte';
+  import { UpdateService, type UpdateCheckResult } from './core/services/update.service';
 
   interface TabData {
     id: string;
@@ -18,11 +20,12 @@
     isConnectedSsh?: boolean;
   }
 
-
   let tabs = $state<TabData[]>([]);
   let activeTabId = $state<string>('');
   let terminalRefs: Record<string, ReturnType<typeof TerminalView>> = {};
   let currentTerminalCwd = $state('');
+  let updateInfo = $state<UpdateCheckResult | null>(null);
+  let showUpdateModal = $state(false);
 
   function createTab(type: 'local' | 'ssh', sshHost?: SshHost) {
     const id = crypto.randomUUID();
@@ -183,10 +186,19 @@
     const titleInterval = setInterval(updateTabTitles, 800);
     updateTabTitles();
 
+    // Verifica atualizações de forma não obstrutiva 1.5s após inicializar
+    const updateTimeout = setTimeout(async () => {
+      const res = await UpdateService.checkForUpdates();
+      if (res && res.hasUpdate) {
+        updateInfo = res;
+        showUpdateModal = true;
+      }
+    }, 1500);
 
     return () => {
       window.removeEventListener('resize', handleResize);
       clearInterval(titleInterval);
+      clearTimeout(updateTimeout);
       if (unlistenOut) unlistenOut();
       if (unlistenExit) unlistenExit();
     };
@@ -240,6 +252,16 @@
     {/each}
   </main>
   <ResizeHandles />
+
+  {#if showUpdateModal && updateInfo}
+    <UpdateModal
+      show={showUpdateModal}
+      info={updateInfo}
+      onClose={() => {
+        showUpdateModal = false;
+      }}
+    />
+  {/if}
 </div>
 
 

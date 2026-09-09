@@ -7,7 +7,10 @@ use std::thread;
 use tauri::{AppHandle, Emitter, State};
 
 pub mod sftp;
+pub mod updater;
 use sftp::{get_local_home_dir, list_local_directory, FileEntry, SftpState};
+use updater::run_update_installer;
+
 
 struct PtySession {
     writer: Arc<Mutex<Box<dyn Write + Send>>>,
@@ -634,8 +637,10 @@ pub fn run() {
 
             sftp_calculate_remote_hash,
             sftp_exec_remote_sudo,
-            sftp_exec_local_sudo
+            sftp_exec_local_sudo,
+            run_update_installer
         ])
+
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
