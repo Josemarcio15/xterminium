@@ -60,48 +60,48 @@ function askPreFilled(query, defaultValue) {
 }
 
 async function main() {
-  console.log('\n🚀 \x1b[1m\x1b[36mXTERMINIUM - Release & Bump CLI\x1b[0m\n');
+  console.log('\n[XTERMINIUM] Release & Bump CLI\n');
 
   const currentVersion = readCurrentVersion();
   const nextVersionSuggestion = suggestNextVersion(currentVersion);
 
   try {
-    // 1. Versão do App (já vem digitada para você só dar Enter ou apagar com Backspace)
-    console.log(`Versão atual detectada: \x1b[33m${currentVersion}\x1b[0m`);
-    const targetVersion = await askPreFilled('📦 Nova versão: ', nextVersionSuggestion);
+    // 1. Versão do App
+    console.log(`Versao atual: \x1b[33m${currentVersion}\x1b[0m`);
+    const targetVersion = await askPreFilled('Nova versao: ', nextVersionSuggestion);
 
-    // 2. Nome da Tag Git (autopreenchida com vX.Y.Z)
+    // 2. Nome da Tag Git
     const suggestedTag = targetVersion.startsWith('v') ? targetVersion : `v${targetVersion}`;
-    const targetTag = await askPreFilled('🏷️  Tag do Git : ', suggestedTag);
+    const targetTag = await askPreFilled('Tag Git: ', suggestedTag);
 
-    // 3. Mensagem do Commit descrevendo o que foi feito (autopreenchida)
+    // 3. Mensagem do Commit
     const suggestedCommitMsg = `release: ${targetTag}`;
-    const commitMsg = await askPreFilled('💬 Mensagem do commit: ', suggestedCommitMsg);
+    const commitMsg = await askPreFilled('Mensagem do commit: ', suggestedCommitMsg);
 
     console.log('\n------------------------------------------------------------');
-    console.log(`📌 Versão : \x1b[33m${targetVersion}\x1b[0m`);
-    console.log(`🏷️  Tag    : \x1b[32m${targetTag}\x1b[0m`);
-    console.log(`💬 Commit : \x1b[36m${commitMsg}\x1b[0m`);
+    console.log(`Versao : \x1b[33m${targetVersion}\x1b[0m`);
+    console.log(`Tag    : \x1b[32m${targetTag}\x1b[0m`);
+    console.log(`Commit : \x1b[36m${commitMsg}\x1b[0m`);
     console.log('------------------------------------------------------------\n');
 
-    const confirm = await askPreFilled('Confirma as alterações e gerar o bundle? (s/N): ', 's');
+    const confirm = await askPreFilled('Confirma as alteracoes e gerar o bundle? (s/N): ', 's');
     if (confirm.toLowerCase() !== 's') {
-      console.log('❌ Operação cancelada.');
+      console.log('Operacao cancelada.');
       process.exit(0);
     }
 
-    console.log('\n📝 1/5 Atualizando package.json e Cargo.toml...');
+    console.log('\n[1/5] Atualizando package.json e Cargo.toml...');
     updateVersionsInFiles(targetVersion);
-    console.log('   ✓ package.json');
-    console.log('   ✓ Cargo.toml');
+    console.log('   OK: package.json');
+    console.log('   OK: Cargo.toml');
 
-    console.log('\n🔒 2/5 Sincronizando Cargo.lock...');
+    console.log('\n[2/5] Sincronizando Cargo.lock...');
     execSync('cargo check', { cwd: path.join(rootDir, 'src-tauri'), stdio: 'inherit' });
 
-    console.log('\n📦 3/5 Gerando o bundle .deb via Tauri...');
+    console.log('\n[3/5] Gerando bundle .deb via Tauri...');
     execSync('npx tauri build --bundles deb', { cwd: rootDir, stdio: 'inherit' });
 
-    console.log('\n🌿 4/5 Criando commit e tag Git...');
+    console.log('\n[4/5] Criando commit e tag Git...');
     execSync('git add package.json src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/tauri.conf.json', {
       cwd: rootDir,
       stdio: 'inherit',
@@ -113,7 +113,7 @@ async function main() {
         stdio: 'inherit',
       });
     } catch {
-      console.log('   (Nenhuma mudança nos arquivos para commitar)');
+      console.log('   (Nenhuma mudanca nos arquivos para commitar)');
     }
 
     // Cria a tag anotada com a mesma mensagem
@@ -121,9 +121,9 @@ async function main() {
       cwd: rootDir,
       stdio: 'inherit',
     });
-    console.log(`   ✓ Tag ${targetTag} criada com sucesso!`);
+    console.log(`   OK: Tag ${targetTag} criada com sucesso!`);
 
-    console.log('\n🚀 5/5 Envio para o GitHub:');
+    console.log('\n[5/5] Envio para o GitHub:');
     const doPush = await askPreFilled(`Enviar commit e tag ${targetTag} para origin? (S/n): `, 's');
 
     if (doPush.toLowerCase() === 's') {
@@ -131,13 +131,13 @@ async function main() {
       execSync('git push origin main', { cwd: rootDir, stdio: 'inherit' });
       console.log(`Enviando tag ${targetTag}...`);
       execSync(`git push origin ${targetTag}`, { cwd: rootDir, stdio: 'inherit' });
-      console.log(`\n🎉 \x1b[32mSucesso total! Tag ${targetTag} enviada para o GitHub!\x1b[0m\n`);
+      console.log(`\nSucesso total! Tag ${targetTag} enviada para o GitHub!\n`);
     } else {
-      console.log(`\n⚠️  Tag criada apenas localmente. Quando quiser enviar rode:\n`);
+      console.log(`\nTag criada apenas localmente. Para enviar manualmente:\n`);
       console.log(`   git push origin main && git push origin ${targetTag}\n`);
     }
   } catch (err) {
-    console.error('\n❌ Erro durante o processo:', err.message);
+    console.error('\nErro durante o processo:', err.message);
     process.exit(1);
   }
 }
