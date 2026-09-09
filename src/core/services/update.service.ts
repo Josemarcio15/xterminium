@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { getVersion } from '@tauri-apps/api/app';
 
 export interface GithubReleaseInfo {
   tag_name: string;
@@ -18,7 +19,6 @@ export interface UpdateCheckResult {
 
 const REPO_OWNER = 'Josemarcio15';
 const REPO_NAME = 'xterminium';
-const CURRENT_VERSION = '0.0.9-alpha';
 
 function parseVersionNumbers(v: string): number[] {
   // Remove 'v' inicial e sufixos como '-alpha', '-beta', etc.
@@ -42,9 +42,13 @@ export function isNewerVersion(current: string, latest: string): boolean {
 export class UpdateService {
   static async getCurrentVersion(): Promise<string> {
     try {
-      return await invoke<string>('get_app_version');
+      return await getVersion();
     } catch {
-      return CURRENT_VERSION;
+      try {
+        return await invoke<string>('get_app_version');
+      } catch {
+        return '0.0.0';
+      }
     }
   }
 

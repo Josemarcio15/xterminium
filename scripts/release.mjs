@@ -21,30 +21,15 @@ function readCurrentVersion() {
 }
 
 function updateVersionsInFiles(newVersion) {
-  // 1. package.json
+  // 1. package.json (Fonte da verdade para JS/TS e Tauri)
   const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
   pkg.version = newVersion;
   fs.writeFileSync(packageJsonPath, JSON.stringify(pkg, null, 2) + '\n');
 
-  // 2. tauri.conf.json
-  const tauriConf = JSON.parse(fs.readFileSync(tauriConfPath, 'utf-8'));
-  tauriConf.version = newVersion;
-  fs.writeFileSync(tauriConfPath, JSON.stringify(tauriConf, null, 2) + '\n');
-
-  // 3. Cargo.toml
+  // 2. Cargo.toml (Exigido pelo compilador Rust)
   let cargoToml = fs.readFileSync(cargoTomlPath, 'utf-8');
   cargoToml = cargoToml.replace(/^version\s*=\s*"[^"]+"/m, `version = "${newVersion}"`);
   fs.writeFileSync(cargoTomlPath, cargoToml);
-
-  // 4. update.service.ts
-  if (fs.existsSync(updateServicePath)) {
-    let updateService = fs.readFileSync(updateServicePath, 'utf-8');
-    updateService = updateService.replace(
-      /const CURRENT_VERSION = '[^']+';/,
-      `const CURRENT_VERSION = '${newVersion}';`
-    );
-    fs.writeFileSync(updateServicePath, updateService);
-  }
 }
 
 function ask(rl, query, defaultValue) {
@@ -110,7 +95,7 @@ async function main() {
     execSync('npx tauri build --bundles deb', { cwd: rootDir, stdio: 'inherit' });
 
     console.log('\n🌿 4/5 Criando commit e tag Git...');
-    execSync('git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock src/core/services/update.service.ts', {
+    execSync('git add package.json src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/tauri.conf.json', {
       cwd: rootDir,
       stdio: 'inherit',
     });
