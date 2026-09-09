@@ -1,9 +1,11 @@
 import { 
   type SshHost, 
   type CustomCommand, 
+  type CustomAlias,
   type SavedPath,
   type AppTheme,
   defaultCustomCommands,
+  defaultCustomAliases,
   defaultShortcuts,
   defaultTheme,
   applyThemeToDom,
@@ -13,6 +15,7 @@ import { ConfigService } from '../services/config.service';
 export class ConfigStore {
   hosts = $state<SshHost[]>([]);
   commands = $state<CustomCommand[]>([]);
+  aliases = $state<CustomAlias[]>([]);
   shortcuts = $state<Record<string, string>>({ ...defaultShortcuts });
   paths = $state<SavedPath[]>([]);
   theme = $state<AppTheme>({ ...defaultTheme });
@@ -21,9 +24,10 @@ export class ConfigStore {
 
   async init() {
     if (this.initialized) return;
-    const [h, c, s, p, t, ct] = await Promise.all([
+    const [h, c, a, s, p, t, ct] = await Promise.all([
       ConfigService.loadSshHosts(),
       ConfigService.loadCustomCommands(),
+      ConfigService.loadAliases(),
       ConfigService.loadShortcuts(),
       ConfigService.loadPaths(),
       ConfigService.loadTheme(),
@@ -31,6 +35,7 @@ export class ConfigStore {
     ]);
     this.hosts = h;
     this.commands = c;
+    this.aliases = a;
     this.shortcuts = s;
     this.paths = p;
     this.theme = t;
@@ -80,6 +85,30 @@ export class ConfigStore {
   async resetCommands() {
     this.commands = [...defaultCustomCommands];
     await ConfigService.saveCustomCommands(this.commands);
+  }
+
+  // Custom Aliases
+  async addAlias(alias: CustomAlias) {
+    this.aliases.push(alias);
+    await ConfigService.saveAliases(this.aliases);
+  }
+
+  async updateAlias(alias: CustomAlias) {
+    const idx = this.aliases.findIndex((a) => a.id === alias.id);
+    if (idx !== -1) {
+      this.aliases[idx] = alias;
+      await ConfigService.saveAliases(this.aliases);
+    }
+  }
+
+  async removeAlias(id: string) {
+    this.aliases = this.aliases.filter((a) => a.id !== id);
+    await ConfigService.saveAliases(this.aliases);
+  }
+
+  async resetAliases() {
+    this.aliases = [...defaultCustomAliases];
+    await ConfigService.saveAliases(this.aliases);
   }
 
   // Shortcuts

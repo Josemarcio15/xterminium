@@ -24,8 +24,12 @@ pub struct FileEntry {
     pub modified: Option<u64>,
 }
 
+use tokio_util::sync::CancellationToken;
+
 pub struct ActiveSftpConnection {
     pub sftp: Arc<SftpSession>,
     pub ssh_handle: Arc<Mutex<russh::client::Handle<super::session::ClientHandler>>>,
     pub current_remote_dir: String,
+    pub transfer_cancel_token: Arc<Mutex<Option<CancellationToken>>>,
 }
+

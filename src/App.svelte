@@ -15,7 +15,9 @@
     type: 'local' | 'ssh' | 'sftp';
     sshInfo?: SshHost;
     initialPath?: string;
+    isConnectedSsh?: boolean;
   }
+
 
   let tabs = $state<TabData[]>([]);
   let activeTabId = $state<string>('');
@@ -58,8 +60,8 @@
     });
   }
 
-  function closeTab(id: string, e: MouseEvent) {
-    e.stopPropagation();
+  function closeTab(id: string, e?: MouseEvent) {
+    if (e) e.stopPropagation();
     const index = tabs.findIndex((t) => t.id === id);
     if (index === -1) return;
 
@@ -74,6 +76,7 @@
     }
   }
 
+
   function executeCommand(cmd: string) {
     if (!activeTabId) return;
     invoke('write_pty', { id: activeTabId, data: cmd }).catch(console.error);
@@ -83,10 +86,14 @@
   let muteTabs = new Set<string>();
 
   function navigateSilently(path: string) {
-    if (!activeTabId) return;
+    if (!activeTabId || !path) return;
+    // Remove quebras de linha, retornos de carro e caracteres de controle ANSI perigosos
+    const sanitizedPath = path.replace(/[\r\n\x00-\x1f\x7f]/g, '').trim();
+    if (!sanitizedPath) return;
+
     const tabId = activeTabId;
     muteTabs.add(tabId);
-    invoke('write_pty', { id: tabId, data: `cd ${JSON.stringify(path)}\n` }).catch(console.error);
+    invoke('write_pty', { id: tabId, data: `cd ${JSON.stringify(sanitizedPath)}\n` }).catch(console.error);
 
     setTimeout(() => {
       muteTabs.delete(tabId);
@@ -96,19 +103,30 @@
     }, 120);
   }
 
+
   onMount(() => {
     configStore.init();
     createTab('local');
 
-    let unlisten: (() => void) | undefined;
+    let unlistenOut: (() => void) | undefined;
+    let unlistenExit: (() => void) | undefined;
+
     listen<{ id: string; data: string }>('pty-out', (event) => {
       if (muteTabs.has(event.payload.id)) {
         return;
       }
       terminalRefs[event.payload.id]?.write(event.payload.data);
     }).then((fn) => {
-      unlisten = fn;
+      unlistenOut = fn;
     });
+
+    listen<string>('pty-exit', (event) => {
+      const exitId = event.payload;
+      closeTab(exitId);
+    }).then((fn) => {
+      unlistenExit = fn;
+    });
+
 
     const handleResize = () => {
       terminalRefs[activeTabId]?.fitAndFocus();
@@ -116,20 +134,45 @@
 
     window.addEventListener('resize', handleResize);
 
-    // Atualiza o título das abas locais dinamicamente com o diretório atual
+    interface PtyStatusResponse {
+      cwd: string;
+      foreground_process?: string;
+      cmdline?: string;
+      is_ssh: boolean;
+    }
+
+    // Atualiza o estado, título e tipo das abas dinamicamente (incluindo se entrou em SSH)
     async function updateTabTitles() {
       for (const tab of tabs) {
-        if (tab.type === 'local') {
+        if (tab.type === 'local' || (tab.type === 'ssh' && tab.isConnectedSsh)) {
           try {
-            const cwd = await invoke<string>('get_pty_cwd', { id: tab.id });
-            if (cwd) {
-              const clean = cwd.replace(/\/+$/, '');
-              const dirName = clean.split('/').pop() || '/';
-              if (tab.title !== dirName) {
-                tab.title = dirName;
-              }
-              if (tab.id === activeTabId) {
-                currentTerminalCwd = cwd;
+            const status = await invoke<PtyStatusResponse>('get_pty_status', { id: tab.id });
+            if (status) {
+              if (status.is_ssh) {
+                tab.type = 'ssh';
+                tab.isConnectedSsh = true;
+                if (status.cmdline) {
+                  // Extrai destino do comando ssh (ex: "ssh user@ip" -> "user@ip")
+                  const parts = status.cmdline.split(/\s+/);
+                  const dest = parts.find((p, i) => i > 0 && !p.startsWith('-') && (p.includes('@') || p.includes('.')));
+                  tab.title = dest || 'ssh';
+                } else {
+                  tab.title = 'ssh';
+                }
+              } else {
+                // Se estava em SSH e agora o processo terminou (voltou para shell local)
+                if (tab.isConnectedSsh) {
+                  tab.type = 'local';
+                  tab.isConnectedSsh = false;
+                }
+                if (status.cwd) {
+                  const clean = status.cwd.replace(/\/+$/, '');
+                  const dirName = clean.split('/').pop() || '/';
+                  tab.title = dirName;
+                  if (tab.id === activeTabId) {
+                    currentTerminalCwd = status.cwd;
+                  }
+                }
               }
             }
           } catch {}
@@ -137,15 +180,18 @@
       }
     }
 
-    const titleInterval = setInterval(updateTabTitles, 1000);
+    const titleInterval = setInterval(updateTabTitles, 800);
     updateTabTitles();
+
 
     return () => {
       window.removeEventListener('resize', handleResize);
       clearInterval(titleInterval);
-      if (unlisten) unlisten();
+      if (unlistenOut) unlistenOut();
+      if (unlistenExit) unlistenExit();
     };
   });
+
 </script>
 
 <div class="flex flex-col w-full h-full overflow-hidden rounded-[var(--window-radius)] bg-[var(--bg-base)]">

@@ -104,7 +104,12 @@ export class SftpService {
     return await invoke<void>('sftp_upload_file', { localPath, remotePath });
   }
 
+  static async cancelTransfer(): Promise<void> {
+    return await invoke<void>('sftp_cancel_transfer');
+  }
+
   static async calculateLocalHash(localPath: string): Promise<string> {
+
     return await invoke<string>('sftp_calculate_local_hash', { localPath });
   }
 

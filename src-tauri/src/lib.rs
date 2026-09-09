@@ -56,6 +56,90 @@ fn resize_pty(id: String, cols: u16, rows: u16, state: State<PtyState>) -> Resul
     Ok(())
 }
 
+#[derive(Clone, serde::Serialize)]
+struct PtyStatusInfo {
+    cwd: String,
+    foreground_process: Option<String>,
+    cmdline: Option<String>,
+    is_ssh: bool,
+}
+
+#[tauri::command]
+fn get_pty_status(id: String, state: State<PtyState>) -> Result<PtyStatusInfo, String> {
+    let sessions = state.sessions.lock().map_err(|e| e.to_string())?;
+    let mut cwd = String::new();
+    let mut foreground_process: Option<String> = None;
+    let mut cmdline: Option<String> = None;
+    let mut is_ssh = false;
+
+    if let Some(session) = sessions.get(&id) {
+        let child = session.child.lock().map_err(|e| e.to_string())?;
+        if let Some(pid) = child.process_id() {
+            #[cfg(target_os = "linux")]
+            {
+                if let Ok(target) = std::fs::read_link(format!("/proc/{}/cwd", pid)) {
+                    cwd = target.to_string_lossy().to_string();
+                }
+
+                // Procura processos filhos em execução no PTY (foreground child)
+                let mut leaf_pid: Option<u32> = None;
+                let task_dir = format!("/proc/{}/task", pid);
+                if let Ok(entries) = std::fs::read_dir(task_dir) {
+                    for entry in entries.flatten() {
+                        let children_path = entry.path().join("children");
+                        if let Ok(content) = std::fs::read_to_string(children_path) {
+                            let pids: Vec<u32> = content
+                                .split_whitespace()
+                                .filter_map(|p| p.parse::<u32>().ok())
+                                .collect();
+                            if let Some(&last_p) = pids.last() {
+                                leaf_pid = Some(last_p);
+                            }
+                        }
+                    }
+                }
+
+                if let Some(fpid) = leaf_pid {
+                    if let Ok(comm) = std::fs::read_to_string(format!("/proc/{}/comm", fpid)) {
+                        let comm_clean = comm.trim().to_string();
+                        if comm_clean == "ssh" {
+                            is_ssh = true;
+                        }
+                        foreground_process = Some(comm_clean);
+                    }
+                    if let Ok(raw_cmd) = std::fs::read(format!("/proc/{}/cmdline", fpid)) {
+                        let parsed = String::from_utf8_lossy(&raw_cmd)
+                            .replace('\0', " ")
+                            .trim()
+                            .to_string();
+                        if !parsed.is_empty() {
+                            if parsed.starts_with("ssh ") || parsed == "ssh" {
+                                is_ssh = true;
+                            }
+                            cmdline = Some(parsed);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if cwd.is_empty() {
+        if let Ok(home) = std::env::var("HOME") {
+            cwd = home;
+        } else if let Ok(userprofile) = std::env::var("USERPROFILE") {
+            cwd = userprofile;
+        }
+    }
+
+    Ok(PtyStatusInfo {
+        cwd,
+        foreground_process,
+        cmdline,
+        is_ssh,
+    })
+}
+
 #[tauri::command]
 fn get_pty_cwd(id: String, state: State<PtyState>) -> Result<String, String> {
     let sessions = state.sessions.lock().map_err(|e| e.to_string())?;
@@ -79,6 +163,7 @@ fn get_pty_cwd(id: String, state: State<PtyState>) -> Result<String, String> {
     }
     Ok("".to_string())
 }
+
 
 fn get_config_dir() -> std::path::PathBuf {
     if let Ok(appdata) = std::env::var("APPDATA") {
@@ -272,6 +357,7 @@ fn spawn_pty(
         .insert(id.clone(), session);
 
     let session_id = id.clone();
+    let app_handle = app.clone();
     thread::spawn(move || {
         let mut buffer = [0u8; 4096];
         while let Ok(n) = reader.read(&mut buffer) {
@@ -279,7 +365,7 @@ fn spawn_pty(
                 break;
             }
             let data = String::from_utf8_lossy(&buffer[..n]).to_string();
-            let _ = app.emit(
+            let _ = app_handle.emit(
                 "pty-out",
                 PtyOutputPayload {
                     id: session_id.clone(),
@@ -287,9 +373,12 @@ fn spawn_pty(
                 },
             );
         }
+        // Quando o processo do shell é encerrado (exit/Ctrl+D/EOF), emite pty-exit
+        let _ = app_handle.emit("pty-exit", session_id);
     });
 
     Ok(())
+
 }
 
 #[tauri::command]
@@ -421,7 +510,14 @@ async fn sftp_upload_file(
 }
 
 #[tauri::command]
+async fn sftp_cancel_transfer(sftp_state: State<'_, SftpState>) -> Result<(), String> {
+    sftp_state.cancel_active_transfer().await;
+    Ok(())
+}
+
+#[tauri::command]
 async fn sftp_calculate_local_hash(
+
     local_path: String,
     sftp_state: State<'_, SftpState>,
 ) -> Result<String, String> {
@@ -509,7 +605,9 @@ pub fn run() {
             resize_pty,
             close_pty,
             get_pty_cwd,
+            get_pty_status,
             new_window,
+
             read_clipboard,
             write_clipboard,
             load_config,
@@ -531,7 +629,9 @@ pub fn run() {
             sftp_remove_local_dir,
             sftp_download_file,
             sftp_upload_file,
+            sftp_cancel_transfer,
             sftp_calculate_local_hash,
+
             sftp_calculate_remote_hash,
             sftp_exec_remote_sudo,
             sftp_exec_local_sudo

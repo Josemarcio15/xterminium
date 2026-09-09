@@ -3,4 +3,7 @@ export interface TabItem {
   title: string;
   type: 'local' | 'ssh' | 'sftp';
   sshInfo?: import('./ssh').SshHost;
+  activeProcess?: string;
+  isConnectedSsh?: boolean;
 }
+

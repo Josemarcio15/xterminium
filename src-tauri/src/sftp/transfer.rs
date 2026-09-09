@@ -5,6 +5,7 @@ use tauri::{AppHandle, Emitter};
 use tokio::fs as local_fs;
 use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
 use tokio::sync::Mutex;
+use tokio_util::sync::CancellationToken;
 
 use super::types::{ActiveSftpConnection, SftpTransferProgress};
 
@@ -12,6 +13,7 @@ use super::types::{ActiveSftpConnection, SftpTransferProgress};
 const CHUNK_SIZE: usize = 256 * 1024;
 // Número de requisições concorrentes em pipeline simultâneo (saturação total do canal)
 const PIPELINE_CONCURRENCY: usize = 8;
+
 pub async fn download_file(
     active_session: &Arc<Mutex<Option<ActiveSftpConnection>>>,
     app: &AppHandle,
@@ -22,11 +24,16 @@ pub async fn download_file(
     println!("📥 [SFTP DOWNLOAD REQUISITADO] Remoto: '{}' -> Local: '{}'", remote_path, local_path);
     let _ = std::io::stdout().flush();
 
+    // Cria ou registra CancellationToken na sessão ativa
+    let cancel_token = CancellationToken::new();
     let (sftp, file_size) = {
         let lock = active_session.lock().await;
         let session = lock
             .as_ref()
             .ok_or_else(|| "Nenhuma conexão SFTP ativa".to_string())?;
+        let mut token_lock = session.transfer_cancel_token.lock().await;
+        *token_lock = Some(cancel_token.clone());
+
         let meta = session
             .sftp
             .metadata(remote_path)
@@ -77,27 +84,40 @@ pub async fn download_file(
         let mut writer = BufWriter::with_capacity(CHUNK_SIZE, local_file);
 
         let mut buffer = vec![0u8; CHUNK_SIZE];
+        let mut download_result: Result<(), String> = Ok(());
 
         loop {
-            let n = reader
-                .read(&mut buffer)
-                .await
-                .map_err(|e| format!("Erro ao ler dados do servidor SFTP: {}", e))?;
-
-            if n == 0 {
+            if cancel_token.is_cancelled() {
+                download_result = Err("Transferência cancelada pelo usuário.".to_string());
                 break;
             }
 
-            writer
-                .write_all(&buffer[..n])
-                .await
-                .map_err(|e| format!("Erro ao gravar dados no arquivo local: {}", e))?;
+            match reader.read(&mut buffer).await {
+                Ok(0) => break,
+                Ok(n) => {
+                    if let Err(e) = writer.write_all(&buffer[..n]).await {
+                        download_result = Err(format!("Erro ao gravar dados no arquivo local: {}", e));
+                        break;
+                    }
+                }
+                Err(e) => {
+                    download_result = Err(format!("Erro ao ler dados do servidor SFTP: {}", e));
+                    break;
+                }
+            }
         }
 
-        writer
-            .flush()
-            .await
-            .map_err(|e| format!("Erro ao sincronizar arquivo local: {}", e))?;
+        if download_result.is_ok() {
+            if let Err(e) = writer.flush().await {
+                download_result = Err(format!("Erro ao sincronizar arquivo local: {}", e));
+            }
+        }
+
+        // Garante fechamento explícito do descritor remoto de arquivo
+        let raw_remote_file = reader.into_inner();
+        let _ = raw_remote_file.close().await;
+
+        download_result?;
     } else {
         // Pipeline Concorrente: Pré-aloca o arquivo local com o tamanho exato
         let local_file = local_fs::File::create(local_path)
@@ -137,6 +157,7 @@ pub async fn download_file(
             let remote_path_owned = remote_path.to_string();
             let local_path_owned = local_path.to_string();
             let transferred_counter = transferred_shared.clone();
+            let worker_token = cancel_token.clone();
 
             tasks.push(tokio::spawn(async move {
                 let mut remote_file = sftp_clone
@@ -144,52 +165,63 @@ pub async fn download_file(
                     .await
                     .map_err(|e| format!("Erro ao abrir arquivo remoto no worker {}: {}", i, e))?;
 
-                use tokio::io::AsyncSeekExt;
-                remote_file
-                    .seek(std::io::SeekFrom::Start(start))
-                    .await
-                    .map_err(|e| format!("Erro no seek remoto worker {}: {}", i, e))?;
-
-                let mut local_file = local_fs::OpenOptions::new()
-                    .write(true)
-                    .open(local_path_owned)
-                    .await
-                    .map_err(|e| format!("Erro ao abrir arquivo local no worker {}: {}", i, e))?;
-
-                local_file
-                    .seek(std::io::SeekFrom::Start(start))
-                    .await
-                    .map_err(|e| format!("Erro no seek local worker {}: {}", i, e))?;
-
-                let mut remaining = end - start;
-                let mut buf = vec![0u8; CHUNK_SIZE];
-
-                while remaining > 0 {
-                    let to_read = (remaining as usize).min(CHUNK_SIZE);
-                    let n = remote_file
-                        .read(&mut buf[..to_read])
+                let worker_logic = async {
+                    use tokio::io::AsyncSeekExt;
+                    remote_file
+                        .seek(std::io::SeekFrom::Start(start))
                         .await
-                        .map_err(|e| format!("Erro de leitura no worker {}: {}", i, e))?;
+                        .map_err(|e| format!("Erro no seek remoto worker {}: {}", i, e))?;
 
-                    if n == 0 {
-                        break;
+                    let mut local_file = local_fs::OpenOptions::new()
+                        .write(true)
+                        .open(local_path_owned)
+                        .await
+                        .map_err(|e| format!("Erro ao abrir arquivo local no worker {}: {}", i, e))?;
+
+                    local_file
+                        .seek(std::io::SeekFrom::Start(start))
+                        .await
+                        .map_err(|e| format!("Erro no seek local worker {}: {}", i, e))?;
+
+                    let mut remaining = end - start;
+                    let mut buf = vec![0u8; CHUNK_SIZE];
+
+                    while remaining > 0 {
+                        if worker_token.is_cancelled() {
+                            return Err("Download abortado pelo usuário.".to_string());
+                        }
+
+                        let to_read = (remaining as usize).min(CHUNK_SIZE);
+                        let n = remote_file
+                            .read(&mut buf[..to_read])
+                            .await
+                            .map_err(|e| format!("Erro de leitura no worker {}: {}", i, e))?;
+
+                        if n == 0 {
+                            break;
+                        }
+
+                        local_file
+                            .write_all(&buf[..n])
+                            .await
+                            .map_err(|e| format!("Erro de gravação no worker {}: {}", i, e))?;
+
+                        transferred_counter.fetch_add(n as u64, std::sync::atomic::Ordering::Relaxed);
+                        remaining = remaining.saturating_sub(n as u64);
                     }
 
                     local_file
-                        .write_all(&buf[..n])
+                        .flush()
                         .await
-                        .map_err(|e| format!("Erro de gravação no worker {}: {}", i, e))?;
+                        .map_err(|e| format!("Erro ao dar flush no worker {}: {}", i, e))?;
 
-                    transferred_counter.fetch_add(n as u64, std::sync::atomic::Ordering::Relaxed);
-                    remaining = remaining.saturating_sub(n as u64);
-                }
+                    Ok::<(), String>(())
+                };
 
-                local_file
-                    .flush()
-                    .await
-                    .map_err(|e| format!("Erro ao dar flush no worker {}: {}", i, e))?;
-
-                Ok::<(), String>(())
+                let res = worker_logic.await;
+                // Garante que o descritor do worker remoto seja SEMPRE fechado
+                let _ = remote_file.close().await;
+                res
             }));
         }
 
@@ -214,7 +246,6 @@ pub async fn download_file(
                     100.0
                 };
 
-                // Log no terminal a cada ~1 segundo mostrando a taxa real de transferência (MB/s)
                 if last_log.elapsed().as_millis() >= 1000 {
                     let delta_bytes = cur.saturating_sub(last_bytes);
                     let speed_mb_s = (delta_bytes as f64 / (1024.0 * 1024.0)) / (last_log.elapsed().as_secs_f64());
@@ -246,15 +277,31 @@ pub async fn download_file(
         });
 
         // Aguarda todos os workers concorrentes do pipeline
+        let mut first_err: Option<String> = None;
         for task in tasks {
             match task.await {
-                Ok(res) => res?,
-                Err(e) => return Err(format!("Falha na task de pipeline: {}", e)),
+                Ok(Ok(())) => {}
+                Ok(Err(e)) => {
+                    cancel_token.cancel();
+                    if first_err.is_none() {
+                        first_err = Some(e);
+                    }
+                }
+                Err(e) => {
+                    cancel_token.cancel();
+                    if first_err.is_none() {
+                        first_err = Some(format!("Falha na task de pipeline: {}", e));
+                    }
+                }
             }
         }
 
         monitor_done.store(true, std::sync::atomic::Ordering::Relaxed);
         let _ = monitor_handle.await;
+
+        if let Some(err) = first_err {
+            return Err(err);
+        }
 
         let total_secs = start_time.elapsed().as_secs_f64();
         let avg_speed = (file_size as f64 / (1024.0 * 1024.0)) / total_secs.max(0.001);
@@ -265,6 +312,15 @@ pub async fn download_file(
             avg_speed
         );
         let _ = std::io::stdout().flush();
+    }
+
+    // Limpa token da sessão
+    {
+        let lock = active_session.lock().await;
+        if let Some(session) = lock.as_ref() {
+            let mut token_lock = session.transfer_cancel_token.lock().await;
+            *token_lock = None;
+        }
     }
 
     // Emissão final de conclusão 100%
@@ -283,4 +339,5 @@ pub async fn download_file(
 
     Ok(())
 }
+
 

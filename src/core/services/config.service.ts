@@ -3,9 +3,11 @@ import {
   type SshHost, 
   type SavedPath, 
   type CustomCommand, 
+  type CustomAlias,
   type AppTheme,
   defaultShortcuts, 
   defaultCustomCommands,
+  defaultCustomAliases,
   defaultTheme,
 } from '../types';
 
@@ -164,6 +166,28 @@ export class ConfigService {
       await invoke('save_config', { filename: 'custom_themes', content: json });
     } catch (e) {
       console.error('Erro ao salvar ~/.config/xterminium/custom_themes.json', e);
+    }
+  }
+
+  // Aliases de Comandos
+  static async loadAliases(): Promise<CustomAlias[]> {
+    try {
+      const content = await invoke<string>('load_config', { filename: 'aliases' });
+      if (content && content.trim()) {
+        return JSON.parse(content);
+      }
+    } catch (e) {
+      console.error('Erro ao ler ~/.config/xterminium/aliases.json', e);
+    }
+    return [...defaultCustomAliases];
+  }
+
+  static async saveAliases(aliases: CustomAlias[]): Promise<void> {
+    try {
+      const json = JSON.stringify(aliases, null, 2);
+      await invoke('save_config', { filename: 'aliases', content: json });
+    } catch (e) {
+      console.error('Erro ao salvar ~/.config/xterminium/aliases.json', e);
     }
   }
 }

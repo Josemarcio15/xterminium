@@ -97,7 +97,19 @@ impl SftpState {
         upload::upload_file(&self.active_session, app, local_path, remote_path).await
     }
 
+    /// Cancela qualquer transferência (upload ou download) em andamento
+    pub async fn cancel_active_transfer(&self) {
+        let lock = self.active_session.lock().await;
+        if let Some(session) = lock.as_ref() {
+            let token_lock = session.transfer_cancel_token.lock().await;
+            if let Some(token) = token_lock.as_ref() {
+                token.cancel();
+            }
+        }
+    }
+
     /// Calcula o hash SHA-256 de um arquivo local
+
     pub async fn calculate_local_sha256(&self, local_path: &str) -> Result<String, String> {
         checksum::calculate_local_sha256(local_path).await
     }

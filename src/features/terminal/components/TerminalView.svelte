@@ -3,17 +3,16 @@
   import { Terminal } from "@xterm/xterm";
   import { FitAddon } from "@xterm/addon-fit";
   import "@xterm/xterm/css/xterm.css";
-  import { invoke } from "@tauri-apps/api/core";
-  import {
-    type SshHost,
-    type CustomCommand,
-    type SavedPath,
-  } from "../../../core/types";
-  import { ConfigService, PtyService } from "../../../core/services";
-  import { normalizeShortcut, parseKeyboardEvent } from "../utils/shortcuts";
+  import { type SshHost } from "../../../core/types";
+  import { PtyService } from "../../../core/services";
+  import { configStore } from "../../../core/stores/config.svelte";
   import SshAutocompleteDropdown from "./SshAutocompleteDropdown.svelte";
   import DirectoryAutocompleteDropdown from "./DirectoryAutocompleteDropdown.svelte";
-  import { configStore } from "../../../core/stores/config.svelte";
+  import AliasSuggestionPopup from "./AliasSuggestionPopup.svelte";
+  import { useAliasSuggestion } from "../composables/useAliasSuggestion.svelte";
+  import { useVpsAutocomplete } from "../composables/useVpsAutocomplete.svelte";
+  import { useDirectoryAutocomplete } from "../composables/useDirectoryAutocomplete.svelte";
+  import { createTerminalKeyHandler } from "../composables/useTerminalShortcuts";
 
   interface Props {
     id: string;
@@ -25,11 +24,34 @@
 
   let { id, type, sshInfo, active, onNewTab }: Props = $props();
 
-  let container: HTMLDivElement;
-  let term: Terminal;
-  let fitAddon: FitAddon;
+  let container = $state<HTMLDivElement | null>(null);
+  let term: Terminal | null = null;
+  let fitAddon: FitAddon | null = null;
+
+  // Composables modulares de Autocomplete e Sugestões
+  const aliasSug = useAliasSuggestion(
+    () => id,
+    () => term,
+    () => container,
+  );
+
+  const vpsAuto = useVpsAutocomplete(
+    () => id,
+    () => type,
+    () => term,
+    () => container,
+  );
+
+  const dirAuto = useDirectoryAutocomplete(
+    () => id,
+    () => type,
+    () => term,
+    () => container,
+  );
 
   onMount(async () => {
+    if (!container) return;
+
     term = new Terminal({
       allowTransparency: true,
       cursorBlink: true,
@@ -52,176 +74,29 @@
     term.open(container);
     fitAddon.fit();
 
-    // Tabela genérica de comandos do terminal
-    const commands: Record<string, () => void> = {
-      copy: () => {
-        if (term.hasSelection()) {
-          const text = term.getSelection();
-          invoke("write_clipboard", { text }).catch(() => {
-            navigator.clipboard.writeText(text).catch(() => {});
-          });
-        }
-      },
-      paste: () => {
-        invoke<string>("read_clipboard")
-          .then((text) => (!text ? navigator.clipboard.readText() : text))
-          .then((text) => {
-            if (text) PtyService.writePty(id, text).catch(console.error);
-          })
-          .catch(console.error);
-      },
-      selectAll: () => {
-        term.selectAll();
-      },
-      stop: () => {
-        PtyService.writePty(id, "\x03").catch(console.error);
-      },
-      newTab: () => {
-        onNewTab();
-      },
-      newWindow: () => {
-        invoke("new_window").catch(console.error);
-      },
-      clear: () => {
-        term.clear();
-      },
-    };
+    // Interceptador modular de atalhos de teclado
+    const keyHandler = createTerminalKeyHandler(term, id, {
+      onNewTab,
+      hasActiveAlias: () => !!aliasSug.activeSuggestion && !!aliasSug.matchedPrefix,
+      applyAlias: () => aliasSug.apply(),
+      closeAlias: () => aliasSug.close(),
 
-    // Intercepta atalhos configurados dinamicamente de forma síncrona
-    term.attachCustomKeyEventHandler((e) => {
-      if (e.type !== "keydown") return true;
+      hasActiveVps: () => vpsAuto.showDropdown && vpsAuto.filteredHosts.length > 0,
+      onVpsNext: () => vpsAuto.next(),
+      onVpsPrev: () => vpsAuto.prev(),
+      onVpsSelect: () => vpsAuto.selectCurrent(),
+      onVpsClose: () => vpsAuto.close(),
+      triggerVpsManual: () => vpsAuto.trigger(),
 
-      const shortcuts = configStore.shortcuts;
-
-      // Atalho para disparar autocomplete de VPS manualmente (configurável, padrão Ctrl+Space)
-      const pressed = normalizeShortcut(parseKeyboardEvent(e));
-      const autoShortcut = normalizeShortcut(
-        shortcuts.autocomplete || "Ctrl+Space",
-      );
-      if (pressed && pressed === autoShortcut) {
-        triggerManualAutocomplete();
-        return false;
-      }
-
-      // Atalho para disparar autocomplete de diretórios (configurável, padrão Shift+Space)
-      const dirShortcut = normalizeShortcut(
-        shortcuts.directoryAutocomplete || "Shift+Space",
-      );
-      if (pressed && pressed === dirShortcut) {
-        triggerDirectoryAutocomplete();
-        return false;
-      }
-
-      // Se algum dropdown de autocomplete estiver ativo, capturar setas, Tab, Shift+Tab/Backtab, Enter e Esc
-      const isAnyDropdownActive =
-        (showDropdown && filteredHosts.length > 0) ||
-        (showDirDropdown && filteredPaths.length > 0);
-      if (isAnyDropdownActive) {
-        const isTabKey =
-          e.key === "Tab" ||
-          e.key === "Backtab" ||
-          e.code === "Tab" ||
-          e.keyCode === 9;
-        const isShift = e.shiftKey || e.key === "Backtab";
-
-        const isBackTab = isTabKey && isShift;
-        const isNextTab = isTabKey && !isShift;
-
-        if (showDropdown && filteredHosts.length > 0) {
-          if (e.key === "ArrowDown" || isNextTab) {
-            e.preventDefault();
-            e.stopPropagation();
-            selectedHostIndex = (selectedHostIndex + 1) % filteredHosts.length;
-            return false;
-          }
-          if (e.key === "ArrowUp" || isBackTab) {
-            e.preventDefault();
-            e.stopPropagation();
-            selectedHostIndex =
-              (selectedHostIndex - 1 + filteredHosts.length) %
-              filteredHosts.length;
-            return false;
-          }
-          if (e.key === "Enter") {
-            e.preventDefault();
-            e.stopPropagation();
-            const selected = filteredHosts[selectedHostIndex];
-            if (selected) {
-              applyAutocomplete(selected);
-            }
-            return false;
-          }
-          if (e.key === "Escape") {
-            e.preventDefault();
-            e.stopPropagation();
-            closeAutocomplete();
-            return false;
-          }
-        }
-
-        if (showDirDropdown && filteredPaths.length > 0) {
-          if (e.key === "ArrowDown" || isNextTab) {
-            e.preventDefault();
-            e.stopPropagation();
-            selectedDirIndex = (selectedDirIndex + 1) % filteredPaths.length;
-            return false;
-          }
-          if (e.key === "ArrowUp" || isBackTab) {
-            e.preventDefault();
-            e.stopPropagation();
-            selectedDirIndex =
-              (selectedDirIndex - 1 + filteredPaths.length) %
-              filteredPaths.length;
-            return false;
-          }
-          if (e.key === "Enter") {
-            e.preventDefault();
-            e.stopPropagation();
-            const selected = filteredPaths[selectedDirIndex];
-            if (selected) {
-              applyDirectoryAutocomplete(selected);
-            }
-            return false;
-          }
-          if (e.key === "Escape") {
-            e.preventDefault();
-            e.stopPropagation();
-            closeDirAutocomplete();
-            return false;
-          }
-        }
-      }
-
-      if (!pressed) return true;
-
-      // Tratamento inteligente para Ctrl+C (Copiar se tiver seleção, senão SIGINT)
-      const isCtrlC = pressed === "ctrl+c";
-      const hasSelection = term.hasSelection();
-      const copyKey = normalizeShortcut(shortcuts.copy || "");
-
-      if (
-        pressed === copyKey ||
-        (isCtrlC &&
-          hasSelection &&
-          normalizeShortcut(shortcuts.stop || "") !== "ctrl+c")
-      ) {
-        commands.copy();
-        return false;
-      }
-
-      // Procura se alguma ação registrada coincide com a combinação pressionada
-      for (const [action, combo] of Object.entries(shortcuts)) {
-        if (combo && normalizeShortcut(combo) === pressed) {
-          const handler = commands[action];
-          if (handler) {
-            handler();
-            return false;
-          }
-        }
-      }
-
-      return true;
+      hasActiveDir: () => dirAuto.showDirDropdown && dirAuto.filteredPaths.length > 0,
+      onDirNext: () => dirAuto.next(),
+      onDirPrev: () => dirAuto.prev(),
+      onDirSelect: () => dirAuto.selectCurrent(),
+      onDirClose: () => dirAuto.close(),
+      triggerDirManual: () => dirAuto.trigger(),
     });
+
+    term.attachCustomKeyEventHandler(keyHandler);
 
     // Inicia PTY
     if (type === "ssh" && sshInfo) {
@@ -243,293 +118,53 @@
       }).catch(console.error);
     }
 
+    // Fluxo de dados e digitação
     term.onData((data) => {
-      // Se algum dropdown estiver aberto e uma tecla de navegação (Tab, Backtab \x1b[Z, etc.) vazar para onData, ignore
+      // Ignora teclas de navegação vazadas para o terminal caso algum dropdown esteja aberto
       if (
-        (showDropdown || showDirDropdown) &&
+        (vpsAuto.showDropdown || dirAuto.showDirDropdown) &&
         (data === "\t" || data === "\x1b[Z")
       ) {
         return;
       }
 
-      // Fecha os dropdowns se o usuário der Enter ou Ctrl+C
-      if (
-        showDropdown &&
-        (data.includes("\r") ||
-          data.includes("\n") ||
-          data === "\x03" ||
-          data === "\x15")
-      ) {
-        closeAutocomplete();
+      // Fecha dropdowns se o usuário der Enter ou sinais de cancelamento
+      const isCancelOrEnter =
+        data.includes("\r") ||
+        data.includes("\n") ||
+        data === "\x03" ||
+        data === "\x15";
+
+      // Se a substituição de alias estiver sendo processada no PTY, ignora inputs concorrentes temporariamente
+      if (aliasSug.isApplying) {
+        return;
       }
-      if (
-        showDirDropdown &&
-        (data.includes("\r") ||
-          data.includes("\n") ||
-          data === "\x03" ||
-          data === "\x15")
-      ) {
-        closeDirAutocomplete();
+
+      // Se a sugestão de alias estiver ativa e o usuário apertou Enter (\r),
+      // o evento já foi tratado pelo attachCustomKeyEventHandler para aplicar o alias.
+      // Bloqueia o envio do caractere de quebra de linha para o PTY para não duplicar nem engolir letras!
+      if (aliasSug.activeSuggestion && (data.includes("\r") || data.includes("\n"))) {
+        return;
       }
+
+
+      if (vpsAuto.showDropdown && isCancelOrEnter) vpsAuto.close();
+      if (dirAuto.showDirDropdown && isCancelOrEnter) dirAuto.close();
+      if (aliasSug.activeSuggestion && isCancelOrEnter) aliasSug.close();
+
       PtyService.writePty(id, data).catch(console.error);
+
+      // Verificação não-intrusiva de sugestão de aliases
+      setTimeout(() => {
+        aliasSug.check(vpsAuto.showDropdown || dirAuto.showDirDropdown);
+      }, 10);
     });
 
     setTimeout(() => {
-      fitAddon.fit();
-      term.focus();
+      fitAddon?.fit();
+      term?.focus();
     }, 50);
   });
-
-  // Estado do Autocomplete de VPS
-  let availableSshHosts = $state<SshHost[]>([]);
-  let availableCustomCommands = $state<CustomCommand[]>([]);
-  let showDropdown = $state(false);
-  let filteredHosts = $state<SshHost[]>([]);
-  let selectedHostIndex = $state(0);
-  let dropdownPosition = $state({ x: 100, y: 100 });
-  let activeMatchedCommand = $state<CustomCommand | null>(null);
-  let currentMatchedQuery = "";
-
-  // Estado do Autocomplete de Diretórios
-  let availablePaths = $state<SavedPath[]>([]);
-  let showDirDropdown = $state(false);
-  let filteredPaths = $state<SavedPath[]>([]);
-  let selectedDirIndex = $state(0);
-  let dirDropdownPosition = $state({ x: 100, y: 100 });
-  let currentDirMatchedQuery = "";
-
-  async function triggerManualAutocomplete() {
-    if (type !== "local") return;
-
-    availableSshHosts = configStore.hosts;
-    availableCustomCommands = configStore.commands;
-
-    if (!availableSshHosts || availableSshHosts.length === 0 || !term) {
-      return;
-    }
-
-    // Obtém a linha onde está o cursor
-    const buffer = term.buffer.active;
-    const cursorY = buffer.cursorY;
-    const lineObj = buffer.getLine(buffer.baseY + cursorY);
-    let textBeforeCursor = "";
-    if (lineObj) {
-      const fullLine = lineObj.translateToString(true);
-      textBeforeCursor = fullLine.slice(0, buffer.cursorX);
-    }
-
-    // Identifica se algum dos comandos configurados está presente na linha antes do cursor
-    let matchedCmd: CustomCommand | null = null;
-    for (const cmd of availableCustomCommands) {
-      const regex = new RegExp(`(?:^|[;&|\\s])${cmd.command}(?:\\s+|$)`, "i");
-      if (regex.test(textBeforeCursor)) {
-        matchedCmd = cmd;
-        break;
-      }
-    }
-
-    // Se nenhum comando configurado foi detectado, usa o primeiro comando ou fallback
-    if (!matchedCmd && availableCustomCommands.length > 0) {
-      matchedCmd = availableCustomCommands[0];
-    }
-    activeMatchedCommand = matchedCmd;
-
-    // Verifica se o usuário já começou a digitar algum prefixo do host antes do cursor
-    const match = textBeforeCursor.match(/([a-zA-Z0-9_\-\.]+)$/);
-    const query = match ? match[1] : "";
-
-    // Se a query for o próprio comando configurado ou flag ("-r", etc.), não filtra por esse termo
-    const knownCommands = availableCustomCommands.map((c) =>
-      c.command.toLowerCase(),
-    );
-    const isCommandWord = knownCommands.includes(query.toLowerCase());
-    const validQuery = isCommandWord || query.startsWith("-") ? "" : query;
-
-    if (validQuery.length > 0) {
-      const q = validQuery.toLowerCase();
-      filteredHosts = availableSshHosts.filter((h) => {
-        const labelMatch = h.label && h.label.toLowerCase().includes(q);
-        const ipMatch = h.ip.toLowerCase().includes(q);
-        const userMatch = h.user.toLowerCase().includes(q);
-        return labelMatch || ipMatch || userMatch;
-      });
-      currentMatchedQuery = validQuery;
-    } else {
-      // Se não digitou nada ou deu espaço, exibe TODAS as VPS salvas
-      filteredHosts = [...availableSshHosts];
-      currentMatchedQuery = "";
-    }
-
-    if (filteredHosts.length > 0) {
-      selectedHostIndex = 0;
-      updateDropdownPosition();
-      showDropdown = true;
-    } else {
-      closeAutocomplete();
-    }
-  }
-
-  function updateDropdownPosition() {
-    if (!container || !term) return;
-    const rect = container.getBoundingClientRect();
-
-    // Tenta obter dimensões exatas de célula do xterm.js
-    const core = (term as any)._core;
-    const cellWidth = core?._renderService?.dimensions?.css?.cell?.width || 9;
-    const cellHeight =
-      core?._renderService?.dimensions?.css?.cell?.height || 17;
-
-    const cursorX = term.buffer.active.cursorX;
-    const cursorY = term.buffer.active.cursorY;
-
-    const posX = rect.left + cursorX * cellWidth;
-    const posY = rect.top + (cursorY + 1.2) * cellHeight;
-
-    // Se estiver muito próximo da borda inferior da tela, joga para cima do cursor
-    const finalY =
-      posY + 200 > window.innerHeight ? Math.max(10, posY - 220) : posY;
-
-    dropdownPosition = {
-      x: Math.min(posX, window.innerWidth - 300),
-      y: finalY,
-    };
-  }
-
-  function closeAutocomplete() {
-    showDropdown = false;
-    filteredHosts = [];
-    selectedHostIndex = 0;
-    currentMatchedQuery = "";
-  }
-
-  // --- Autocomplete de Diretórios ---
-
-  async function triggerDirectoryAutocomplete() {
-    if (type !== "local") return;
-
-    availablePaths = configStore.paths;
-
-    if (!availablePaths || availablePaths.length === 0 || !term) return;
-
-    // Obtém o texto antes do cursor
-    const buffer = term.buffer.active;
-    const cursorY = buffer.cursorY;
-    const lineObj = buffer.getLine(buffer.baseY + cursorY);
-    let textBeforeCursor = "";
-    if (lineObj) {
-      const fullLine = lineObj.translateToString(true);
-      textBeforeCursor = fullLine.slice(0, buffer.cursorX);
-    }
-
-    // Tenta pegar o último token como query de filtro
-    const match = textBeforeCursor.match(/([^\s]+)$/);
-    const query = match ? match[1] : "";
-
-    if (query.length > 0) {
-      const q = query.toLowerCase();
-      filteredPaths = availablePaths.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) || p.path.toLowerCase().includes(q),
-      );
-      currentDirMatchedQuery = query;
-    } else {
-      filteredPaths = [...availablePaths];
-      currentDirMatchedQuery = "";
-    }
-
-    if (filteredPaths.length > 0) {
-      selectedDirIndex = 0;
-      updateDirDropdownPosition();
-      showDirDropdown = true;
-    } else {
-      closeDirAutocomplete();
-    }
-  }
-
-  function updateDirDropdownPosition() {
-    if (!container || !term) return;
-    const rect = container.getBoundingClientRect();
-    const core = (term as any)._core;
-    const cellWidth = core?._renderService?.dimensions?.css?.cell?.width || 9;
-    const cellHeight =
-      core?._renderService?.dimensions?.css?.cell?.height || 17;
-
-    const cursorX = term.buffer.active.cursorX;
-    const cursorY = term.buffer.active.cursorY;
-
-    const posX = rect.left + cursorX * cellWidth;
-    const posY = rect.top + (cursorY + 1.2) * cellHeight;
-    const finalY =
-      posY + 200 > window.innerHeight ? Math.max(10, posY - 220) : posY;
-
-    dirDropdownPosition = {
-      x: Math.min(posX, window.innerWidth - 340),
-      y: finalY,
-    };
-  }
-
-  function closeDirAutocomplete() {
-    showDirDropdown = false;
-    filteredPaths = [];
-    selectedDirIndex = 0;
-    currentDirMatchedQuery = "";
-  }
-
-  function applyDirectoryAutocomplete(savedPath: SavedPath) {
-    if (!savedPath) return;
-
-    // Apaga o prefixo digitado (se houver) e insere apenas o path
-    const backspaces = "\x7f".repeat(currentDirMatchedQuery.length);
-    PtyService.writePty(id, backspaces + savedPath.path).catch(console.error);
-
-    closeDirAutocomplete();
-    term.focus();
-    requestAnimationFrame(() => {
-      term.focus();
-    });
-  }
-
-  function applyAutocomplete(host: SshHost) {
-    if (!host) return;
-
-    // Quantidade de caracteres que o usuário já digitou e precisam ser apagados
-    const backspaces = "\x7f".repeat(currentMatchedQuery.length);
-
-    // Substitui placeholders no template e nos args
-    const port = host.port || "22";
-    const key = host.key || "";
-    const user = host.user || "";
-    const ip = host.ip || "";
-    const label = host.label || "";
-
-    const formatString = (str?: string) => {
-      if (!str) return "";
-      return str
-        .replace(/\{user\}/g, user)
-        .replace(/\{ip\}/g, ip)
-        .replace(/\{port\}/g, port)
-        .replace(/\{key\}/g, key)
-        .replace(/\{label\}/g, label);
-    };
-
-    let replacement = "";
-    if (activeMatchedCommand) {
-      const templateStr = formatString(activeMatchedCommand.template);
-      const suffixStr = formatString(activeMatchedCommand.suffixArgs);
-      replacement = `${templateStr}${suffixStr}`;
-    } else {
-      replacement = `${user}@${ip}`;
-    }
-
-    // Envia ao PTY os backspaces para remover a query digitada (se houver) e insere o texto formatado
-    PtyService.writePty(id, backspaces + replacement).catch(console.error);
-
-    closeAutocomplete();
-    term.focus();
-    requestAnimationFrame(() => {
-      term.focus();
-    });
-  }
 
   export function write(data: string) {
     if (term) term.write(data);
@@ -547,7 +182,7 @@
     }
   }
 
-  // Atualiza o tema do terminal reativamente quando o store muda
+  // Atualiza tema do terminal reativamente quando a configuração muda
   $effect(() => {
     if (!term) return;
     const t = configStore.theme;
@@ -572,22 +207,30 @@
     : 'invisible pointer-events-none z-[1]'}"
 ></div>
 
-{#if showDropdown && active}
+{#if vpsAuto.showDropdown && active}
   <SshAutocompleteDropdown
-    hosts={filteredHosts}
-    selectedIndex={selectedHostIndex}
-    position={dropdownPosition}
-    commandName={activeMatchedCommand?.command || "vps"}
-    onSelect={applyAutocomplete}
+    hosts={vpsAuto.filteredHosts}
+    selectedIndex={vpsAuto.selectedHostIndex}
+    position={vpsAuto.dropdownPosition}
+    commandName={vpsAuto.activeMatchedCommand?.command || "vps"}
+    onSelect={vpsAuto.apply}
   />
 {/if}
 
-{#if showDirDropdown && active}
+{#if dirAuto.showDirDropdown && active}
   <DirectoryAutocompleteDropdown
-    paths={filteredPaths}
-    selectedIndex={selectedDirIndex}
-    position={dirDropdownPosition}
-    onSelect={applyDirectoryAutocomplete}
+    paths={dirAuto.filteredPaths}
+    selectedIndex={dirAuto.selectedDirIndex}
+    position={dirAuto.dirDropdownPosition}
+    onSelect={dirAuto.apply}
+  />
+{/if}
+
+{#if aliasSug.activeSuggestion && active}
+  <AliasSuggestionPopup
+    suggestion={aliasSug.activeSuggestion}
+    matchedPrefix={aliasSug.matchedPrefix}
+    position={aliasSug.position}
   />
 {/if}
 

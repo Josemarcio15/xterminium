@@ -72,15 +72,32 @@ pub async fn exec_remote_sudo(
     Ok(())
 }
 
-/// Executa um comando local com privilégios sudo
+/// Executa um comando local com privilégios sudo de forma segura
 pub async fn exec_local_sudo(password: &str, command: &str) -> Result<(), String> {
+    let trimmed = command.trim();
+    if trimmed.is_empty() {
+        return Err("Comando vazio fornecido para sudo local.".to_string());
+    }
+
+    // Separa os argumentos de forma segura respeitando strings entre aspas se houver
+    let raw_args = match shlex::split(trimmed) {
+        Some(args) if !args.is_empty() => args,
+        _ => return Err("Comando inválido ou malformado para sudo local.".to_string()),
+    };
+
+    let bin = &raw_args[0];
+    // Lista estrita de utilitários permitidos para elevação de privilégio local pelo FileManager
+    let allowed_bins = ["touch", "mkdir", "mv", "rm"];
+    if !allowed_bins.contains(&bin.as_str()) {
+        return Err(format!("Execução do binário '{}' não é permitida via sudo.", bin));
+    }
+
     let mut child = tokio::process::Command::new("sudo")
         .arg("-S")
         .arg("-p")
         .arg("")
-        .arg("sh")
-        .arg("-c")
-        .arg(command)
+        .arg(bin)
+        .args(&raw_args[1..])
         .stdin(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .stdout(std::process::Stdio::null())
@@ -115,3 +132,4 @@ pub async fn exec_local_sudo(password: &str, command: &str) -> Result<(), String
 
     Ok(())
 }
+

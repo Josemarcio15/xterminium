@@ -7,7 +7,10 @@ use tokio::sync::Mutex;
 
 use super::types::ActiveSftpConnection;
 
-pub struct ClientHandler;
+pub struct ClientHandler {
+    pub host: String,
+    pub port: u16,
+}
 
 #[async_trait]
 impl Handler for ClientHandler {
@@ -15,11 +18,34 @@ impl Handler for ClientHandler {
 
     async fn check_server_key(
         &mut self,
-        _server_public_key: &PublicKey,
+        server_public_key: &PublicKey,
     ) -> Result<bool, Self::Error> {
+        let home = super::local_fs::get_local_home_dir();
+        let known_hosts_path = home.join(".ssh").join("known_hosts");
+
+        if known_hosts_path.exists() {
+            match russh_keys::check_known_hosts_path(&self.host, self.port, server_public_key, &known_hosts_path) {
+                Ok(true) => {
+                    log::info!("Chave do servidor SSH '{}' verificada com sucesso em known_hosts.", self.host);
+                    return Ok(true);
+                }
+                Ok(false) => {
+                    log::warn!("A chave do servidor SSH '{}' NÃO confere com a chave registrada em known_hosts!", self.host);
+                    // Retorna falso para impedir conexão quando a chave diverge (possível MITM)
+                    return Ok(false);
+                }
+                Err(err) => {
+                    log::warn!("Host '{}' não encontrado em known_hosts ou erro ao ler arquivo: {:?}", self.host, err);
+                }
+            }
+        }
+
+        // Se known_hosts não existir ou não contiver o host ainda, permite a conexão inicial e registra log informativo
+        log::info!("Primeira conexão ao host '{}' ou known_hosts ausente. Permitindo prosseguir com handshake.", self.host);
         Ok(true)
     }
 }
+
 
 pub async fn connect_session(
     active_session: &Arc<Mutex<Option<ActiveSftpConnection>>>,
@@ -40,9 +66,14 @@ pub async fn connect_session(
     let config = Arc::new(client_config);
     let addr = format!("{}:{}", host, port);
 
-    let mut session = client::connect(config, addr, ClientHandler)
+    let handler = ClientHandler {
+        host: host.to_string(),
+        port,
+    };
+    let mut session = client::connect(config, addr, handler)
         .await
         .map_err(|e| format!("Falha ao conectar via TCP/SSH ao host: {}", e))?;
+
 
     let mut authenticated = false;
     let mut key_failed_due_to_passphrase = false;
@@ -164,6 +195,7 @@ pub async fn connect_session(
         sftp: Arc::new(sftp),
         ssh_handle,
         current_remote_dir: home_dir.clone(),
+        transfer_cancel_token: Arc::new(Mutex::new(None)),
     });
 
     Ok(home_dir)
@@ -171,5 +203,12 @@ pub async fn connect_session(
 
 pub async fn disconnect_session(active_session: &Arc<Mutex<Option<ActiveSftpConnection>>>) {
     let mut lock = active_session.lock().await;
+    if let Some(session) = lock.as_ref() {
+        let token_lock = session.transfer_cancel_token.lock().await;
+        if let Some(token) = token_lock.as_ref() {
+            token.cancel();
+        }
+    }
     *lock = None;
 }
+

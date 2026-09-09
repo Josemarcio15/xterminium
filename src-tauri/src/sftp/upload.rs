@@ -5,6 +5,7 @@ use tauri::{AppHandle, Emitter};
 use tokio::fs as local_fs;
 use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
 use tokio::sync::Mutex;
+use tokio_util::sync::CancellationToken;
 
 use super::types::{ActiveSftpConnection, SftpTransferProgress};
 
@@ -27,11 +28,14 @@ pub async fn upload_file(
         .map_err(|e| format!("Erro ao ler metadados do arquivo local: {}", e))?;
     let file_size = local_meta.len();
 
+    let cancel_token = CancellationToken::new();
     let sftp = {
         let lock = active_session.lock().await;
         let session = lock
             .as_ref()
             .ok_or_else(|| "Nenhuma conexão SFTP ativa".to_string())?;
+        let mut token_lock = session.transfer_cancel_token.lock().await;
+        *token_lock = Some(cancel_token.clone());
         session.sftp.clone()
     };
 
@@ -78,20 +82,27 @@ pub async fn upload_file(
         },
     );
 
-    loop {
-        let n = reader
-            .read(&mut buffer)
-            .await
-            .map_err(|e| format!("Erro ao ler dados do arquivo local: {}", e))?;
+    let mut upload_result: Result<(), String> = Ok(());
 
-        if n == 0 {
+    loop {
+        if cancel_token.is_cancelled() {
+            upload_result = Err("Upload cancelado pelo usuário.".to_string());
             break;
         }
 
-        writer
-            .write_all(&buffer[..n])
-            .await
-            .map_err(|e| format!("Erro ao gravar dados no servidor SFTP: {}", e))?;
+        let n = match reader.read(&mut buffer).await {
+            Ok(0) => break,
+            Ok(bytes) => bytes,
+            Err(e) => {
+                upload_result = Err(format!("Erro ao ler dados do arquivo local: {}", e));
+                break;
+            }
+        };
+
+        if let Err(e) = writer.write_all(&buffer[..n]).await {
+            upload_result = Err(format!("Erro ao gravar dados no servidor SFTP: {}", e));
+            break;
+        }
 
         transferred += n as u64;
 
@@ -137,10 +148,26 @@ pub async fn upload_file(
         }
     }
 
-    writer
-        .flush()
-        .await
-        .map_err(|e| format!("Erro ao sincronizar arquivo remoto: {}", e))?;
+    if upload_result.is_ok() {
+        if let Err(e) = writer.flush().await {
+            upload_result = Err(format!("Erro ao sincronizar arquivo remoto: {}", e));
+        }
+    }
+
+    // Fecha o handle do arquivo remoto
+    let raw_remote_file = writer.into_inner();
+    let _ = raw_remote_file.close().await;
+
+    // Limpa token da sessão
+    {
+        let lock = active_session.lock().await;
+        if let Some(session) = lock.as_ref() {
+            let mut token_lock = session.transfer_cancel_token.lock().await;
+            *token_lock = None;
+        }
+    }
+
+    upload_result?;
 
     let total_secs = start_time.elapsed().as_secs_f64();
     let avg_speed = (file_size as f64 / (1024.0 * 1024.0)) / total_secs.max(0.001);
@@ -168,3 +195,4 @@ pub async fn upload_file(
 
     Ok(())
 }
+

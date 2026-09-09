@@ -4,6 +4,7 @@
   import ShortcutsModal from '../../features/settings/modals/ShortcutsModal.svelte';
   import PathsModal from '../../features/settings/modals/PathsModal.svelte';
   import CommandTriggersModal from '../../features/settings/modals/CommandTriggersModal.svelte';
+  import AliasesModal from '../../features/settings/modals/AliasesModal.svelte';
   import ThemeModal from '../../features/settings/modals/ThemeModal.svelte';
   import Button from '@/shared/components/Button.svelte';
   import { type SshHost, type TabItem } from '../../core/types';
@@ -28,6 +29,7 @@
   let showPathsModal = $state(false);
   let showSshModal = $state(false);
   let showCommandsModal = $state(false);
+  let showAliasesModal = $state(false);
   let showShortcutsModal = $state(false);
   let showThemeModal = $state(false);
   let tabsScrollArea: HTMLDivElement | null = $state(null);
@@ -36,6 +38,7 @@
     showPathsModal = false;
     showSshModal = false;
     showCommandsModal = false;
+    showAliasesModal = false;
     showShortcutsModal = false;
     showThemeModal = false;
   }
@@ -190,6 +193,18 @@
             <span class="flex-1">Comandos de VPS</span>
           </button>
 
+          <!-- Item: Aliases de Comandos -->
+          <button 
+            type="button"
+            class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-white/10 hover:text-[var(--text-base)] transition-all text-left w-full cursor-pointer border-none bg-transparent text-[var(--text-base)]"
+            onclick={() => { showMenu = false; closeAllModals(); showAliasesModal = true; }}
+          >
+            <svg class="text-amber-400 shrink-0" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            <span class="flex-1">Aliases de Comandos</span>
+          </button>
+
           <!-- Item: SFTP / Explorador Duplo -->
           <button 
             type="button"
@@ -246,6 +261,11 @@
       <CommandTriggersModal 
         show={showCommandsModal} 
         onClose={() => (showCommandsModal = false)} 
+      />
+
+      <AliasesModal 
+        show={showAliasesModal} 
+        onClose={() => (showAliasesModal = false)} 
       />
 
       <ShortcutsModal 

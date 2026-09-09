@@ -113,9 +113,13 @@
   });
 
   function handleCloseModal() {
+    if (transfer.isTransferring) {
+      transfer.cancelTransfer();
+    }
     conn.disconnect();
     onClose?.();
   }
+
 </script>
 
 {#if isOpen}

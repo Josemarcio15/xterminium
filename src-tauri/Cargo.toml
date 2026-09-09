@@ -29,4 +29,6 @@ russh-sftp = "2.0"
 async-trait = "0.1"
 futures = "0.3.34"
 sha2 = "0.10.9"
+shlex = "2.0.1"
+tokio-util = "0.7.19"
 

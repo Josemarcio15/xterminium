@@ -27,8 +27,20 @@ export function createSftpTransfer(setStatus: (msg: string) => void) {
     return () => {
       active = false;
       if (unlistenProgress) unlistenProgress();
+      if (isTransferring) {
+        SftpService.cancelTransfer().catch(() => {});
+      }
     };
   });
+
+  async function cancelTransfer() {
+    if (isTransferring) {
+      await SftpService.cancelTransfer().catch(() => {});
+      setStatus('Transferência cancelada.');
+      isTransferring = false;
+      activeTransfer = null;
+    }
+  }
 
   async function upload(
     selectedLocal: FileItem | null,
@@ -83,5 +95,7 @@ export function createSftpTransfer(setStatus: (msg: string) => void) {
     get isTransferring() { return isTransferring; },
     upload,
     download,
+    cancelTransfer,
   };
 }
+

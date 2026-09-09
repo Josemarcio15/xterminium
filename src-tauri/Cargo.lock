@@ -5667,10 +5667,12 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "shlex",
  "tauri",
  "tauri-build",
  "tauri-plugin-log",
  "tokio",
+ "tokio-util",
 ]
 
 [[package]]
