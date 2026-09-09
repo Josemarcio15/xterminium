@@ -1,4 +1,5 @@
 pub mod checksum;
+pub mod commands;
 pub mod local_fs;
 pub mod remote_fs;
 pub mod session;
@@ -7,6 +8,7 @@ pub mod transfer;
 pub mod types;
 pub mod upload;
 
+pub use commands::*;
 pub use local_fs::{get_local_home_dir, list_local_directory};
 pub use types::{ActiveSftpConnection, FileEntry, SftpTransferProgress};
 
