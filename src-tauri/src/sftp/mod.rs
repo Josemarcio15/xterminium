@@ -111,7 +111,6 @@ impl SftpState {
     }
 
     /// Calcula o hash SHA-256 de um arquivo local
-
     pub async fn calculate_local_sha256(&self, local_path: &str) -> Result<String, String> {
         checksum::calculate_local_sha256(local_path).await
     }
