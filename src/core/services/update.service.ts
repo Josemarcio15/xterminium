@@ -18,7 +18,7 @@ export interface UpdateCheckResult {
 
 const REPO_OWNER = 'Josemarcio15';
 const REPO_NAME = 'xterminium';
-const CURRENT_VERSION = '0.0.7-alpha';
+const CURRENT_VERSION = '0.0.9-alpha';
 
 function parseVersionNumbers(v: string): number[] {
   // Remove 'v' inicial e sufixos como '-alpha', '-beta', etc.
@@ -51,7 +51,8 @@ export class UpdateService {
   static async checkForUpdates(): Promise<UpdateCheckResult | null> {
     try {
       const currentVersion = await this.getCurrentVersion();
-      const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest`, {
+      // Consulta a lista completa de releases para incluir pre-releases (alpha/beta)
+      const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases`, {
         headers: {
           Accept: 'application/vnd.github.v3+json',
         },
@@ -61,7 +62,13 @@ export class UpdateService {
         return null;
       }
 
-      const release: GithubReleaseInfo = await res.json();
+      const releases: GithubReleaseInfo[] = await res.json();
+      if (!Array.isArray(releases) || releases.length === 0) {
+        return null;
+      }
+
+      // Pega a primeira release pública publicada (mesmo sendo pre-release)
+      const release = releases[0];
       const latestTag = release.tag_name || '';
       const hasUpdate = isNewerVersion(currentVersion, latestTag);
 
@@ -70,7 +77,7 @@ export class UpdateService {
         currentVersion,
         latestVersion: latestTag.replace(/^v/i, ''),
         releaseNotes: release.body || '',
-        releaseUrl: release.html_url || `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/latest`,
+        releaseUrl: release.html_url || `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases`,
       };
     } catch (err) {
       console.error('Falha ao verificar atualizações do xterminium:', err);
