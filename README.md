@@ -47,6 +47,21 @@ A terminal emulator built with Tauri v2 (Rust) and Svelte 5, designed for SSH an
 </p>
 
 <p align="center">
+  <b>Animated Matrix Theme (Digital Rain)</b><br/>
+  <img src="./screenshots/matrixTheme.png" alt="Matrix Theme" width="850px" />
+</p>
+
+<p align="center">
+  <b>Animated Fire Theme (Procedural Flames & Embers)</b><br/>
+  <img src="./screenshots/fireTheme.png" alt="FireTheme" width="850px" />
+</p>
+
+<p align="center">
+  <b>Animated Ice Theme (Blizzard & Frost)</b><br/>
+  <img src="./screenshots/iceTheme.png" alt="IceTheme" width="850px" />
+</p>
+
+<p align="center">
   <img src="./screenshots/theme_light.png" alt="Light Mode Theme" width="850px" />
 </p>
 
