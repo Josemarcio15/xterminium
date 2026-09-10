@@ -1,91 +1,88 @@
 # xterminium
 
-A terminal emulator built with Tauri v2 (Rust) and Svelte 5. Focuses on SSH/SFTP workflows, keyboard-driven navigation, and low overhead.
+A terminal emulator built with Tauri v2 (Rust) and Svelte 5, designed for SSH and SFTP workflows, keyboard-driven navigation, and minimal system overhead.
 
 ---
 
-## 📸 Screenshots
-
-
+## Screenshots
 
 <p align="center">
-  <b>Explorador de Arquivos & SFTP Integrado (Dual-Pane)</b><br/>
+  <b>Integrated File Explorer & Dual-Pane SFTP</b><br/>
   <img src="./screenshots/sftp_dual_pane.png" alt="xterminium SFTP Dual-Pane" width="850px" />
 </p>
 
-
-
 <p align="center">
+  <b>SCP Autocomplete</b><br/>
   <img src="./screenshots/autocomplete_scp.png" alt="Autocomplete SCP" width="850px" />
 </p>
 
 <p align="center">
-  <img src="./screenshots/ssh_connections.png" alt="Conexões SSH Salvas" width="850px" />
+  <b>Saved SSH Connections</b><br/>
+  <img src="./screenshots/ssh_connections.png" alt="Saved SSH Connections" width="850px" />
 </p>
 
 <p align="center">
-  <img src="./screenshots/saved_paths.png" alt="Diretórios Salvos" width="850px" />
-</p>
-
-
-
-<p align="center">
-  <b>Comandos &amp; Autocomplete VPS Configurável</b><br/>
-  <img src="./screenshots/command_triggers.png" alt="Comandos & Autocomplete VPS" width="850px" />
+  <b>Saved Paths</b><br/>
+  <img src="./screenshots/saved_paths.png" alt="Saved Directories" width="850px" />
 </p>
 
 <p align="center">
-  <b>Sistema de Temas &amp; Aparência</b><br/>
-  <img src="./screenshots/theme_dark.png" alt="Temas - Default Dark" width="850px" />
+  <b>Commands & Configurable VPS Autocomplete</b><br/>
+  <img src="./screenshots/command_triggers.png" alt="Commands and VPS Autocomplete" width="850px" />
 </p>
 
 <p align="center">
-  <img src="./screenshots/theme_light.png" alt="Temas - Light Mode" width="850px" />
+  <b>Theme & Appearance Customization</b><br/>
+  <img src="./screenshots/theme_dark.png" alt="Default Dark Theme" width="850px" />
 </p>
 
 <p align="center">
-  <img src="./screenshots/theme_shapes.png" alt="Temas - Formas e Arredondamento" width="850px" />
+  <img src="./screenshots/theme_light.png" alt="Light Mode Theme" width="850px" />
+</p>
+
+<p align="center">
+  <img src="./screenshots/theme_shapes.png" alt="Shapes and Corner Rounding Customization" width="850px" />
 </p>
 
 ---
 
-## Install
+## Installation
 
 ### Linux
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/Josemarcio15/xterminium/main/install.sh)
 ```
-Fetches the latest release from GitHub, downloads the `.deb`, and installs via `dpkg`. Exits early if already up to date. Requires `curl`, `dpkg`, and `sudo`.
+Fetches the latest release from GitHub Releases, downloads the `.deb` package, and installs it via `dpkg`. Exits early if the application is already up to date. Requires `curl`, `dpkg`, and `sudo`.
 
 ### Windows
-Abra o **PowerShell** e cole:
+Open **PowerShell** and run:
 ```powershell
 irm https://raw.githubusercontent.com/Josemarcio15/xterminium/main/install.ps1 | iex
 ```
-Consulta a versão mais recente no GitHub Releases, faz o download do instalador e instala/atualiza automaticamente.
+Checks for the latest version on GitHub Releases, downloads the installer, and handles installation/updates automatically.
 
 ---
 
 ## Features
 
-**Local terminal**
-- Detects `$SHELL` on Linux/macOS; falls back through `zsh → bash → sh`
-- On Windows, starts PowerShell with `cmd.exe` fallback
-- Full ANSI 256-color and TrueColor support via xterm.js
+**Local Terminal**
+- Automatically detects `$SHELL` on Linux/macOS with fallback chain (`zsh -> bash -> sh`)
+- Starts PowerShell with `cmd.exe` fallback on Windows
+- Full ANSI 256-color and TrueColor support powered by xterm.js
 - Multiple independent tabs
 
-**SSH manager**
-- Save hosts with label, user, IP, port, and private key (`.pem` / `id_rsa`)
-- `Ctrl+Space` autocomplete inside any `ssh` or `scp` command
+**SSH Manager**
+- Save connection profiles with label, user, host/IP, port, and private key (`.pem` / `id_rsa`)
+- `Ctrl+Space` autocomplete within `ssh` and `scp` commands
 
-**SFTP file manager**
-- Dual-pane (local ↔ remote) as a native tab — no modal
-- Recursive upload/download with progress tracking
-- Toggle hidden files; keyboard navigation throughout
+**SFTP File Manager**
+- Dual-pane (local <-> remote) file transfer interface opened directly as a tab
+- Recursive upload and download with progress indicators
+- Hidden files visibility toggle and full keyboard navigation
 
-**Shortcuts** — all configurable, stored in `~/.config/xterminium/shortcuts.json`
+**Configurable Shortcuts** — customizable via `~/.config/xterminium/shortcuts.json`
 
-| Action | Default |
+| Action | Default Shortcut |
 |---|---|
 | Copy | `Ctrl+Shift+C` |
 | Paste | `Ctrl+Shift+V` |
@@ -94,37 +91,37 @@ Consulta a versão mais recente no GitHub Releases, faz o download do instalador
 | New tab | `Ctrl+Shift+T` |
 | New window | `Ctrl+Shift+N` |
 
-**Quick paths** — bookmark local directories for instant `cd` from the terminal.
+**Quick Paths** — bookmark directories for instant `cd` navigation from the terminal.
 
 ---
 
-## Stack
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| Backend | Rust · Tauri v2 |
+| Backend | Rust, Tauri v2 |
 | PTY | `portable-pty` |
-| SSH/SFTP | `russh` · `russh-sftp` (pure Rust, no system deps) |
-| Frontend | Svelte 5 · TypeScript · Vite |
-| Styles | Tailwind CSS v4 |
-| Terminal | xterm.js |
+| SSH / SFTP | `russh`, `russh-sftp` (pure Rust, no system C library dependencies) |
+| Frontend | Svelte 5, TypeScript, Vite |
+| Styling | Tailwind CSS v4 |
+| Terminal Core | xterm.js |
 
 ---
 
 ## Development
 
-**Prerequisites**
+### Prerequisites
 
 - Node.js 18+
-- Rust (stable)
-- System libraries (Ubuntu/Debian):
+- Rust (stable toolchain)
+- Required system dependencies (Ubuntu/Debian):
 
 ```bash
 sudo apt install libwebkit2gtk-4.1-dev build-essential curl wget file \
   libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
 ```
 
-**Run**
+### Running Locally
 
 ```bash
 git clone https://github.com/Josemarcio15/xterminium.git
@@ -133,18 +130,18 @@ npm install
 npm run tauri dev
 ```
 
-**Build**
+### Building for Production
 
 ```bash
 npm run tauri build
-# output: src-tauri/target/release/bundle/
+# Artifacts will be generated in: src-tauri/target/release/bundle/
 ```
 
 ---
 
-## Shell setup (optional)
+## Shell Setup (Optional)
 
-To match the prompt shown in the screenshots, install [Oh My Zsh](https://ohmyz.sh/) and set `ZSH_THEME="af-magic"` in `~/.zshrc`. A [Nerd Font](https://www.nerdfonts.com/) (JetBrains Mono or Fira Code) is recommended for glyph rendering.
+To achieve the terminal prompt displayed in the screenshots, install [Oh My Zsh](https://ohmyz.sh/) and configure `ZSH_THEME="af-magic"` in your `~/.zshrc`. A [Nerd Font](https://www.nerdfonts.com/) such as JetBrains Mono or Fira Code is recommended for proper icon and glyph rendering.
 
 ---
 
