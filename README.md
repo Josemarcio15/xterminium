@@ -1,5 +1,12 @@
 # xterminium
 
+<p align="left">
+  <a href="https://tauri.app/"><img src="https://img.shields.io/badge/Tauri_v2-24C8D8?style=for-the-badge&logo=tauri&logoColor=white" alt="Tauri" /></a>
+  <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white" alt="Rust" /></a>
+  <a href="https://svelte.dev/"><img src="https://img.shields.io/badge/Svelte_5-FF3E00?style=for-the-badge&logo=svelte&logoColor=white" alt="Svelte" /></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" /></a>
+</p>
+
 A terminal emulator built with Tauri v2 (Rust) and Svelte 5, designed for SSH and SFTP workflows, keyboard-driven navigation, and minimal system overhead.
 
 ---
