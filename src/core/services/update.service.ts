@@ -76,11 +76,15 @@ export class UpdateService {
       const latestTag = release.tag_name || '';
       const hasUpdate = isNewerVersion(currentVersion, latestTag);
 
+      // Remove blocos legados de instruções de terminal caso a release antiga ainda tenha
+      let cleanNotes = (release.body || '').split('---')[0].trim();
+      cleanNotes = cleanNotes.replace(/```[\s\S]*?```/g, '').trim();
+
       return {
         hasUpdate,
         currentVersion,
         latestVersion: latestTag.replace(/^v/i, ''),
-        releaseNotes: release.body || '',
+        releaseNotes: cleanNotes,
         releaseUrl: release.html_url || `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases`,
       };
     } catch (err) {
@@ -89,7 +93,7 @@ export class UpdateService {
     }
   }
 
-  static async runUpdate(): Promise<void> {
-    await invoke('run_update_installer');
+  static async runUpdate(password?: string): Promise<void> {
+    await invoke('run_update_installer', { password: password || null });
   }
 }

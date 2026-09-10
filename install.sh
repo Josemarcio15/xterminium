@@ -74,13 +74,27 @@ download_deb() {
     success "Download concluído."
 }
 
+# ── Elevação de privilégios ─────────────────────────────────
+elevate_cmd() {
+    if [ "$EUID" -eq 0 ]; then
+        "$@"
+    elif [ -n "${SUDO_PASSWORD:-}" ]; then
+        # Se a senha foi fornecida pelo aplicativo, repassa via stdin de forma segura
+        printf '%s\n' "$SUDO_PASSWORD" | sudo -S -p '' "$@"
+    elif command -v sudo &>/dev/null; then
+        sudo "$@"
+    else
+        error "Necessário permissões de root para instalar o pacote .deb."
+    fi
+}
+
 # ── Instalação ───────────────────────────────────────────────
 install_deb() {
-    info "Instalando (sudo dpkg -i) — você pode precisar digitar sua senha:"
+    info "Instalando pacote..."
     echo
-    sudo dpkg -i "$TMP_DEB" || {
+    elevate_cmd dpkg -i "$TMP_DEB" || {
         warn "dpkg reportou dependências faltantes. Tentando corrigir com apt..."
-        sudo apt-get install -f -y
+        elevate_cmd apt-get install -f -y
     }
     rm -f "$TMP_DEB"
     echo
