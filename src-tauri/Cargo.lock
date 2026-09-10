@@ -5655,10 +5655,11 @@ dependencies = [
 
 [[package]]
 name = "xterminium"
-version = "0.0.15-alpha"
+version = "0.0.16-alpha"
 dependencies = [
  "async-trait",
  "futures",
+ "gtk",
  "log",
  "portable-pty",
  "russh",
