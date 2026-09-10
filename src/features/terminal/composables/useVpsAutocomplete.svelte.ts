@@ -19,8 +19,6 @@ export function useVpsAutocomplete(
   let currentMatchedQuery = "";
 
   function trigger() {
-    if (getType() !== "local") return;
-
     const term = getTerm();
     availableSshHosts = configStore.hosts;
     availableCustomCommands = configStore.commands;

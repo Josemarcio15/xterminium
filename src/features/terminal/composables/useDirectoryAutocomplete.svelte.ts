@@ -17,8 +17,6 @@ export function useDirectoryAutocomplete(
   let currentDirMatchedQuery = "";
 
   function trigger() {
-    if (getType() !== "local") return;
-
     const term = getTerm();
     availablePaths = configStore.paths;
 

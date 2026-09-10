@@ -119,7 +119,7 @@ async function main() {
     }
 
     console.log('\n[4/5] Criando commit e tag Git...');
-    execSync('git add package.json src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/tauri.conf.json', {
+    execSync('git add -A', {
       cwd: rootDir,
       stdio: 'inherit',
     });

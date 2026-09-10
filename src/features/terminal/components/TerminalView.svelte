@@ -4,7 +4,7 @@
   import { FitAddon } from "@xterm/addon-fit";
   import { WebglAddon } from "@xterm/addon-webgl";
   import "@xterm/xterm/css/xterm.css";
-  import { type SshHost, isRainTheme } from "../../../core/types";
+  import { type SshHost, hasBackgroundEffect } from "../../../core/types";
   import { PtyService } from "../../../core/services";
   import { configStore } from "../../../core/stores/config.svelte";
   import SshAutocompleteDropdown from "./SshAutocompleteDropdown.svelte";
@@ -83,7 +83,7 @@
   onMount(async () => {
     if (!container) return;
 
-    const isMatrix = isRainTheme(configStore.theme);
+    const hasEffect = hasBackgroundEffect(configStore.theme);
     term = new Terminal({
       allowTransparency: true,
       cursorBlink: true,
@@ -91,7 +91,7 @@
       fontSize: 14,
       lineHeight: 1.2,
       theme: {
-        background: isMatrix
+        background: hasEffect
           ? "rgba(0, 0, 0, 0.45)"
           : configStore.theme.terminalBg,
         foreground: configStore.theme.terminalFg,
@@ -228,9 +228,9 @@
   $effect(() => {
     if (!term) return;
     const t = configStore.theme;
-    const isMatrixTheme = isRainTheme(t);
+    const hasEffect = hasBackgroundEffect(t);
     term.options.theme = {
-      background: isMatrixTheme ? "rgba(0, 0, 0, 0.45)" : t.terminalBg,
+      background: hasEffect ? "rgba(0, 0, 0, 0.45)" : t.terminalBg,
       foreground: t.terminalFg,
       cursor: type === "ssh" ? t.terminalCursorSsh : t.terminalCursorLocal,
       selectionBackground: t.terminalSelection,

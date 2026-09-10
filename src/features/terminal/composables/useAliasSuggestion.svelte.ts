@@ -39,8 +39,8 @@ export function useAliasSuggestion(
     const match = textBeforeCursor.match(/([a-zA-Z0-9_\-\.\/]+)$/);
     const currentWord = match ? match[1] : "";
 
-    // Sugere a partir de 1 caractere digitado se coincidir com o início de algum alias
-    if (currentWord.length >= 1) {
+    // Sugere a partir de 2 caracteres digitados se coincidir com o início de algum alias
+    if (currentWord.length >= 2) {
       const wordLower = currentWord.toLowerCase();
       const matched = availableAliases.find((a) =>
         a.alias.toLowerCase().startsWith(wordLower)

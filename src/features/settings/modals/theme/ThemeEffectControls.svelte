@@ -2,6 +2,8 @@
   import {
     type AppTheme,
     isRainTheme,
+    isFireTheme,
+    isIceTheme,
     RAIN_DEFAULTS,
   } from "../../../../core/types";
 
@@ -13,6 +15,9 @@
   let { draft, onUpdate }: Props = $props();
 
   const isRain = $derived(isRainTheme(draft));
+  const isFire = $derived(isFireTheme(draft));
+  const isIce = $derived(isIceTheme(draft));
+  const hasEffect = $derived(isRain || isFire || isIce);
 
   const density = $derived(draft.rainDensity ?? RAIN_DEFAULTS.density);
   const opacity = $derived(draft.rainOpacity ?? RAIN_DEFAULTS.opacity);
@@ -27,7 +32,7 @@
           ? "Padrão"
           : density <= 170
             ? "Densa"
-            : "Tempestade",
+            : "Intensa",
   );
 
   const opacityLabel = $derived(
@@ -55,7 +60,7 @@
   );
 </script>
 
-{#if isRain}
+{#if hasEffect}
   <div class="h-px bg-[var(--border-subtle)] mb-3"></div>
 
   <div
@@ -64,16 +69,30 @@
     <p
       class="text-[10px] uppercase tracking-wider text-[var(--text-muted)] opacity-90 font-bold"
     >
-      Efeito de Animação (Chuva de Binários)
+      {#if isFire}
+        Efeito de Animação (Chamas & Brasas)
+      {:else if isIce}
+        Efeito de Animação (Nevasca & Geada)
+      {:else}
+        Efeito de Animação (Chuva de Binários)
+      {/if}
     </p>
 
-    <!-- Quantidade de chuva -->
+    <!-- Quantidade / Intensidade -->
     <div class="flex flex-col gap-1">
       <div class="flex items-center justify-between text-xs">
         <span
           class="text-[11px] text-[var(--text-base)] font-medium flex items-center gap-1.5"
         >
-          <span>Quantidade de Chuva</span>
+          <span>
+            {#if isFire}
+              Intensidade das Chamas
+            {:else if isIce}
+              Densidade da Nevasca & Geada
+            {:else}
+              Quantidade de Chuva
+            {/if}
+          </span>
           <span class="text-[9px] text-[var(--text-faint)] font-mono">
             ({densityLabel})
           </span>
@@ -103,13 +122,21 @@
 
     <div class="h-px bg-[var(--border-subtle)]"></div>
 
-    <!-- Opacidade dos binários -->
+    <!-- Opacidade -->
     <div class="flex flex-col gap-1">
       <div class="flex items-center justify-between text-xs">
         <span
           class="text-[11px] text-[var(--text-base)] font-medium flex items-center gap-1.5"
         >
-          <span>Opacidade dos Binários</span>
+          <span>
+            {#if isFire}
+              Opacidade das Chamas
+            {:else if isIce}
+              Opacidade do Gelo
+            {:else}
+              Opacidade dos Binários
+            {/if}
+          </span>
           <span class="text-[9px] text-[var(--text-faint)] font-mono">
             ({opacityLabel})
           </span>
@@ -139,13 +166,13 @@
 
     <div class="h-px bg-[var(--border-subtle)]"></div>
 
-    <!-- Velocidade de queda -->
+    <!-- Velocidade de movimento -->
     <div class="flex flex-col gap-1">
       <div class="flex items-center justify-between text-xs">
         <span
           class="text-[11px] text-[var(--text-base)] font-medium flex items-center gap-1.5"
         >
-          <span>Velocidade de Queda</span>
+          <span>Velocidade de Animação</span>
           <span class="text-[9px] text-[var(--text-faint)] font-mono">
             ({speedLabel})
           </span>

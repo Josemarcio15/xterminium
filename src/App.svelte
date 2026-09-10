@@ -7,8 +7,16 @@
   import TerminalView from "./features/terminal/components/TerminalView.svelte";
   import FileManagerModal from "./features/sftp/components/FileManagerModal.svelte";
   import MatrixRain from "./shared/components/MatrixRain.svelte";
+  import FireEffect from "./shared/components/FireEffect.svelte";
+  import IceEffect from "./shared/components/IceEffect.svelte";
   import UpdateModal from "./features/settings/modals/UpdateModal.svelte";
-  import { type SshHost, isRainTheme } from "./core/types";
+  import {
+    type SshHost,
+    isRainTheme,
+    isFireTheme,
+    isIceTheme,
+    hasBackgroundEffect,
+  } from "./core/types";
   import { configStore } from "./core/stores/config.svelte";
   import {
     UpdateService,
@@ -31,8 +39,11 @@
   let updateInfo = $state<UpdateCheckResult | null>(null);
   let showUpdateModal = $state(false);
 
-  // Temas com efeito de animação de fundo (ex: Matrix) usam a chuva de binários
+  // Efeitos de animação de fundo
   const hasRainEffect = $derived(isRainTheme(configStore.theme));
+  const hasFire = $derived(isFireTheme(configStore.theme));
+  const hasIce = $derived(isIceTheme(configStore.theme));
+  const hasAnyEffect = $derived(hasBackgroundEffect(configStore.theme));
 
   function createTab(type: "local" | "ssh", sshHost?: SshHost) {
     const id = crypto.randomUUID();
@@ -206,14 +217,14 @@
     const titleInterval = setInterval(updateTabTitles, 800);
     updateTabTitles();
 
-    // Verifica atualizações de forma não obstrutiva 1.5s após inicializar
+    // Verifica atualizações
     const updateTimeout = setTimeout(async () => {
       const res = await UpdateService.checkForUpdates();
       if (res && res.hasUpdate) {
         updateInfo = res;
         showUpdateModal = true;
       }
-    }, 1500);
+    }, 2500);
 
     return () => {
       window.removeEventListener("resize", handleResize);
@@ -248,12 +259,16 @@
   />
 
   <main
-    class="flex-1 min-h-0 relative bg-[var(--bg-base)] {hasRainEffect
+    class="flex-1 min-h-0 relative bg-[var(--bg-base)] {hasAnyEffect
       ? 'matrix-rain-active'
       : ''}"
   >
     {#if hasRainEffect}
       <MatrixRain />
+    {:else if hasFire}
+      <FireEffect />
+    {:else if hasIce}
+      <IceEffect />
     {/if}
     {#each tabs as tab (tab.id)}
       {#if tab.type === "sftp"}
