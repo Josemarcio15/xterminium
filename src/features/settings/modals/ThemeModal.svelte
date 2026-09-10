@@ -5,6 +5,7 @@
   import Button from "@/shared/components/Button.svelte";
   import ThemePresetsList from "./theme/ThemePresetsList.svelte";
   import ThemeShapesSliders from "./theme/ThemeShapesSliders.svelte";
+  import ThemeEffectControls from "./theme/ThemeEffectControls.svelte";
   import ThemeColorEditors from "./theme/ThemeColorEditors.svelte";
 
   interface Props {
@@ -111,11 +112,11 @@
   }
 
   const isDirty = $derived(
-    JSON.stringify(draft) !== JSON.stringify(configStore.theme)
+    JSON.stringify(draft) !== JSON.stringify(configStore.theme),
   );
 
   const isCustomTheme = $derived(
-    configStore.customThemes.some((t) => t.name === configStore.theme.name)
+    configStore.customThemes.some((t) => t.name === configStore.theme.name),
   );
 </script>
 
@@ -173,6 +174,8 @@
     <div class="h-px bg-[var(--border-subtle)] mb-3"></div>
 
     <ThemeShapesSliders {draft} onUpdate={updateDraftValue} />
+
+    <ThemeEffectControls {draft} onUpdate={updateDraftValue} />
 
     <div class="h-px bg-[var(--border-subtle)] mb-3"></div>
 

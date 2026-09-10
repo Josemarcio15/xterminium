@@ -66,22 +66,33 @@ async function main() {
   const nextVersionSuggestion = suggestNextVersion(currentVersion);
 
   try {
+    const noCommit = process.argv.includes('--no-commit');
+
     // 1. Versão do App
     console.log(`Versao atual: \x1b[33m${currentVersion}\x1b[0m`);
     const targetVersion = await askPreFilled('Nova versao: ', nextVersionSuggestion);
 
-    // 2. Nome da Tag Git
-    const suggestedTag = targetVersion.startsWith('v') ? targetVersion : `v${targetVersion}`;
-    const targetTag = await askPreFilled('Tag Git: ', suggestedTag);
+    let targetTag = '';
+    let commitMsg = '';
 
-    // 3. Mensagem do Commit
-    const suggestedCommitMsg = `release: ${targetTag}`;
-    const commitMsg = await askPreFilled('Mensagem do commit: ', suggestedCommitMsg);
+    if (!noCommit) {
+      // 2. Nome da Tag Git
+      const suggestedTag = targetVersion.startsWith('v') ? targetVersion : `v${targetVersion}`;
+      targetTag = await askPreFilled('Tag Git: ', suggestedTag);
+
+      // 3. Mensagem do Commit
+      const suggestedCommitMsg = `release: ${targetTag}`;
+      commitMsg = await askPreFilled('Mensagem do commit: ', suggestedCommitMsg);
+    }
 
     console.log('\n------------------------------------------------------------');
     console.log(`Versao : \x1b[33m${targetVersion}\x1b[0m`);
-    console.log(`Tag    : \x1b[32m${targetTag}\x1b[0m`);
-    console.log(`Commit : \x1b[36m${commitMsg}\x1b[0m`);
+    if (!noCommit) {
+      console.log(`Tag    : \x1b[32m${targetTag}\x1b[0m`);
+      console.log(`Commit : \x1b[36m${commitMsg}\x1b[0m`);
+    } else {
+      console.log(`Git    : \x1b[33m--no-commit (sem commit/tag/push)\x1b[0m`);
+    }
     console.log('------------------------------------------------------------\n');
 
     const confirm = await askPreFilled('Confirma as alteracoes e gerar o bundle? (s/N): ', 's');
@@ -100,6 +111,12 @@ async function main() {
 
     console.log('\n[3/5] Gerando bundle .deb via Tauri...');
     execSync('npx tauri build --bundles deb', { cwd: rootDir, stdio: 'inherit' });
+
+    if (noCommit) {
+      console.log('\n\x1b[33m[Flag --no-commit detectada: pulando git add, commit, tag e push]\x1b[0m');
+      console.log('\nSucesso! Versão atualizada e bundle gerado com sucesso.\n');
+      return;
+    }
 
     console.log('\n[4/5] Criando commit e tag Git...');
     execSync('git add package.json src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/tauri.conf.json', {

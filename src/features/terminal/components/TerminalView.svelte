@@ -2,8 +2,9 @@
   import { onMount, onDestroy } from "svelte";
   import { Terminal } from "@xterm/xterm";
   import { FitAddon } from "@xterm/addon-fit";
+  import { WebglAddon } from "@xterm/addon-webgl";
   import "@xterm/xterm/css/xterm.css";
-  import { type SshHost } from "../../../core/types";
+  import { type SshHost, isRainTheme } from "../../../core/types";
   import { PtyService } from "../../../core/services";
   import { configStore } from "../../../core/stores/config.svelte";
   import SshAutocompleteDropdown from "./SshAutocompleteDropdown.svelte";
@@ -27,6 +28,36 @@
   let container = $state<HTMLDivElement | null>(null);
   let term: Terminal | null = null;
   let fitAddon: FitAddon | null = null;
+  let webglAddon: WebglAddon | null = null;
+
+  /**
+   * Renderer WebGL (GPU): texto mais fluido e fonte nítida em muitas linhas.
+   * Carregado apenas quando a aba está visível, pois cada terminal consome um
+   * contexto WebGL (o navegador limita a ~16 por página). Se o WebGL2 não
+   * estiver disponível, o xterm continua no renderer DOM sem quebrar nada.
+   */
+  function enableWebglRenderer() {
+    if (!term || webglAddon) return;
+    try {
+      const addon = new WebglAddon();
+      addon.onContextLoss(() => {
+        addon.dispose();
+        if (webglAddon === addon) webglAddon = null;
+      });
+      term.loadAddon(addon);
+      webglAddon = addon;
+      fitAddon?.fit();
+    } catch (err) {
+      console.warn("[xterm] WebGL2 indisponível, mantendo renderer DOM:", err);
+      webglAddon = null;
+    }
+  }
+
+  function disableWebglRenderer() {
+    if (!webglAddon) return;
+    webglAddon.dispose();
+    webglAddon = null;
+  }
 
   // Composables modulares de Autocomplete e Sugestões
   const aliasSug = useAliasSuggestion(
@@ -52,6 +83,7 @@
   onMount(async () => {
     if (!container) return;
 
+    const isMatrix = isRainTheme(configStore.theme);
     term = new Terminal({
       allowTransparency: true,
       cursorBlink: true,
@@ -59,7 +91,9 @@
       fontSize: 14,
       lineHeight: 1.2,
       theme: {
-        background: configStore.theme.terminalBg,
+        background: isMatrix
+          ? "rgba(0, 0, 0, 0.45)"
+          : configStore.theme.terminalBg,
         foreground: configStore.theme.terminalFg,
         cursor:
           type === "ssh"
@@ -74,21 +108,27 @@
     term.open(container);
     fitAddon.fit();
 
+    // GPU só na aba visível
+    if (active) enableWebglRenderer();
+
     // Interceptador modular de atalhos de teclado
     const keyHandler = createTerminalKeyHandler(term, id, {
       onNewTab,
-      hasActiveAlias: () => !!aliasSug.activeSuggestion && !!aliasSug.matchedPrefix,
+      hasActiveAlias: () =>
+        !!aliasSug.activeSuggestion && !!aliasSug.matchedPrefix,
       applyAlias: () => aliasSug.apply(),
       closeAlias: () => aliasSug.close(),
 
-      hasActiveVps: () => vpsAuto.showDropdown && vpsAuto.filteredHosts.length > 0,
+      hasActiveVps: () =>
+        vpsAuto.showDropdown && vpsAuto.filteredHosts.length > 0,
       onVpsNext: () => vpsAuto.next(),
       onVpsPrev: () => vpsAuto.prev(),
       onVpsSelect: () => vpsAuto.selectCurrent(),
       onVpsClose: () => vpsAuto.close(),
       triggerVpsManual: () => vpsAuto.trigger(),
 
-      hasActiveDir: () => dirAuto.showDirDropdown && dirAuto.filteredPaths.length > 0,
+      hasActiveDir: () =>
+        dirAuto.showDirDropdown && dirAuto.filteredPaths.length > 0,
       onDirNext: () => dirAuto.next(),
       onDirPrev: () => dirAuto.prev(),
       onDirSelect: () => dirAuto.selectCurrent(),
@@ -143,10 +183,12 @@
       // Se a sugestão de alias estiver ativa e o usuário apertou Enter (\r),
       // o evento já foi tratado pelo attachCustomKeyEventHandler para aplicar o alias.
       // Bloqueia o envio do caractere de quebra de linha para o PTY para não duplicar nem engolir letras!
-      if (aliasSug.activeSuggestion && (data.includes("\r") || data.includes("\n"))) {
+      if (
+        aliasSug.activeSuggestion &&
+        (data.includes("\r") || data.includes("\n"))
+      ) {
         return;
       }
-
 
       if (vpsAuto.showDropdown && isCancelOrEnter) vpsAuto.close();
       if (dirAuto.showDirDropdown && isCancelOrEnter) dirAuto.close();
@@ -186,15 +228,24 @@
   $effect(() => {
     if (!term) return;
     const t = configStore.theme;
+    const isMatrixTheme = isRainTheme(t);
     term.options.theme = {
-      background: t.terminalBg,
+      background: isMatrixTheme ? "rgba(0, 0, 0, 0.45)" : t.terminalBg,
       foreground: t.terminalFg,
       cursor: type === "ssh" ? t.terminalCursorSsh : t.terminalCursorLocal,
       selectionBackground: t.terminalSelection,
     };
   });
 
+  // Liga/desliga o renderer WebGL conforme a aba fica visível
+  $effect(() => {
+    if (!term) return;
+    if (active) enableWebglRenderer();
+    else disableWebglRenderer();
+  });
+
   onDestroy(() => {
+    disableWebglRenderer();
     PtyService.closePty(id).catch(console.error);
     if (term) term.dispose();
   });
@@ -241,5 +292,13 @@
 
   :global(.xterm-viewport) {
     overflow-y: auto !important;
+  }
+
+  /* Matrix theme: force xterm layers transparent so digital rain shows through */
+  :global(.matrix-rain-active .xterm-viewport) {
+    background-color: transparent !important;
+  }
+  :global(.matrix-rain-active .xterm-screen) {
+    background-color: transparent !important;
   }
 </style>
