@@ -18,6 +18,7 @@ pub fn run() {
     let sftp_state = SftpState::default();
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_clipboard_manager::init())
         .manage(pty_state)
         .manage(sftp_state)
         .invoke_handler(tauri::generate_handler![

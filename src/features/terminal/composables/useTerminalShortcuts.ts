@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { Terminal } from "@xterm/xterm";
 import { PtyService } from "../../../core/services";
 import { normalizeShortcut, parseKeyboardEvent } from "../utils/shortcuts";
@@ -35,31 +36,54 @@ export function createTerminalKeyHandler(
 
   // Comandos genéricos executados pelo terminal
   const actions: Record<string, () => void> = {
-    copy: () => {
+    copy: async () => {
       if (term.hasSelection()) {
         const text = term.getSelection();
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(text).catch(() => {
+        try {
+          await writeText(text);
+        } catch {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).catch(() => {
+              invoke("write_clipboard", { text }).catch(console.error);
+            });
+          } else {
             invoke("write_clipboard", { text }).catch(console.error);
-          });
-        } else {
-          invoke("write_clipboard", { text }).catch(console.error);
+          }
         }
       }
     },
-    paste: () => {
+    paste: async () => {
       const now = Date.now();
       if (now - lastPasteTime < 150) {
-        return; // Evita dupla colagem caso WebView2 / SO dispare repetido
+        return; // Evita disparo duplicado
       }
       lastPasteTime = now;
 
-      invoke<string>("read_clipboard")
-        .then((text) => (!text ? navigator.clipboard.readText() : text))
-        .then((text) => {
-          if (text) PtyService.writePty(ptyId, text).catch(console.error);
-        })
-        .catch(console.error);
+      let text = "";
+      // 1. Leitura robusta oficial do Tauri (Cross-platform nativo no Rust: Windows, Linux, macOS)
+      try {
+        text = await readText();
+      } catch {}
+
+      // 2. Fallback pelo comando Rust nativo invoke('read_clipboard')
+      if (!text) {
+        try {
+          text = await invoke<string>("read_clipboard");
+        } catch {}
+      }
+
+      // 3. Fallback pelo navegador / WebView
+      if (!text) {
+        try {
+          if (navigator.clipboard && navigator.clipboard.readText) {
+            text = await navigator.clipboard.readText();
+          }
+        } catch {}
+      }
+
+      if (text) {
+        PtyService.writePty(ptyId, text).catch(console.error);
+      }
     },
     selectAll: () => {
       term.selectAll();
