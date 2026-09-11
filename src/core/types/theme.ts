@@ -100,8 +100,21 @@ export function isIceTheme(theme: AppTheme): boolean {
   return theme.effect === "ice" || theme.name === "IceTheme";
 }
 
+export function isWaterRainTheme(theme: AppTheme): boolean {
+  return (
+    theme.effect === "rain" ||
+    theme.name === "RainyDay" ||
+    theme.name === "Chuva"
+  );
+}
+
 export function hasBackgroundEffect(theme: AppTheme): boolean {
-  return isRainTheme(theme) || isFireTheme(theme) || isIceTheme(theme);
+  return (
+    isRainTheme(theme) ||
+    isFireTheme(theme) ||
+    isIceTheme(theme) ||
+    isWaterRainTheme(theme)
+  );
 }
 
 export const defaultTheme: AppTheme = {
@@ -577,6 +590,51 @@ export const presetThemes: AppTheme[] = [
     btnGlassText: "#90e0ef",
     btnGlassHover: "rgba(0, 180, 216, 0.16)",
     btnBorder: "rgba(0, 180, 216, 0.25)",
+  },
+  {
+    name: "RainyDay",
+    effect: "rain",
+    rainDensity: 100,
+    rainOpacity: 85,
+    rainSpeed: 100,
+    bgBase: "#080c14",
+    bgTitlebar: "#0c121e",
+    bgPanel: "#0f1726",
+    bgItem: "#141f33",
+    bgItemHover: "#1b2a45",
+    bgItemInput: "#090e18",
+    bgTabActive: "#162238",
+    bgTabHover: "#121b2c",
+    accentPrimary: "#38bdf8",
+    accentSecondary: "#34d399",
+    accentSftp: "#818cf8",
+    accentWarn: "#fbbf24",
+    textBase: "#e0f2fe",
+    textMuted: "#7dd3fc",
+    textFaint: "#385b7c",
+    textSpecial: "#bae6fd",
+    borderSubtle: "rgba(56, 189, 248, 0.12)",
+    borderPanel: "rgba(56, 189, 248, 0.22)",
+    terminalBg: "#080c14",
+    terminalFg: "#e0f2fe",
+    terminalCursorLocal: "#38bdf8",
+    terminalCursorSsh: "#818cf8",
+    terminalSelection: "rgba(56, 189, 248, 0.25)",
+    btnPrimaryBg: "#0284c7",
+    btnPrimaryText: "#ffffff",
+    btnPrimaryHover: "#0369a1",
+    btnSecondaryBg: "#141f33",
+    btnSecondaryText: "#7dd3fc",
+    btnSecondaryHover: "#1b2a45",
+    btnDangerBg: "#ef4444",
+    btnDangerText: "#ffffff",
+    btnDangerHover: "#dc2626",
+    btnSuccessBg: "#10b981",
+    btnSuccessText: "#ffffff",
+    btnGlassBg: "rgba(56, 189, 248, 0.08)",
+    btnGlassText: "#38bdf8",
+    btnGlassHover: "rgba(56, 189, 248, 0.16)",
+    btnBorder: "rgba(56, 189, 248, 0.22)",
   },
 ];
 

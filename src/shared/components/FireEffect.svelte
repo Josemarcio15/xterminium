@@ -63,8 +63,18 @@
 
     let opts = { ...initialOpts };
     let gl: WebGL2RenderingContext | WebGLRenderingContext | null =
-      canvas.getContext("webgl2", { alpha: true, depth: false, antialias: false, preserveDrawingBuffer: false }) ||
-      canvas.getContext("webgl", { alpha: true, depth: false, antialias: false, preserveDrawingBuffer: false });
+      canvas.getContext("webgl2", {
+        alpha: true,
+        depth: false,
+        antialias: false,
+        preserveDrawingBuffer: false,
+      }) ||
+      canvas.getContext("webgl", {
+        alpha: true,
+        depth: false,
+        antialias: false,
+        preserveDrawingBuffer: false,
+      });
 
     if (!gl) {
       return createFallback2DRenderer(canvas, initialOpts);
@@ -75,6 +85,8 @@
       attribute vec2 a_pos;
       varying vec2 v_uv;
       void main() {
+        // v_uv.x: 0 (esquerda) a 1 (direita)
+        // v_uv.y: 0 (fundo/chão) a 1 (topo da tela)
         v_uv = (a_pos + 1.0) * 0.5;
         gl_Position = vec4(a_pos, 0.0, 1.0);
       }
@@ -89,8 +101,7 @@
       uniform float u_speed;
       uniform float u_opacity;
 
-      // Funções de ruído procedural para chamas orgânicas
-      float hash(vec2 p) {
+      float hash21(vec2 p) {
         p = fract(p * vec2(123.34, 456.21));
         p += dot(p, p + 45.32);
         return fract(p.x * p.y);
@@ -100,75 +111,103 @@
         vec2 i = floor(p);
         vec2 f = fract(p);
         f = f * f * (3.0 - 2.0 * f);
-        float a = hash(i);
-        float b = hash(i + vec2(1.0, 0.0));
-        float c = hash(i + vec2(0.0, 1.0));
-        float d = hash(i + vec2(1.0, 1.0));
+        float a = hash21(i);
+        float b = hash21(i + vec2(1.0, 0.0));
+        float c = hash21(i + vec2(0.0, 1.0));
+        float d = hash21(i + vec2(1.0, 1.0));
         return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
       }
 
+      // FBM orgânico multicamadas
       float fbm(vec2 p) {
         float v = 0.0;
         float a = 0.5;
-        vec2 shift = vec2(100.0);
-        mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.5));
-        for (int i = 0; i < 4; ++i) {
+        mat2 rot = mat2(0.8, 0.6, -0.6, 0.8);
+        for (int i = 0; i < 5; ++i) {
           v += a * noise(p);
-          p = rot * p * 2.0 + shift;
+          p = rot * p * 2.03;
           a *= 0.5;
         }
         return v;
       }
 
+      // Rampa térmica: vermelho escuro -> laranja -> amarelo -> branco
+      vec3 fireColor(float h) {
+        vec3 col = vec3(0.26, 0.02, 0.0);
+        col = mix(col, vec3(0.88, 0.12, 0.02), smoothstep(0.00, 0.15, h));
+        col = mix(col, vec3(1.00, 0.45, 0.05), smoothstep(0.15, 0.34, h));
+        col = mix(col, vec3(1.00, 0.80, 0.24), smoothstep(0.34, 0.58, h));
+        col = mix(col, vec3(1.00, 0.97, 0.85), smoothstep(0.58, 0.88, h));
+        return col;
+      }
+
       void main() {
         vec2 uv = v_uv;
-        // Chamas sobem a partir de baixo (y = 0 até 1)
-        float t = u_time * (u_speed / 100.0) * 1.8;
-        
-        // Distorção das ondas de calor
-        vec2 q = uv * vec2(4.0, 2.5);
-        q.y -= t * 1.4;
-        
-        float n1 = fbm(q + vec2(0.0, -t * 0.5));
-        vec2 r = vec2(
-          fbm(q + 4.0 * n1 + vec2(1.7, 9.2) + 0.15 * t),
-          fbm(q + 4.0 * n1 + vec2(8.3, 2.8) + 0.126 * t)
-        );
-        
-        float f = fbm(q + 4.0 * r);
-        
-        // Gradiente vertical da chama: mais intensa embaixo, dissipa em cima
-        // Invertemos UV para a base ser o rodapé
-        float flameHeight = 1.0 - uv.y;
-        float intensityFactor = (u_density / 100.0);
-        
-        // Forma da base das labaredas
-        float c = f * 1.8 * pow(flameHeight, 1.4) * intensityFactor;
-        c = clamp(c, 0.0, 1.5);
-        
-        // Paleta térmica de fogo
-        // Preto -> Vermelho Escuro -> Laranja Queimado -> Amarelo Ouro -> Branco incandescente
-        vec3 colDarkRed = vec3(0.35, 0.02, 0.01);
-        vec3 colOrange  = vec3(1.0, 0.28, 0.02);
-        vec3 colYellow  = vec3(1.0, 0.82, 0.15);
-        vec3 colWhite   = vec3(1.0, 0.98, 0.85);
+        float aspect = u_resolution.x / max(u_resolution.y, 1.0);
 
-        vec3 color = mix(colDarkRed, colOrange, smoothstep(0.1, 0.45, c));
-        color = mix(color, colYellow, smoothstep(0.45, 0.8, c));
-        color = mix(color, colWhite, smoothstep(0.8, 1.25, c));
+        float speed = clamp(u_speed / 100.0, 0.0, 3.0);
+        float density = clamp(u_density / 100.0, 0.05, 2.0);
+        float opacity = clamp(u_opacity / 100.0, 0.0, 1.0);
 
-        // Partículas adicionais de brasas cintilantes flutuando
-        vec2 sparkUV = uv * vec2(18.0, 12.0);
-        sparkUV.y -= t * 3.2;
-        float sparkNoise = hash(floor(sparkUV));
-        float sparkDist = length(fract(sparkUV) - vec2(0.5, 0.5));
-        float sparks = step(0.965, sparkNoise) * (1.0 - smoothstep(0.0, 0.35, sparkDist)) * (1.0 - uv.y * 0.7);
-        color += sparks * vec3(1.0, 0.75, 0.3) * 1.5;
+        // O fogo tem cadência própria: bem mais lento que a chuva
+        float t = u_time * speed * 0.9;
 
-        float alpha = smoothstep(0.05, 0.35, c) * (u_opacity / 100.0);
-        alpha = clamp(alpha + sparks * 0.6, 0.0, 1.0) * (1.0 - uv.y * 0.4);
+        // Altura da zona de chamas (densidade = labaredas mais altas)
+        float maxH = 0.32 + 0.36 * density;
+        // y normalizado: 0 na base, 1 no topo da zona de chamas
+        float y = uv.y / maxH;
 
-        gl_FragColor = vec4(color * alpha, alpha * 0.85);
+        vec2 p = vec2(uv.x * aspect, uv.y);
+
+        // As pontas oscilam ("lamber") e a base fica firme
+        float sway = mix(0.30, 1.0, clamp(y, 0.0, 1.0));
+        float w1 = fbm(vec2(p.x * 1.20, uv.y * 1.70 - t * 0.55)) - 0.5;
+        float w2 = fbm(vec2(p.x * 2.60, uv.y * 3.40 - t * 1.05) + 31.7) - 0.5;
+        float xw = p.x + (w1 + w2 * 0.40) * 0.32 * sway;
+
+        // Campo de chamas: três escalas de ruído alongado na vertical.
+        // A escala x é bem maior que a y -> filamentos verticais (línguas).
+        float n1 = fbm(vec2(xw * 4.50, y * 2.20 - t * 0.90));
+        float n2 = fbm(vec2(xw * 9.90, y * 4.84 - t * 1.50) + 17.3);
+        float n3 = fbm(vec2(xw * 19.80, y * 9.68 - t * 2.20) + 71.9);
+        float f = n1 * 0.55 + n2 * 0.29 + n3 * 0.16;
+        // Contraste: separa as línguas e escava os vazios entre elas
+        f = clamp((f - 0.36) * 2.50, 0.0, 1.0);
+
+        // Cintilância global: o fogo "respira"
+        float flicker = 0.94 + 0.06 * noise(vec2(t * 0.7, 3.1));
+
+        // Calor: forte na base e sumindo com a altura -> línguas de alturas variadas
+        float heat = clamp((f * 1.95 - 1.10 * y) * flicker, 0.0, 1.0);
+
+        // Núcleo incandescente junto à base
+        float core = smoothstep(0.40, 0.0, y);
+        heat = clamp(heat + core * 0.22 * f, 0.0, 1.0);
+
+        vec3 col = fireColor(pow(heat, 0.88));
+        float alpha = smoothstep(0.05, 0.38, heat);
+
+        // Leito incandescente: brasa viva unindo as chamas na base
+        float bedMask = smoothstep(0.13, 0.0, uv.y);
+        float bed = bedMask * bedMask * (0.35 + 0.65 * fbm(vec2(xw * 3.0, t * 0.30)));
+        col += vec3(1.0, 0.50, 0.15) * bed * 0.50;
+        alpha = max(alpha, bed * 0.5);
+
+        // Brasas/pardais subindo
+        vec2 sp = vec2(uv.x * aspect * 26.0, uv.y * 20.0 - t * 4.5);
+        sp.x += sin(sp.y * 0.8 + t * 1.8) * 1.3;
+        vec2 spCell = floor(sp);
+        float spHash = hash21(spCell);
+        float spOn = step(0.975, spHash);
+        float spDist = length(fract(sp) - 0.5);
+        float ember = smoothstep(0.32, 0.0, spDist) * spOn
+                    * smoothstep(1.0, 0.35, uv.y) * smoothstep(0.0, 0.06, uv.y);
+        col += vec3(1.0, 0.7, 0.25) * ember * 1.2;
+        alpha = clamp(alpha + ember * 0.85, 0.0, 1.0);
+
+        // Saída pré-multiplicada: o canvas é composto por cima do fundo do app
+        alpha *= opacity;
+        gl_FragColor = vec4(col * alpha, alpha);
       }
     `;
 
@@ -212,14 +251,7 @@
     gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
     gl.bufferData(
       gl.ARRAY_BUFFER,
-      new Float32Array([
-        -1, -1,
-         1, -1,
-        -1,  1,
-        -1,  1,
-         1, -1,
-         1,  1,
-      ]),
+      new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
       gl.STATIC_DRAW,
     );
 
@@ -231,7 +263,10 @@
       const rect = container.getBoundingClientRect();
       const w = Math.max(300, Math.floor(rect.width));
       const h = Math.max(200, Math.floor(rect.height));
-      if (canvas.width !== Math.floor(w * dpr) || canvas.height !== Math.floor(h * dpr)) {
+      if (
+        canvas.width !== Math.floor(w * dpr) ||
+        canvas.height !== Math.floor(h * dpr)
+      ) {
         canvas.width = Math.floor(w * dpr);
         canvas.height = Math.floor(h * dpr);
         if (gl) gl.viewport(0, 0, canvas.width, canvas.height);
@@ -247,8 +282,12 @@
       const elapsed = (now - startTime) * 0.001;
 
       gl.useProgram(prog);
-      gl.enable(gl.BLEND);
-      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
+      // O fragment shader já devolve cor pré-multiplicada e o buffer é limpo a
+      // cada frame; sem blending evita-se acúmulo (fogo estourado em branco).
+      gl.disable(gl.BLEND);
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
 
       gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
       gl.enableVertexAttribArray(aPosLoc);
@@ -278,7 +317,7 @@
     };
   }
 
-  // Fallback em caso de indisponibilidade de WebGL
+  // Fallback em caso de indisponibilidade de WebGL: labaredas vetoriais simples
   function createFallback2DRenderer(
     canvas: HTMLCanvasElement,
     initialOpts: FireOptions,
@@ -286,13 +325,64 @@
     const ctx = canvas.getContext("2d");
     let opts = { ...initialOpts };
     let animationId = 0;
-    let t = 0;
+    const start = performance.now();
 
-    function draw() {
+    function resize() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.max(300, Math.floor(rect.width));
+      canvas.height = Math.max(200, Math.floor(rect.height));
+    }
+    resize();
+    const ro = new ResizeObserver(() => resize());
+    ro.observe(canvas);
+
+    // Ruído estável por índice (sem Math.random, evita cintilação caótica)
+    function rand(i: number): number {
+      const x = Math.sin(i * 12.9898) * 43758.5453;
+      return x - Math.floor(x);
+    }
+
+    function draw(now: number) {
       if (!ctx) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = `rgba(255, 87, 34, ${opts.opacity * 0.003})`;
-      ctx.fillRect(0, canvas.height * 0.6, canvas.width, canvas.height * 0.4);
+      const w = canvas.width;
+      const h = canvas.height;
+      const density = Math.max(0.05, opts.density / 100);
+      const speed = Math.max(0.05, opts.speed / 100);
+      const opacity = Math.max(0, Math.min(1, opts.opacity / 100));
+      const t = (now - start) * 0.001 * speed * 0.9;
+      const hMax = h * Math.min(0.8, 0.32 + 0.36 * density);
+
+      ctx.clearRect(0, 0, w, h);
+      ctx.globalCompositeOperation = "lighter";
+
+      const count = Math.max(4, Math.round((w / 26) * density));
+      for (let i = 0; i < count; i++) {
+        const r1 = rand(i + 1);
+        const r2 = rand(i + 7.3);
+        const cx = ((i + 0.5) / count + Math.sin(t * 0.8 + i) * 0.012) * w;
+        const flick =
+          0.72 + 0.28 * Math.abs(Math.sin(t * (1.1 + r1) + i * 1.7));
+        const fh = hMax * (0.4 + 0.6 * r2) * flick;
+        const fw = Math.max(10, (w / count) * 0.5);
+        const grad = ctx.createRadialGradient(
+          cx,
+          h,
+          0,
+          cx,
+          h,
+          Math.max(fw, fh),
+        );
+        grad.addColorStop(0, `rgba(255, 245, 210, ${0.85 * opacity})`);
+        grad.addColorStop(0.22, `rgba(255, 176, 48, ${0.6 * opacity})`);
+        grad.addColorStop(0.55, `rgba(226, 66, 12, ${0.3 * opacity})`);
+        grad.addColorStop(1, "rgba(120, 12, 0, 0)");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.ellipse(cx, h, fw, fh, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.globalCompositeOperation = "source-over";
       animationId = requestAnimationFrame(draw);
     }
     animationId = requestAnimationFrame(draw);
@@ -300,6 +390,7 @@
     return {
       dispose: () => {
         cancelAnimationFrame(animationId);
+        ro.disconnect();
         if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
       },
       applyOptions: (newOpts: FireOptions) => {

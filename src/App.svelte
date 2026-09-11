@@ -9,12 +9,14 @@
   import MatrixRain from "./shared/components/MatrixRain.svelte";
   import FireEffect from "./shared/components/FireEffect.svelte";
   import IceEffect from "./shared/components/IceEffect.svelte";
+  import RainEffect from "./shared/components/RainEffect.svelte";
   import UpdateModal from "./features/settings/modals/UpdateModal.svelte";
   import {
     type SshHost,
     isRainTheme,
     isFireTheme,
     isIceTheme,
+    isWaterRainTheme,
     hasBackgroundEffect,
   } from "./core/types";
   import { configStore } from "./core/stores/config.svelte";
@@ -43,6 +45,7 @@
   const hasRainEffect = $derived(isRainTheme(configStore.theme));
   const hasFire = $derived(isFireTheme(configStore.theme));
   const hasIce = $derived(isIceTheme(configStore.theme));
+  const hasWaterRain = $derived(isWaterRainTheme(configStore.theme));
   const hasAnyEffect = $derived(hasBackgroundEffect(configStore.theme));
 
   function createTab(type: "local" | "ssh", sshHost?: SshHost) {
@@ -269,6 +272,8 @@
       <FireEffect />
     {:else if hasIce}
       <IceEffect />
+    {:else if hasWaterRain}
+      <RainEffect />
     {/if}
     {#each tabs as tab (tab.id)}
       {#if tab.type === "sftp"}

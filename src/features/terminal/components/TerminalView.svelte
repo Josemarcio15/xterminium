@@ -29,6 +29,7 @@
   let term: Terminal | null = null;
   let fitAddon: FitAddon | null = null;
   let webglAddon: WebglAddon | null = null;
+  let resizeObserver: ResizeObserver | null = null;
 
   /**
    * Renderer WebGL (GPU): texto mais fluido e fonte nítida em muitas linhas.
@@ -202,6 +203,14 @@
       }, 10);
     });
 
+    resizeObserver = new ResizeObserver(() => {
+      fitAddon?.fit();
+      if (term) {
+        PtyService.resizePty(id, term.cols, term.rows).catch(console.error);
+      }
+    });
+    resizeObserver.observe(container);
+
     setTimeout(() => {
       fitAddon?.fit();
       term?.focus();
@@ -245,6 +254,7 @@
   });
 
   onDestroy(() => {
+    resizeObserver?.disconnect();
     disableWebglRenderer();
     PtyService.closePty(id).catch(console.error);
     if (term) term.dispose();
@@ -253,7 +263,7 @@
 
 <div
   bind:this={container}
-  class="absolute inset-0 px-[10px] py-2 box-border {active
+  class="absolute inset-0 px-[10px] pt-2 pb-5 box-border {active
     ? 'visible pointer-events-auto z-[2]'
     : 'invisible pointer-events-none z-[1]'}"
 ></div>

@@ -1,6 +1,6 @@
 [package]
 name = "xterminium"
-version = "0.0.21-alpha"
+version = "0.0.22-alpha"
 description = "A modern, fast and customizable desktop terminal emulator built with Tauri and Svelte"
 license = "MIT"
 edition = "2021"

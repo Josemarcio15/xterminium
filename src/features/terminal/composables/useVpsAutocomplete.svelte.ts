@@ -140,6 +140,19 @@ export function useVpsAutocomplete(
   function apply(host: SshHost) {
     if (!host) return;
 
+    const term = getTerm();
+    let textBeforeCursor = "";
+    if (term) {
+      const buffer = term.buffer.active;
+      const cursorY = buffer.cursorY;
+      const lineObj = buffer.getLine(buffer.baseY + cursorY);
+      if (lineObj) {
+        textBeforeCursor = lineObj
+          .translateToString(true)
+          .slice(0, buffer.cursorX);
+      }
+    }
+
     const backspaces = "\x7f".repeat(currentMatchedQuery.length);
     const port = host.port || "22";
     const key = host.key || "";
@@ -158,18 +171,80 @@ export function useVpsAutocomplete(
     };
 
     let replacement = "";
+    const alias = label ? label.trim().replace(/\s+/g, "_") : "";
+
     if (activeMatchedCommand) {
-      const templateStr = formatString(activeMatchedCommand.template);
-      const suffixStr = formatString(activeMatchedCommand.suffixArgs);
-      replacement = `${templateStr}${suffixStr}`;
+      const cmdName = (activeMatchedCommand.command || "").toLowerCase();
+      const isSshBased =
+        cmdName === "ssh" ||
+        cmdName === "scp" ||
+        cmdName === "rsync" ||
+        cmdName === "sftp";
+
+      // Verifica se o comando tem prefixArgs configurado (ex: '-c 4' para ping, ou '-avz' para rsync)
+      // e verifica se o usuário já não digitou esses argumentos na linha antes do cursor
+      let prefixToInsert = "";
+      if (
+        activeMatchedCommand.prefixArgs &&
+        activeMatchedCommand.prefixArgs.trim()
+      ) {
+        const configuredPrefix = activeMatchedCommand.prefixArgs.trim();
+        if (!textBeforeCursor.includes(configuredPrefix)) {
+          prefixToInsert = `${configuredPrefix} `;
+        }
+      }
+
+      if (alias && isSshBased) {
+        // Objeto VPS: usa o alias direto configurado no ~/.ssh/config pelo ssh.json
+        // Linha curta, limpa e com portas/chaves aplicadas de forma transparente!
+        const suffixStr = formatString(activeMatchedCommand.suffixArgs);
+        if (cmdName === "ssh") {
+          replacement = `${prefixToInsert}${alias}`;
+        } else if (cmdName === "scp" || cmdName === "rsync") {
+          replacement = `${prefixToInsert}${alias}${suffixStr || ":~/"}`;
+        } else if (cmdName === "sftp") {
+          replacement = `${prefixToInsert}${alias}`;
+        } else {
+          replacement = `${prefixToInsert}${alias}${suffixStr}`;
+        }
+      } else {
+        // Fallback para comando customizado que use template explícito (como ping {ip}) ou hosts sem alias
+        const templateStr = formatString(activeMatchedCommand.template);
+        const suffixStr = formatString(activeMatchedCommand.suffixArgs);
+
+        const extraFlags: string[] = [];
+        if (key && isSshBased) {
+          extraFlags.push(`-i "${key}"`);
+        }
+        if (port && port !== "22") {
+          if (cmdName === "ssh" || cmdName === "sftp") {
+            extraFlags.push(`-p ${port}`);
+          } else if (cmdName === "scp") {
+            extraFlags.push(`-P ${port}`);
+          } else if (cmdName === "rsync") {
+            extraFlags.push(`-e "ssh -p ${port}"`);
+          }
+        }
+
+        if (extraFlags.length > 0) {
+          replacement = `${prefixToInsert}${extraFlags.join(" ")} ${templateStr}${suffixStr}`;
+        } else {
+          replacement = `${prefixToInsert}${templateStr}${suffixStr}`;
+        }
+      }
     } else {
-      replacement = `${user}@${ip}`;
+      if (alias) {
+        replacement = alias;
+      } else if (port && port !== "22") {
+        replacement = `-p ${port} ${user}@${ip}`;
+      } else {
+        replacement = `${user}@${ip}`;
+      }
     }
 
     PtyService.writePty(getId(), backspaces + replacement).catch(console.error);
 
     close();
-    const term = getTerm();
     if (term) {
       term.focus();
       requestAnimationFrame(() => term.focus());

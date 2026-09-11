@@ -4,6 +4,7 @@
     isRainTheme,
     isFireTheme,
     isIceTheme,
+    isWaterRainTheme,
     RAIN_DEFAULTS,
   } from "../../../../core/types";
 
@@ -17,7 +18,8 @@
   const isRain = $derived(isRainTheme(draft));
   const isFire = $derived(isFireTheme(draft));
   const isIce = $derived(isIceTheme(draft));
-  const hasEffect = $derived(isRain || isFire || isIce);
+  const isWaterRain = $derived(isWaterRainTheme(draft));
+  const hasEffect = $derived(isRain || isFire || isIce || isWaterRain);
 
   const density = $derived(draft.rainDensity ?? RAIN_DEFAULTS.density);
   const opacity = $derived(draft.rainOpacity ?? RAIN_DEFAULTS.opacity);
@@ -73,6 +75,8 @@
         Efeito de Animação (Chamas & Brasas)
       {:else if isIce}
         Efeito de Animação (Nevasca & Geada)
+      {:else if isWaterRain}
+        Efeito de Animação (Chuva & Gotas Pingando)
       {:else}
         Efeito de Animação (Chuva de Binários)
       {/if}
@@ -89,6 +93,8 @@
               Intensidade das Chamas
             {:else if isIce}
               Densidade da Nevasca & Geada
+            {:else if isWaterRain}
+              Intensidade da Chuva & Gotas
             {:else}
               Quantidade de Chuva
             {/if}
@@ -133,6 +139,8 @@
               Opacidade das Chamas
             {:else if isIce}
               Opacidade do Gelo
+            {:else if isWaterRain}
+              Opacidade das Gotas & Ondas
             {:else}
               Opacidade dos Binários
             {/if}
