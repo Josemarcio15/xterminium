@@ -2,10 +2,11 @@ use std::process::Command;
 
 /// Dispara o script de atualização do xterminium de acordo com a plataforma (Linux / Windows)
 #[tauri::command]
-pub async fn run_update_installer(password: Option<String>) -> Result<(), String> {
+pub async fn run_update_installer(_password: Option<String>) -> Result<(), String> {
     tokio::task::spawn_blocking(move || {
         #[cfg(target_os = "linux")]
         {
+            let password = _password;
             let mut cmd = Command::new("bash");
             // Se senha foi fornecida, exporta SUDO_PASSWORD e configura elevate inline
             // caso o script do GitHub ainda não tenha sido atualizado na branch main

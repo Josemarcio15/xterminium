@@ -15,6 +15,11 @@ pub fn new_window(app: AppHandle) -> Result<(), String> {
         .build()
         .map_err(|e| e.to_string())?;
 
+    #[cfg(target_os = "windows")]
+    {
+        let _ = win.set_background_color(Some(tauri::webview::Color(0, 0, 0, 0)));
+    }
+
     #[cfg(target_os = "linux")]
     {
         use gtk::prelude::*;

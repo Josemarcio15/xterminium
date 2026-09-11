@@ -63,14 +63,20 @@ pub fn resize_pty(id: String, cols: u16, rows: u16, state: State<PtyState>) -> R
 #[tauri::command]
 pub fn get_pty_status(id: String, state: State<PtyState>) -> Result<PtyStatusInfo, String> {
     let sessions = state.sessions.lock().map_err(|e| e.to_string())?;
+    #[allow(unused_mut)]
     let mut cwd = String::new();
+    #[allow(unused_mut)]
     let mut foreground_process: Option<String> = None;
+    #[allow(unused_mut)]
     let mut cmdline: Option<String> = None;
+    #[allow(unused_mut)]
     let mut is_ssh = false;
 
     if let Some(session) = sessions.get(&id) {
         let child = session.child.lock().map_err(|e| e.to_string())?;
-        if let Some(pid) = child.process_id() {
+        if let Some(_pid) = child.process_id() {
+            #[cfg(target_os = "linux")]
+            let pid = _pid;
             #[cfg(target_os = "linux")]
             {
                 if let Ok(target) = std::fs::read_link(format!("/proc/{}/cwd", pid)) {
@@ -192,7 +198,10 @@ pub fn spawn_pty(
         {
             // No Windows: prioriza PowerShell, com fallback para CMD
             if let Ok(system_root) = std::env::var("SystemRoot") {
-                let ps_path = format!("{}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", system_root);
+                let ps_path = format!(
+                    "{}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+                    system_root
+                );
                 if std::path::Path::new(&ps_path).exists() {
                     return ps_path;
                 }

@@ -70,7 +70,7 @@ pub fn run() {
             {
                 use tauri::Manager;
                 if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.set_background_color(Some(tauri::image::Color(0, 0, 0, 0)));
+                    let _ = window.set_background_color(Some(tauri::webview::Color(0, 0, 0, 0)));
                 }
             }
 
