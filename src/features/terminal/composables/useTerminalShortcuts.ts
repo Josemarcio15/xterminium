@@ -31,6 +31,8 @@ export function createTerminalKeyHandler(
   ptyId: string,
   handlers: ShortcutHandlers,
 ) {
+  let lastPasteTime = 0;
+
   // Comandos genéricos executados pelo terminal
   const actions: Record<string, () => void> = {
     copy: () => {
@@ -42,6 +44,12 @@ export function createTerminalKeyHandler(
       }
     },
     paste: () => {
+      const now = Date.now();
+      if (now - lastPasteTime < 150) {
+        return; // Evita dupla colagem caso WebView2 / SO dispare repetido
+      }
+      lastPasteTime = now;
+
       invoke<string>("read_clipboard")
         .then((text) => (!text ? navigator.clipboard.readText() : text))
         .then((text) => {
@@ -73,15 +81,23 @@ export function createTerminalKeyHandler(
     const pressed = normalizeShortcut(parseKeyboardEvent(e));
 
     // 1. Atalho para disparar autocomplete de VPS manualmente (ex: Ctrl+Space)
-    const autoShortcut = normalizeShortcut(shortcuts.autocomplete || "Ctrl+Space");
+    const autoShortcut = normalizeShortcut(
+      shortcuts.autocomplete || "Ctrl+Space",
+    );
     if (pressed && pressed === autoShortcut) {
+      e.preventDefault();
+      e.stopPropagation();
       handlers.triggerVpsManual();
       return false;
     }
 
     // 2. Atalho para disparar autocomplete de diretórios manualmente (ex: Shift+Space)
-    const dirShortcut = normalizeShortcut(shortcuts.directoryAutocomplete || "Shift+Space");
+    const dirShortcut = normalizeShortcut(
+      shortcuts.directoryAutocomplete || "Shift+Space",
+    );
     if (pressed && pressed === dirShortcut) {
+      e.preventDefault();
+      e.stopPropagation();
       handlers.triggerDirManual();
       return false;
     }
@@ -184,6 +200,8 @@ export function createTerminalKeyHandler(
         hasSelection &&
         normalizeShortcut(shortcuts.stop || "") !== "ctrl+c")
     ) {
+      e.preventDefault();
+      e.stopPropagation();
       actions.copy();
       return false;
     }
@@ -193,6 +211,8 @@ export function createTerminalKeyHandler(
       if (combo && normalizeShortcut(combo) === pressed) {
         const handler = actions[action];
         if (handler) {
+          e.preventDefault();
+          e.stopPropagation();
           handler();
           return false;
         }

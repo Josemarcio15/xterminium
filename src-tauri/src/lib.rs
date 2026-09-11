@@ -66,6 +66,14 @@ pub fn run() {
                 )?;
             }
 
+            #[cfg(target_os = "windows")]
+            {
+                use tauri::Manager;
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.set_background_color(Some(tauri::image::Color(0, 0, 0, 0)));
+                }
+            }
+
             #[cfg(target_os = "linux")]
             {
                 use gtk::prelude::*;
