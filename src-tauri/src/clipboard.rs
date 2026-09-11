@@ -56,6 +56,8 @@ pub fn write_clipboard(_text: String) -> Result<(), String> {
             let _ = child.wait();
             return Ok(());
         }
+        return Ok(());
     }
-    Ok(())
+    #[allow(unreachable_code)]
+    Err("Native clipboard writing not supported on this platform, use browser fallback".to_string())
 }

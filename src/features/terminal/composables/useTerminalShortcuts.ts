@@ -38,9 +38,13 @@ export function createTerminalKeyHandler(
     copy: () => {
       if (term.hasSelection()) {
         const text = term.getSelection();
-        invoke("write_clipboard", { text }).catch(() => {
-          navigator.clipboard.writeText(text).catch(() => {});
-        });
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).catch(() => {
+            invoke("write_clipboard", { text }).catch(console.error);
+          });
+        } else {
+          invoke("write_clipboard", { text }).catch(console.error);
+        }
       }
     },
     paste: () => {
@@ -189,17 +193,14 @@ export function createTerminalKeyHandler(
 
     if (!pressed) return true;
 
-    // 5. Tratamento inteligente para Ctrl+C (Copiar se tiver seleção, senão SIGINT)
+    // 5. Tratamento inteligente para Copiar:
+    // Se coincidir com o atalho de cópia cadastrado (ex: Ctrl+Shift+C ou Ctrl+C)
+    // OU se o usuário apertou Ctrl+C e tem texto selecionado (comportamento nativo de terminal):
     const isCtrlC = pressed === "ctrl+c";
     const hasSelection = term.hasSelection();
     const copyKey = normalizeShortcut(shortcuts.copy || "");
 
-    if (
-      pressed === copyKey ||
-      (isCtrlC &&
-        hasSelection &&
-        normalizeShortcut(shortcuts.stop || "") !== "ctrl+c")
-    ) {
+    if (pressed === copyKey || (isCtrlC && hasSelection)) {
       e.preventDefault();
       e.stopPropagation();
       actions.copy();
