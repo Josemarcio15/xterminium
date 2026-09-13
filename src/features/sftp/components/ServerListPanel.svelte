@@ -12,7 +12,7 @@
 </script>
 
 <div class="flex-1 flex flex-col p-4 overflow-y-auto">
-  <div class="flex items-center gap-2 pb-3 border-b border-[var(--border-subtle)] mb-4">
+  <div class="flex items-center gap-2 pb-3 border-b border-(--border-subtle) mb-4">
     <div class="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500 dark:text-blue-400">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
@@ -22,21 +22,21 @@
       </svg>
     </div>
     <div>
-      <h3 class="text-xs font-semibold text-[var(--text-base)]">Servidores SSH Salvos</h3>
-      <p class="text-[11px] text-[var(--text-muted)]">Clique para conectar diretamente ao SFTP</p>
+      <h3 class="text-xs font-semibold text-(--text-base)">Servidores SSH Salvos</h3>
+      <p class="text-[11px] text-(--text-muted)">Clique para conectar diretamente ao SFTP</p>
     </div>
   </div>
 
   {#if hosts.length === 0}
     <div class="flex-1 flex flex-col items-center justify-center p-6 text-center">
-      <p class="text-xs text-[var(--text-muted)] mb-1">Nenhum servidor SSH salvo no momento.</p>
-      <p class="text-[11px] text-[var(--text-faint)]">Adicione servidores pelo botão de SSH na barra de título.</p>
+      <p class="text-xs text-(--text-muted) mb-1">Nenhum servidor SSH salvo no momento.</p>
+      <p class="text-[11px] text-(--text-faint)">Adicione servidores pelo botão de SSH na barra de título.</p>
     </div>
   {:else}
     <div class="grid grid-cols-1 gap-2">
       {#each hosts as host}
         <div
-          class="w-full flex items-center justify-between p-3 rounded-lg bg-[var(--bg-item)] border border-[var(--border-subtle)] hover:border-blue-500/50 hover:bg-blue-600/10 transition-all group {isConnecting && activeConnectingHost === host.ip ? 'border-blue-500 bg-blue-600/20 ring-1 ring-blue-500/50' : ''}"
+          class="w-full flex items-center justify-between p-3 rounded-lg bg-(--bg-item) border border-(--border-subtle) hover:border-blue-500/50 hover:bg-blue-600/10 transition-all group {isConnecting && activeConnectingHost === host.ip ? 'border-blue-500 bg-blue-600/20 ring-1 ring-blue-500/50' : ''}"
         >
           <button
             onclick={() => onSelectHost(host)}
@@ -53,7 +53,7 @@
               </svg>
             </div>
             <div>
-              <div class="text-sm font-semibold text-[var(--text-base)] group-hover:text-blue-500 dark:group-hover:text-blue-300 transition-colors flex items-center gap-2">
+              <div class="text-sm font-semibold text-(--text-base) group-hover:text-blue-500 dark:group-hover:text-blue-300 transition-colors flex items-center gap-2">
                 <span>{host.label || `${host.user}@${host.ip}`}</span>
                 {#if host.key}
                   <span class="text-[9px] px-1.5 py-0.5 bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30 rounded flex items-center gap-1" title="Chave privada configurada: {host.key}">
@@ -64,7 +64,7 @@
                   </span>
                 {/if}
               </div>
-              <div class="text-[11px] text-[var(--text-muted)] font-mono group-hover:text-[var(--text-base)]">
+              <div class="text-[11px] text-(--text-muted) font-mono group-hover:text-(--text-base)">
                 {host.user}@{host.ip}{host.port ? `:${host.port}` : ''}
               </div>
             </div>

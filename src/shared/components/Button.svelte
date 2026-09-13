@@ -33,22 +33,22 @@
   };
 
   const variantClasses: Record<ButtonVariant, string> = {
-    primary: 'bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-[var(--btn-primary-text)] border-[var(--btn-border)]',
-    secondary: 'bg-[var(--btn-secondary-bg)] hover:bg-[var(--btn-secondary-hover)] text-[var(--btn-secondary-text)] hover:text-[var(--text-base)] border-[var(--btn-border)]',
-    danger: 'bg-[var(--btn-danger-bg)] hover:bg-[var(--btn-danger-hover)] text-[var(--btn-danger-text)] border-[var(--btn-border)]',
-    success: 'bg-[var(--btn-success-bg)] text-[var(--btn-success-text)] border-[var(--btn-border)]',
-    warn: 'bg-[var(--accent-warn)] hover:brightness-110 text-slate-950 border-[var(--btn-border)]',
-    glass: 'bg-[var(--btn-glass-bg)] hover:bg-[var(--btn-glass-hover)] text-[var(--btn-glass-text)] border-[var(--btn-border)] backdrop-blur-sm',
-    tab: 'bg-black/[0.02] dark:bg-white/[0.03] text-[var(--text-muted)] border-transparent hover:bg-[var(--bg-tab-hover)] hover:text-[var(--text-base)] hover:border-[var(--btn-border)] shadow-none',
-    'tab-active': 'bg-[var(--bg-tab-active)] text-[var(--text-base)] border-[var(--btn-border)] shadow-xs font-medium',
-    ghost: 'bg-transparent hover:bg-black/5 dark:hover:bg-white/10 text-[var(--text-muted)] hover:text-[var(--text-base)] border-transparent shadow-none',
+    primary: 'bg-(--btn-primary-bg) hover:bg-(--btn-primary-hover) text-(--btn-primary-text) border-(--btn-border)',
+    secondary: 'bg-(--btn-secondary-bg) hover:bg-(--btn-secondary-hover) text-(--btn-secondary-text) hover:text-(--text-base) border-(--btn-border)',
+    danger: 'bg-(--btn-danger-bg) hover:bg-(--btn-danger-hover) text-(--btn-danger-text) border-(--btn-border)',
+    success: 'bg-(--btn-success-bg) text-(--btn-success-text) border-(--btn-border)',
+    warn: 'bg-(--accent-warn) hover:brightness-110 text-slate-950 border-(--btn-border)',
+    glass: 'bg-(--btn-glass-bg) hover:bg-(--btn-glass-hover) text-(--btn-glass-text) border-(--btn-border) backdrop-blur-sm',
+    tab: 'bg-black/[0.02] dark:bg-white/3 text-(--text-muted) border-transparent hover:bg-(--bg-tab-hover) hover:text-(--text-base) hover:border-(--btn-border) shadow-none',
+    'tab-active': 'bg-(--bg-tab-active) text-(--text-base) border-(--btn-border) shadow-xs font-medium',
+    ghost: 'bg-transparent hover:bg-black/5 dark:hover:bg-white/10 text-(--text-muted) hover:text-(--text-base) border-transparent shadow-none',
   };
 </script>
 
 <button
   {type}
   disabled={disabled || loading}
-  class="btn-swing inline-flex items-center justify-center font-medium rounded-[var(--btn-radius)] border shadow-[var(--shadow-btn)] transition-all select-none cursor-pointer {sizeClasses[size]} {variantClasses[variant]} {extraClass} {disabled || loading ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}"
+  class="btn-swing inline-flex items-center justify-center font-medium rounded-(--btn-radius) border shadow-(--shadow-btn) transition-all select-none cursor-pointer {sizeClasses[size]} {variantClasses[variant]} {extraClass} {disabled || loading ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}"
   {...rest}
 >
   {#if loading}

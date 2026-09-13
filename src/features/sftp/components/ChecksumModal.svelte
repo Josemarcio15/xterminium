@@ -82,11 +82,11 @@
   >
     <!-- Modal container que expande até o tamanho do hash sem cortar (min-w e max-w dinâmico) -->
     <div
-      class="bg-[var(--bg-panel)] border border-[var(--border-panel)] rounded-xl shadow-2xl p-6 flex flex-col gap-5 text-[var(--text-base)] w-auto min-w-[560px] max-w-[95vw] transition-all"
+      class="bg-(--bg-panel) border border-(--border-panel) rounded-xl shadow-2xl p-6 flex flex-col gap-5 text-(--text-base) w-auto min-w-[560px] max-w-[95vw] transition-all"
       onclick={(e) => e.stopPropagation()}
     >
       <!-- Cabeçalho -->
-      <div class="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
+      <div class="flex items-center justify-between border-b border-(--border-subtle) pb-3">
         <div class="flex items-center gap-2.5">
           <div class="p-2 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-500 dark:text-indigo-400">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -95,14 +95,14 @@
             </svg>
           </div>
           <div>
-            <h3 class="font-semibold text-sm text-[var(--text-base)]">Verificação de Integridade (SHA-256)</h3>
-            <p class="text-xs text-[var(--text-muted)]">Comparação criptográfica do arquivo local e remoto</p>
+            <h3 class="font-semibold text-sm text-(--text-base)">Verificação de Integridade (SHA-256)</h3>
+            <p class="text-xs text-(--text-muted)">Comparação criptográfica do arquivo local e remoto</p>
           </div>
         </div>
 
         <button
           onclick={onClose}
-          class="text-[var(--text-muted)] hover:text-[var(--text-base)] p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+          class="text-(--text-muted) hover:text-(--text-base) p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
           title="Fechar"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -142,11 +142,11 @@
       <div class="flex flex-col gap-4">
         <!-- Hash Local -->
         {#if localFile}
-          <div class="flex flex-col gap-1.5 bg-[var(--bg-item)] p-3.5 rounded-lg border border-[var(--border-subtle)]">
+          <div class="flex flex-col gap-1.5 bg-(--bg-item) p-3.5 rounded-lg border border-(--border-subtle)">
             <div class="flex items-center justify-between text-xs">
               <span class="text-purple-600 dark:text-purple-300 font-semibold flex items-center gap-1.5">
                 <span class="w-2 h-2 rounded-full bg-purple-500"></span>
-                Arquivo Local: <span class="text-[var(--text-base)] font-mono">{localFile.name}</span>
+                Arquivo Local: <span class="text-(--text-base) font-mono">{localFile.name}</span>
               </span>
               {#if localHash}
                 <Button
@@ -172,9 +172,9 @@
               {/if}
             </div>
 
-            <div class="font-mono text-xs text-[var(--text-base)] break-all select-all tracking-wide bg-[var(--bg-item-input)] px-3 py-2 rounded border border-[var(--border-subtle)]">
+            <div class="font-mono text-xs text-(--text-base) break-all select-all tracking-wide bg-(--bg-item-input) px-3 py-2 rounded border border-(--border-subtle)">
               {#if loadingLocal}
-                <span class="text-[var(--text-muted)] italic animate-pulse">Calculando SHA-256 do arquivo local...</span>
+                <span class="text-(--text-muted) italic animate-pulse">Calculando SHA-256 do arquivo local...</span>
               {:else if errorLocal}
                 <span class="text-red-500 dark:text-red-400">{errorLocal}</span>
               {:else if localHash}
@@ -186,11 +186,11 @@
 
         <!-- Hash Remoto -->
         {#if remoteFile}
-          <div class="flex flex-col gap-1.5 bg-[var(--bg-item)] p-3.5 rounded-lg border border-[var(--border-subtle)]">
+          <div class="flex flex-col gap-1.5 bg-(--bg-item) p-3.5 rounded-lg border border-(--border-subtle)">
             <div class="flex items-center justify-between text-xs">
               <span class="text-blue-600 dark:text-blue-300 font-semibold flex items-center gap-1.5">
                 <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-                Arquivo Remoto (VPS): <span class="text-[var(--text-base)] font-mono">{remoteFile.name}</span>
+                Arquivo Remoto (VPS): <span class="text-(--text-base) font-mono">{remoteFile.name}</span>
               </span>
               {#if remoteHash}
                 <Button
@@ -216,9 +216,9 @@
               {/if}
             </div>
 
-            <div class="font-mono text-xs text-[var(--text-base)] break-all select-all tracking-wide bg-[var(--bg-item-input)] px-3 py-2 rounded border border-[var(--border-subtle)]">
+            <div class="font-mono text-xs text-(--text-base) break-all select-all tracking-wide bg-(--bg-item-input) px-3 py-2 rounded border border-(--border-subtle)">
               {#if loadingRemote}
-                <span class="text-[var(--text-muted)] italic animate-pulse">Calculando SHA-256 via streaming SFTP...</span>
+                <span class="text-(--text-muted) italic animate-pulse">Calculando SHA-256 via streaming SFTP...</span>
               {:else if errorRemote}
                 <span class="text-red-500 dark:text-red-400">{errorRemote}</span>
               {:else if remoteHash}
@@ -230,7 +230,7 @@
       </div>
 
       <!-- Rodapé -->
-      <div class="flex justify-end pt-2 border-t border-[var(--border-subtle)]">
+      <div class="flex justify-end pt-2 border-t border-(--border-subtle)">
         <Button
           variant="primary"
           size="sm"

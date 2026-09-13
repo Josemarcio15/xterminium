@@ -59,7 +59,7 @@
     onkeydown={handleKeydown}
   >
     <div
-      class="bg-[var(--bg-panel)] border border-amber-500/40 rounded-xl shadow-2xl w-full max-w-sm p-5 text-[var(--text-base)] flex flex-col gap-4"
+      class="bg-(--bg-panel) border border-amber-500/40 rounded-xl shadow-2xl w-full max-w-sm p-5 text-(--text-base) flex flex-col gap-4"
       tabindex="-1"
     >
       <!-- Cabeçalho -->
@@ -72,7 +72,7 @@
             </svg>
           </div>
           <div>
-            <h3 class="text-sm font-semibold text-[var(--text-base)] tracking-wide">{title}</h3>
+            <h3 class="text-sm font-semibold text-(--text-base) tracking-wide">{title}</h3>
             <p class="text-[11px] text-amber-600 dark:text-amber-300 font-medium">Elevação de Privilégios</p>
           </div>
         </div>
@@ -80,7 +80,7 @@
           type="button"
           onclick={onClose}
           disabled={isSubmitting}
-          class="text-[var(--text-muted)] hover:text-[var(--text-base)] p-1 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-50"
+          class="text-(--text-muted) hover:text-(--text-base) p-1 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-50"
           title="Cancelar"
         >
           <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -90,7 +90,7 @@
         </button>
       </div>
 
-      <p class="text-xs text-[var(--text-base)] leading-relaxed bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5">
+      <p class="text-xs text-(--text-base) leading-relaxed bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5">
         {description}
       </p>
 
@@ -107,7 +107,7 @@
 
       <form onsubmit={handleSubmit} class="flex flex-col gap-3">
         <div>
-          <label for="sudo-modal-password" class="block text-xs font-medium text-[var(--text-base)] mb-1.5">
+          <label for="sudo-modal-password" class="block text-xs font-medium text-(--text-base) mb-1.5">
             Senha do usuário (sudo)
           </label>
           <div class="relative flex items-center">
@@ -118,12 +118,12 @@
               bind:value={passwordValue}
               placeholder="Digite a senha sudo..."
               disabled={isSubmitting}
-              class="w-full bg-[var(--bg-item-input)] border border-[var(--border-subtle)] rounded-lg pl-3 pr-10 py-2 text-xs text-[var(--text-base)] placeholder-[var(--text-faint)] focus:outline-none focus:border-amber-500 transition-colors"
+              class="w-full bg-(--bg-item-input) border border-(--border-subtle) rounded-lg pl-3 pr-10 py-2 text-xs text-(--text-base) placeholder-(--text-faint) focus:outline-none focus:border-amber-500 transition-colors"
             />
             <button
               type="button"
               onclick={() => (showPassword = !showPassword)}
-              class="absolute right-2 text-[var(--text-muted)] hover:text-[var(--text-base)] p-1 rounded transition-colors cursor-pointer"
+              class="absolute right-2 text-(--text-muted) hover:text-(--text-base) p-1 rounded transition-colors cursor-pointer"
               title={showPassword ? 'Ocultar senha' : 'Exibir senha'}
             >
               {#if showPassword}
@@ -141,7 +141,7 @@
           </div>
         </div>
 
-        <div class="flex items-center justify-end gap-2 pt-2 border-t border-[var(--border-subtle)]">
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-(--border-subtle)">
           <Button
             variant="secondary"
             size="sm"

@@ -81,14 +81,14 @@
 <header
   data-tauri-drag-region
   style="-webkit-app-region: drag;"
-  class="h-[38px] bg-[var(--bg-titlebar)] border-b border-[var(--border-subtle)] flex items-center justify-between pl-2.5 select-none relative z-[100] flex-nowrap overflow-visible"
+  class="h-[38px] bg-(--bg-titlebar) border-b border-(--border-subtle) flex items-center justify-between pl-2.5 select-none relative z-[100] flex-nowrap overflow-visible"
   onmousedown={handleStartDragging}
   role="toolbar"
   tabindex="-1"
 >
   <button
     style="-webkit-app-region: no-drag;"
-    class="flex items-center gap-1.5 mr-3 px-2 py-1 rounded-[var(--btn-radius)] bg-transparent border border-transparent border-r-[var(--border-subtle)] rounded-r-none cursor-pointer shrink-0 hover:bg-black/5 dark:hover:bg-white/[0.06] transition-all group"
+    class="flex items-center gap-1.5 mr-3 px-2 py-1 rounded-(--btn-radius) bg-transparent border border-transparent border-r-(--border-subtle) rounded-r-none cursor-pointer shrink-0 hover:bg-black/5 dark:hover:bg-white/6 transition-all group"
     onclick={onNewTab}
     title="New Tab"
   >
@@ -98,11 +98,11 @@
       alt="xterminium Logo"
     />
     <span
-      class="text-xs font-semibold text-[var(--text-base)] tracking-wide lowercase whitespace-nowrap pointer-events-none"
+      class="text-xs font-semibold text-(--text-base) tracking-wide lowercase whitespace-nowrap pointer-events-none"
       >xterminium</span
     >
     <span
-      class="text-[13px] font-semibold text-[var(--text-muted)] inline-flex items-center justify-center w-4 h-4 rounded ml-0.5 leading-none shrink-0 group-hover:text-sky-400 group-hover:bg-sky-400/15 transition-all pointer-events-none"
+      class="text-[13px] font-semibold text-(--text-muted) inline-flex items-center justify-center w-4 h-4 rounded ml-0.5 leading-none shrink-0 group-hover:text-sky-400 group-hover:bg-sky-400/15 transition-all pointer-events-none"
       >+</span
     >
   </button>
@@ -110,7 +110,7 @@
   <div
     data-tauri-drag-region
     style="-webkit-app-region: drag;"
-    class="flex-1 min-w-0 overflow-x-auto overflow-y-hidden flex items-center scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden h-full"
+    class="flex-1 min-w-0 overflow-x-auto overflow-y-hidden flex items-center scroll-smooth scrollbar-none [&::-webkit-scrollbar]:hidden h-full"
     bind:this={tabsScrollArea}
     onwheel={handleTabsWheel}
   >
@@ -180,9 +180,9 @@
     <!-- Botão Diretórios Favoritos / Atalho Rápido -->
     <div class="relative">
       <button
-        class="bg-transparent border-none outline-none p-1.5 rounded-md cursor-pointer flex items-center justify-center transition-all hover:bg-black/5 dark:hover:bg-white/10 hover:text-[var(--text-base)] {showPathsModal
+        class="bg-transparent border-none outline-none p-1.5 rounded-md cursor-pointer flex items-center justify-center transition-all hover:bg-black/5 dark:hover:bg-white/10 hover:text-(--text-base) {showPathsModal
           ? 'bg-sky-400/15 text-sky-400'
-          : 'text-[var(--text-muted)]'}"
+          : 'text-(--text-muted)'}"
         onclick={() => {
           closeAllModals();
           showPathsModal = !showPathsModal;
@@ -222,7 +222,7 @@
     <!-- Menu Hamburguer com Ferramentas -->
     <div class="relative">
       <button
-        class="bg-transparent border-none outline-none p-1.5 rounded-md cursor-pointer flex items-center justify-center transition-all hover:bg-black/5 dark:hover:bg-white/10 hover:text-[var(--text-base)] {showMenu ||
+        class="bg-transparent border-none outline-none p-1.5 rounded-md cursor-pointer flex items-center justify-center transition-all hover:bg-black/5 dark:hover:bg-white/10 hover:text-(--text-base) {showMenu ||
         showSshModal ||
         showCommandsModal ||
         showShortcutsModal ||
@@ -230,7 +230,7 @@
         showShellModal ||
         showFileManager
           ? 'bg-sky-400/15 text-sky-400'
-          : 'text-[var(--text-muted)]'}"
+          : 'text-(--text-muted)'}"
         onclick={() => (showMenu = !showMenu)}
         title="Menu de Ferramentas e Configurações"
       >
@@ -261,14 +261,14 @@
           aria-label="Fechar menu"
         ></button>
         <div
-          class="absolute top-9 right-0 w-56 bg-[var(--bg-panel)] border border-[var(--border-panel)] rounded-xl shadow-xl p-1.5 z-[150] flex flex-col gap-0.5 text-xs text-[var(--text-base)]"
+          class="absolute top-9 right-0 w-56 bg-(--bg-panel) border border-(--border-panel) rounded-xl shadow-xl p-1.5 z-[150] flex flex-col gap-0.5 text-xs text-(--text-base)"
           role="menu"
           tabindex="-1"
         >
           <!-- Item: Conexões SSH -->
           <button
             type="button"
-            class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-white/10 hover:text-[var(--text-base)] transition-all text-left w-full cursor-pointer border-none bg-transparent text-[var(--text-base)]"
+            class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-white/10 hover:text-(--text-base) transition-all text-left w-full cursor-pointer border-none bg-transparent text-(--text-base)"
             onclick={() => {
               showMenu = false;
               closeAllModals();
@@ -298,7 +298,7 @@
           <!-- Item: Comandos & Autocomplete -->
           <button
             type="button"
-            class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-white/10 hover:text-[var(--text-base)] transition-all text-left w-full cursor-pointer border-none bg-transparent text-[var(--text-base)]"
+            class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-white/10 hover:text-(--text-base) transition-all text-left w-full cursor-pointer border-none bg-transparent text-(--text-base)"
             onclick={() => {
               showMenu = false;
               closeAllModals();
@@ -326,7 +326,7 @@
           <!-- Item: Aliases de Comandos -->
           <button
             type="button"
-            class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-white/10 hover:text-[var(--text-base)] transition-all text-left w-full cursor-pointer border-none bg-transparent text-[var(--text-base)]"
+            class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-white/10 hover:text-(--text-base) transition-all text-left w-full cursor-pointer border-none bg-transparent text-(--text-base)"
             onclick={() => {
               showMenu = false;
               closeAllModals();
@@ -354,7 +354,7 @@
           <!-- Item: SFTP / Explorador Duplo -->
           <button
             type="button"
-            class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-white/10 hover:text-[var(--text-base)] transition-all text-left w-full cursor-pointer border-none bg-transparent text-[var(--text-base)]"
+            class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-white/10 hover:text-(--text-base) transition-all text-left w-full cursor-pointer border-none bg-transparent text-(--text-base)"
             onclick={() => {
               showMenu = false;
               closeAllModals();
@@ -381,7 +381,7 @@
           <!-- Item: Shell do Terminal -->
           <button
             type="button"
-            class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-white/10 hover:text-[var(--text-base)] transition-all text-left w-full cursor-pointer border-none bg-transparent text-[var(--text-base)]"
+            class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-white/10 hover:text-(--text-base) transition-all text-left w-full cursor-pointer border-none bg-transparent text-(--text-base)"
             onclick={() => {
               showMenu = false;
               closeAllModals();
@@ -406,12 +406,12 @@
             <span class="flex-1">Shell do Terminal</span>
           </button>
 
-          <div class="h-[1px] bg-[var(--border-subtle)] my-1"></div>
+          <div class="h-[1px] bg-(--border-subtle) my-1"></div>
 
           <!-- Item: Atalhos de Teclado -->
           <button
             type="button"
-            class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 hover:text-[var(--text-base)] transition-all text-left w-full cursor-pointer border-none bg-transparent text-[var(--text-base)]"
+            class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 hover:text-(--text-base) transition-all text-left w-full cursor-pointer border-none bg-transparent text-(--text-base)"
             onclick={() => {
               showMenu = false;
               closeAllModals();
@@ -419,7 +419,7 @@
             }}
           >
             <svg
-              class="text-[var(--text-muted)] shrink-0"
+              class="text-(--text-muted) shrink-0"
               xmlns="http://www.w3.org/2000/svg"
               width="14"
               height="14"
@@ -439,7 +439,7 @@
           <!-- Item: Temas & Aparência -->
           <button
             type="button"
-            class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 hover:text-[var(--text-base)] transition-all text-left w-full cursor-pointer border-none bg-transparent text-[var(--text-base)]"
+            class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 hover:text-(--text-base) transition-all text-left w-full cursor-pointer border-none bg-transparent text-(--text-base)"
             onclick={() => {
               showMenu = false;
               closeAllModals();
@@ -507,10 +507,10 @@
       />
     </div>
 
-    <div class="w-[1px] h-3.5 bg-[var(--border-subtle)] mx-1.5"></div>
+    <div class="w-[1px] h-3.5 bg-(--border-subtle) mx-1.5"></div>
 
     <button
-      class="bg-transparent border-none outline-none text-[var(--text-muted)] w-11 h-full flex items-center justify-center cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 hover:text-[var(--text-base)] transition-all"
+      class="bg-transparent border-none outline-none text-(--text-muted) w-11 h-full flex items-center justify-center cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 hover:text-(--text-base) transition-all"
       onclick={() => appWindow.minimize()}
       title="Minimizar"
     >
@@ -521,7 +521,7 @@
     </button>
 
     <button
-      class="bg-transparent border-none outline-none text-[var(--text-muted)] w-11 h-full flex items-center justify-center cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 hover:text-[var(--text-base)] transition-all"
+      class="bg-transparent border-none outline-none text-(--text-muted) w-11 h-full flex items-center justify-center cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 hover:text-(--text-base) transition-all"
       onclick={() => appWindow.toggleMaximize()}
       title="Maximizar"
     >
@@ -538,7 +538,7 @@
     </button>
 
     <button
-      class="bg-transparent border-none outline-none text-[var(--text-muted)] w-11 h-full flex items-center justify-center cursor-pointer hover:bg-[#e81123] hover:text-white transition-all"
+      class="bg-transparent border-none outline-none text-(--text-muted) w-11 h-full flex items-center justify-center cursor-pointer hover:bg-[#e81123] hover:text-white transition-all"
       onclick={() => appWindow.close()}
       title="Fechar"
     >

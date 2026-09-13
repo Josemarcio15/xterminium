@@ -39,7 +39,7 @@
   </IconButton>
 
   <!-- Divisor sutil -->
-  <div class="w-4 h-[1px] bg-[var(--border-subtle)] my-0.5"></div>
+  <div class="w-4 h-[1px] bg-(--border-subtle) my-0.5"></div>
 
   <!-- Botão Upload (Local -> Remoto) -->
   <IconButton

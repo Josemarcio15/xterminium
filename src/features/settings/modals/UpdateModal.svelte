@@ -81,7 +81,7 @@
     tabindex="-1"
   >
     <div
-      class="w-[440px] max-w-full bg-[var(--bg-panel)] border border-[var(--border-panel)] rounded-2xl shadow-2xl p-6 flex flex-col gap-4 relative overflow-hidden"
+      class="w-[440px] max-w-full bg-(--bg-panel) border border-(--border-panel) rounded-2xl shadow-2xl p-6 flex flex-col gap-4 relative overflow-hidden"
     >
       <!-- Glow ambient background -->
       <div class="absolute -top-16 -right-16 w-36 h-36 bg-sky-500/15 rounded-full blur-3xl pointer-events-none"></div>
@@ -105,7 +105,7 @@
           {/if}
         </div>
         <div class="flex-1 min-w-0">
-          <h2 class="text-sm font-semibold text-[var(--text-base)]">
+          <h2 class="text-sm font-semibold text-(--text-base)">
             {#if isDone}
               Atualização Concluída
             {:else if isUpdating}
@@ -116,7 +116,7 @@
               Nova Atualização Disponível
             {/if}
           </h2>
-          <p class="text-xs text-[var(--text-muted)]">
+          <p class="text-xs text-(--text-muted)">
             {#if isDone}
               Pronto para uso
             {:else if requireSudo}
@@ -136,7 +136,7 @@
               <div class="absolute inset-0 rounded-full border-2 border-sky-500/20"></div>
               <div class="absolute inset-0 rounded-full border-2 border-sky-400 border-t-transparent animate-spin"></div>
             </div>
-            <p class="text-xs text-[var(--text-muted)] animate-pulse">Baixando e instalando nova versão...</p>
+            <p class="text-xs text-(--text-muted) animate-pulse">Baixando e instalando nova versão...</p>
           </div>
         {:else if isDone}
           <div class="p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-start gap-2.5">
@@ -154,8 +154,8 @@
             </div>
           {/if}
 
-          <p class="text-xs text-[var(--text-muted)] leading-relaxed">
-            Digite sua senha de usuário (<code class="text-amber-400 font-mono">sudo</code>) para que o sistema possa atualizar o pacote <strong class="text-[var(--text-base)]">xterminium</strong>:
+          <p class="text-xs text-(--text-muted) leading-relaxed">
+            Digite sua senha de usuário (<code class="text-amber-400 font-mono">sudo</code>) para que o sistema possa atualizar o pacote <strong class="text-(--text-base)">xterminium</strong>:
           </p>
 
           <form onsubmit={(e) => { e.preventDefault(); executeInstallation(); }} class="flex flex-col gap-3">
@@ -165,12 +165,12 @@
                 type={showPassword ? 'text' : 'password'}
                 bind:value={sudoPassword}
                 placeholder="Digite a senha sudo..."
-                class="w-full bg-[var(--bg-item-input)] border border-[var(--border-subtle)] rounded-lg pl-3 pr-10 py-2 text-xs text-[var(--text-base)] placeholder-[var(--text-faint)] focus:outline-none focus:border-amber-500 transition-colors"
+                class="w-full bg-(--bg-item-input) border border-(--border-subtle) rounded-lg pl-3 pr-10 py-2 text-xs text-(--text-base) placeholder-(--text-faint) focus:outline-none focus:border-amber-500 transition-colors"
               />
               <button
                 type="button"
                 onclick={() => (showPassword = !showPassword)}
-                class="absolute right-2 text-[var(--text-muted)] hover:text-[var(--text-base)] p-1 rounded transition-colors cursor-pointer"
+                class="absolute right-2 text-(--text-muted) hover:text-(--text-base) p-1 rounded transition-colors cursor-pointer"
                 title={showPassword ? 'Ocultar senha' : 'Exibir senha'}
               >
                 {#if showPassword}
@@ -203,12 +203,12 @@
             </div>
           {/if}
 
-          <p class="text-xs text-[var(--text-muted)] leading-relaxed">
+          <p class="text-xs text-(--text-muted) leading-relaxed">
             Uma nova versão do xterminium está disponível. Deseja realizar a atualização automática?
           </p>
 
           {#if info.releaseNotes}
-            <div class="p-3 bg-black/20 rounded-xl border border-[var(--border-subtle)] max-h-36 overflow-y-auto text-[11px] text-[var(--text-muted)] font-mono whitespace-pre-wrap select-text">
+            <div class="p-3 bg-black/20 rounded-xl border border-(--border-subtle) max-h-36 overflow-y-auto text-[11px] text-(--text-muted) font-mono whitespace-pre-wrap select-text">
               {info.releaseNotes}
             </div>
           {/if}
@@ -217,13 +217,13 @@
 
       <!-- Actions (apenas quando não estiver no step de sudo, pois o form de sudo tem seus próprios botões) -->
       {#if !requireSudo}
-        <div class="flex justify-end items-center gap-2 pt-2 border-t border-[var(--border-subtle)]">
+        <div class="flex justify-end items-center gap-2 pt-2 border-t border-(--border-subtle)">
           {#if isDone}
             <Button variant="primary" size="sm" onclick={onClose}>
               Fechar
             </Button>
           {:else if isUpdating}
-            <span class="text-xs text-[var(--text-muted)] italic">Instalando...</span>
+            <span class="text-xs text-(--text-muted) italic">Instalando...</span>
           {:else}
             <Button variant="secondary" size="sm" onclick={onClose}>
               Depois

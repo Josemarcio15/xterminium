@@ -113,7 +113,7 @@
 
   {#snippet actions()}
     <button 
-      class="w-[22px] h-[22px] rounded flex items-center justify-center text-xs bg-white/5 border border-white/10 text-[var(--text-muted)] hover:bg-white/10 hover:text-[var(--text-base)] transition-all cursor-pointer" 
+      class="w-5.5 h-5.5 rounded flex items-center justify-center text-xs bg-white/5 border border-white/10 text-(--text-muted) hover:bg-white/10 hover:text-(--text-base) transition-all cursor-pointer" 
       onclick={openNewForm} 
       title={showForm ? 'Fechar formulário' : 'Novo Host'}
     >
@@ -123,20 +123,20 @@
 
   <!-- Formulário Novo / Editar Host -->
   {#if showForm}
-    <form class="bg-[var(--bg-item)] border border-[var(--border-panel)] rounded-lg p-2.5 mb-2.5 flex flex-col gap-2" onsubmit={(e) => { e.preventDefault(); saveHost(); }}>
+    <form class="bg-(--bg-item) border border-(--border-panel) rounded-lg p-2.5 mb-2.5 flex flex-col gap-2" onsubmit={(e) => { e.preventDefault(); saveHost(); }}>
       <div class="text-[11px] font-semibold text-sky-600 dark:text-sky-400 flex items-center justify-between">
         <span>{editingId ? 'Editar Conexão SSH' : 'Nova Conexão SSH'}</span>
         {#if editingId}
-          <button type="button" class="text-[var(--text-faint)] hover:text-[var(--text-muted)] text-[10px] bg-transparent border-none cursor-pointer" onclick={() => { showForm = false; editingId = null; }}>Cancelar</button>
+          <button type="button" class="text-(--text-faint) hover:text-(--text-muted) text-[10px] bg-transparent border-none cursor-pointer" onclick={() => { showForm = false; editingId = null; }}>Cancelar</button>
         {/if}
       </div>
-      <input class="bg-[var(--bg-item-input)] border border-[var(--border-subtle)] rounded text-[var(--text-base)] px-2 py-1.5 text-xs outline-none focus:border-sky-400 transition-colors" type="text" placeholder="Nome/Apelido (ex: Servidor Prod)" bind:value={formLabel} />
+      <input class="bg-(--bg-item-input) border border-(--border-subtle) rounded text-(--text-base) px-2 py-1.5 text-xs outline-none focus:border-sky-400 transition-colors" type="text" placeholder="Nome/Apelido (ex: Servidor Prod)" bind:value={formLabel} />
       <div class="flex gap-2">
-        <input class="flex-1 bg-[var(--bg-item-input)] border border-[var(--border-subtle)] rounded text-[var(--text-base)] px-2 py-1.5 text-xs outline-none focus:border-sky-400 transition-colors" type="text" placeholder="Usuário (ex: root)" bind:value={formUser} required />
-        <input class="w-16 bg-[var(--bg-item-input)] border border-[var(--border-subtle)] rounded text-[var(--text-base)] px-2 py-1.5 text-xs outline-none focus:border-sky-400 transition-colors" type="text" placeholder="Porta" bind:value={formPort} />
+        <input class="flex-1 bg-(--bg-item-input) border border-(--border-subtle) rounded text-(--text-base) px-2 py-1.5 text-xs outline-none focus:border-sky-400 transition-colors" type="text" placeholder="Usuário (ex: root)" bind:value={formUser} required />
+        <input class="w-16 bg-(--bg-item-input) border border-(--border-subtle) rounded text-(--text-base) px-2 py-1.5 text-xs outline-none focus:border-sky-400 transition-colors" type="text" placeholder="Porta" bind:value={formPort} />
       </div>
-      <input class="bg-[var(--bg-item-input)] border border-[var(--border-subtle)] rounded text-[var(--text-base)] px-2 py-1.5 text-xs outline-none focus:border-sky-400 transition-colors" type="text" placeholder="IP / Hostname (ex: 192.168.1.10)" bind:value={formIp} required />
-      <input class="bg-[var(--bg-item-input)] border border-[var(--border-subtle)] rounded text-[var(--text-base)] px-2 py-1.5 text-xs outline-none focus:border-sky-400 transition-colors" type="text" placeholder="Chave Privada (ex: ~/.ssh/id_rsa - opcional)" bind:value={formKey} />
+      <input class="bg-(--bg-item-input) border border-(--border-subtle) rounded text-(--text-base) px-2 py-1.5 text-xs outline-none focus:border-sky-400 transition-colors" type="text" placeholder="IP / Hostname (ex: 192.168.1.10)" bind:value={formIp} required />
+      <input class="bg-(--bg-item-input) border border-(--border-subtle) rounded text-(--text-base) px-2 py-1.5 text-xs outline-none focus:border-sky-400 transition-colors" type="text" placeholder="Chave Privada (ex: ~/.ssh/id_rsa - opcional)" bind:value={formKey} />
       <Button type="submit" variant="primary" size="sm" class="w-full justify-center">
         {editingId ? 'Atualizar Conexão' : 'Salvar'}
       </Button>
@@ -146,28 +146,28 @@
   <!-- Lista de Hosts Salvos -->
   <div class="max-h-60 overflow-y-auto flex flex-col gap-1">
     {#if configStore.hosts.length === 0}
-      <div class="text-center text-[var(--text-muted)] text-xs py-4 leading-relaxed">
+      <div class="text-center text-(--text-muted) text-xs py-4 leading-relaxed">
         Nenhum host SSH salvo.<br />
         Clique no <b>+</b> acima para adicionar.
       </div>
     {:else}
       {#each configStore.hosts as host (host.id)}
         <div 
-          class="flex justify-between items-center px-2.5 py-2 rounded-lg bg-[var(--bg-item)] border border-[var(--border-subtle)] hover:border-sky-400/50 hover:bg-sky-500/5 cursor-pointer transition-all group {editingId === host.id ? 'border-sky-400 bg-sky-500/10' : ''}" 
+          class="flex justify-between items-center px-2.5 py-2 rounded-lg bg-(--bg-item) border border-(--border-subtle) hover:border-sky-400/50 hover:bg-sky-500/5 cursor-pointer transition-all group {editingId === host.id ? 'border-sky-400 bg-sky-500/10' : ''}" 
           onclick={() => onConnect(host)}
           role="button"
           tabindex="0"
           onkeydown={(e) => e.key === 'Enter' && onConnect(host)}
         >
           <div class="flex flex-col gap-0.5 overflow-hidden pr-2">
-            <span class="text-xs font-medium text-[var(--text-base)] truncate">{host.label}</span>
-            <span class="text-[10px] text-[var(--text-muted)] font-mono truncate">{host.user}@{host.ip}{host.port && host.port !== '22' ? `:${host.port}` : ''}</span>
+            <span class="text-xs font-medium text-(--text-base) truncate">{host.label}</span>
+            <span class="text-[10px] text-(--text-muted) font-mono truncate">{host.user}@{host.ip}{host.port && host.port !== '22' ? `:${host.port}` : ''}</span>
           </div>
           <div class="flex items-center gap-1.5 shrink-0">
             <!-- Botão de Editar (Lápis SVG) -->
             <button 
               type="button" 
-              class="text-[var(--text-muted)] hover:text-sky-300 hover:bg-sky-400/15 p-1 rounded text-xs transition-all cursor-pointer border-none bg-transparent flex items-center justify-center" 
+              class="text-(--text-muted) hover:text-sky-300 hover:bg-sky-400/15 p-1 rounded text-xs transition-all cursor-pointer border-none bg-transparent flex items-center justify-center" 
               onclick={(e) => startEdit(host, e)} 
               title="Editar dados"
             >
@@ -177,7 +177,7 @@
               </svg>
             </button>
             <span class="text-[10px] text-sky-400 bg-sky-400/15 px-1.5 py-0.5 rounded">Conectar ↵</span>
-            <button class="text-[var(--text-muted)] hover:text-red-400 hover:bg-red-400/15 p-1 rounded text-xs leading-none transition-all cursor-pointer border-none bg-transparent" onclick={(e) => removeHost(host.id, e)} title="Remover">✕</button>
+            <button class="text-(--text-muted) hover:text-red-400 hover:bg-red-400/15 p-1 rounded text-xs leading-none transition-all cursor-pointer border-none bg-transparent" onclick={(e) => removeHost(host.id, e)} title="Remover">✕</button>
           </div>
         </div>
       {/each}

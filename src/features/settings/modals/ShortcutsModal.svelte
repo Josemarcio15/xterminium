@@ -60,7 +60,7 @@
     </Button>
   {/snippet}
 
-  <p class="text-[11px] text-[var(--text-muted)] mb-2.5">Salvo em <code class="bg-[var(--bg-item)] border border-[var(--border-subtle)] text-sky-600 dark:text-sky-400 px-1 py-0.5 rounded font-mono">~/.config/xterminium/shortcuts.json</code></p>
+  <p class="text-[11px] text-(--text-muted) mb-2.5">Salvo em <code class="bg-(--bg-item) border border-(--border-subtle) text-sky-600 dark:text-sky-400 px-1 py-0.5 rounded font-mono">~/.config/xterminium/shortcuts.json</code></p>
 
   <div class="flex flex-col gap-1.5">
     {#each [
@@ -73,13 +73,13 @@
       { id: 'newTab', label: 'Nova Aba', defaultKey: configStore.shortcuts.newTab },
       { id: 'newWindow', label: 'Nova Janela', defaultKey: configStore.shortcuts.newWindow },
     ] as item}
-      <div class="flex justify-between items-center px-2.5 py-1.5 rounded-lg bg-[var(--bg-item)] border border-[var(--border-subtle)] {recordingActionId === item.id ? 'ring-1 ring-sky-400' : ''}">
-        <span class="text-xs font-medium text-[var(--text-base)]">{item.label}</span>
+      <div class="flex justify-between items-center px-2.5 py-1.5 rounded-lg bg-(--bg-item) border border-(--border-subtle) {recordingActionId === item.id ? 'ring-1 ring-sky-400' : ''}">
+        <span class="text-xs font-medium text-(--text-base)">{item.label}</span>
         <div class="flex items-center gap-1.5">
           <Button 
             variant="glass"
             size="xs"
-            class="font-mono text-[11px] {recordingActionId === item.id ? '!bg-sky-400 !text-slate-950 font-bold animate-pulse' : ''}" 
+            class="font-mono text-[11px] {recordingActionId === item.id ? 'bg-sky-400! text-slate-950! font-bold animate-pulse' : ''}" 
             onclick={() => (recordingActionId = item.id)}
             onkeydown={(e) => recordingActionId === item.id && handleRecordKeyDown(e, item.id)}
           >
@@ -88,7 +88,7 @@
           <!-- Botão Lápis SVG para editar atalho -->
           <button
             type="button"
-            class="text-[var(--text-muted)] hover:text-sky-300 hover:bg-sky-400/15 p-1 rounded text-xs transition-all cursor-pointer border-none bg-transparent flex items-center justify-center"
+            class="text-(--text-muted) hover:text-sky-300 hover:bg-sky-400/15 p-1 rounded text-xs transition-all cursor-pointer border-none bg-transparent flex items-center justify-center"
             onclick={() => (recordingActionId = item.id)}
             title="Alterar atalho"
           >

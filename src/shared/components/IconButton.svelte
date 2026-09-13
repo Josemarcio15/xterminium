@@ -25,7 +25,7 @@
   }: Props = $props();
 
   const sizeClasses: Record<IconButtonSize, string> = {
-    xs: 'w-[22px] h-[22px] p-0 text-[10px]',
+    xs: 'w-5.5 h-5.5 p-0 text-[10px]',
     sm: 'w-7 h-7 p-1 text-xs',
     md: 'w-8 h-8 p-1.5 text-xs',
     lg: 'w-9 h-9 p-2 text-sm',

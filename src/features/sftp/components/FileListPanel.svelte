@@ -71,9 +71,9 @@
   }}
 />
 
-<div class="flex-1 flex flex-col bg-[var(--bg-panel)] border border-[var(--border-subtle)] rounded-lg overflow-hidden select-none">
+<div class="flex-1 flex flex-col bg-(--bg-panel) border border-(--border-subtle) rounded-lg overflow-hidden select-none">
   <!-- Cabeçalho do Painel -->
-  <div class="p-2 bg-[var(--bg-item)] border-b border-[var(--border-subtle)] flex items-center justify-between gap-2 relative">
+  <div class="p-2 bg-(--bg-item) border-b border-(--border-subtle) flex items-center justify-between gap-2 relative">
     <div class="flex items-center gap-2 flex-1 min-w-0 transition-all">
       <span
         class="text-xs font-semibold px-2 py-0.5 rounded border shrink-0 {tagColor === 'purple'
@@ -104,7 +104,7 @@
               }, 150);
             }}
             placeholder="Digite o caminho..."
-            class="flex-1 min-w-0 px-2 py-0.5 rounded text-xs font-mono focus:outline-none shadow-inner bg-[var(--bg-item-input)] border border-[var(--border-subtle)] text-[var(--text-base)] placeholder-[var(--text-faint)] focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)]/30"
+            class="flex-1 min-w-0 px-2 py-0.5 rounded text-xs font-mono focus:outline-none shadow-inner bg-(--bg-item-input) border border-(--border-subtle) text-(--text-base) placeholder-(--text-faint) focus:border-(--accent-primary) focus:ring-1 focus:ring-(--accent-primary)/30"
           />
           <IconButton
             type="submit"
@@ -123,11 +123,11 @@
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
           onclick={startEditingPath}
-          class="text-xs px-2 py-0.5 rounded cursor-pointer truncate flex-1 font-mono transition-all border flex items-center justify-between gap-1 group bg-[var(--bg-item-input)] hover:bg-[var(--bg-panel)] text-[var(--text-base)] border-[var(--border-subtle)] hover:border-[var(--border-panel)]"
+          class="text-xs px-2 py-0.5 rounded cursor-pointer truncate flex-1 font-mono transition-all border flex items-center justify-between gap-1 group bg-(--bg-item-input) hover:bg-(--bg-panel) text-(--text-base) border-(--border-subtle) hover:border-(--border-panel)"
           title="Clique para digitar o caminho manualmente"
         >
           <span class="truncate">{path || (loading ? 'Carregando...' : '/')}</span>
-          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-0 group-hover:opacity-80 shrink-0 text-[var(--text-muted)]">
+          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-0 group-hover:opacity-80 shrink-0 text-(--text-muted)">
             <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
           </svg>
         </div>
@@ -157,8 +157,8 @@
             isMenuOpen = !isMenuOpen;
           }}
           class="p-1.5 rounded border transition-all flex items-center justify-center cursor-pointer {isMenuOpen
-            ? 'bg-black/10 dark:bg-white/15 text-[var(--text-base)] border-[var(--border-panel)]'
-            : 'bg-[var(--bg-panel)] hover:bg-black/5 dark:hover:bg-white/10 text-[var(--text-muted)] hover:text-[var(--text-base)] border-[var(--border-subtle)]'}"
+            ? 'bg-black/10 dark:bg-white/15 text-(--text-base) border-(--border-panel)'
+            : 'bg-(--bg-panel) hover:bg-black/5 dark:hover:bg-white/10 text-(--text-muted) hover:text-(--text-base) border-(--border-subtle)'}"
           title="Opções e Ações"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -174,7 +174,7 @@
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div
             onclick={(e) => e.stopPropagation()}
-            class="absolute right-0 top-full mt-1.5 w-48 bg-[var(--bg-panel)] border border-[var(--border-panel)] rounded-lg shadow-2xl py-1 z-50 text-xs flex flex-col gap-0.5 backdrop-blur-md animate-in fade-in zoom-in-95 duration-100"
+            class="absolute right-0 top-full mt-1.5 w-48 bg-(--bg-panel) border border-(--border-panel) rounded-lg shadow-2xl py-1 z-50 text-xs flex flex-col gap-0.5 backdrop-blur-md animate-in fade-in zoom-in-95 duration-100"
           >
             <!-- Novo Arquivo (Local ou Remoto) -->
             {#if onCreateFile}
@@ -183,7 +183,7 @@
                   isMenuOpen = false;
                   onCreateFile();
                 }}
-                class="w-full px-3 py-1.5 text-left flex items-center gap-2 text-[var(--text-base)] hover:bg-blue-600/15 transition-colors cursor-pointer"
+                class="w-full px-3 py-1.5 text-left flex items-center gap-2 text-(--text-base) hover:bg-blue-600/15 transition-colors cursor-pointer"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-500 dark:text-blue-400">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -202,7 +202,7 @@
                   isMenuOpen = false;
                   onCreateFolder();
                 }}
-                class="w-full px-3 py-1.5 text-left flex items-center gap-2 text-[var(--text-base)] hover:bg-amber-500/15 transition-colors cursor-pointer"
+                class="w-full px-3 py-1.5 text-left flex items-center gap-2 text-(--text-base) hover:bg-amber-500/15 transition-colors cursor-pointer"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-500 dark:text-amber-400">
                   <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
@@ -214,7 +214,7 @@
             {/if}
 
             {#if onRename || onDelete}
-              <div class="my-1 border-t border-[var(--border-subtle)]"></div>
+              <div class="my-1 border-t border-(--border-subtle)"></div>
             {/if}
 
             <!-- Renomear Item Selecionado -->
@@ -226,8 +226,8 @@
                 }}
                 disabled={!selectedFile}
                 class="w-full px-3 py-1.5 text-left flex items-center gap-2 {selectedFile
-                  ? 'text-[var(--text-base)] hover:bg-purple-600/15 cursor-pointer'
-                  : 'text-[var(--text-faint)] cursor-not-allowed opacity-50'}"
+                  ? 'text-(--text-base) hover:bg-purple-600/15 cursor-pointer'
+                  : 'text-(--text-faint) cursor-not-allowed opacity-50'}"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-purple-500 dark:text-purple-400">
                   <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
@@ -246,7 +246,7 @@
                 disabled={!selectedFile}
                 class="w-full px-3 py-1.5 text-left flex items-center gap-2 {selectedFile
                   ? 'text-red-500 dark:text-red-400 hover:bg-red-500/15 cursor-pointer'
-                  : 'text-[var(--text-faint)] cursor-not-allowed opacity-50'}"
+                  : 'text-(--text-faint) cursor-not-allowed opacity-50'}"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-500 dark:text-red-400">
                   <polyline points="3 6 5 6 21 6"></polyline>
@@ -257,7 +257,7 @@
             {/if}
 
             {#if extraActionsSnippet}
-              <div class="my-1 border-t border-[var(--border-subtle)]"></div>
+              <div class="my-1 border-t border-(--border-subtle)"></div>
               <div class="px-2 py-1 flex items-center">
                 {@render extraActionsSnippet()}
               </div>
@@ -271,9 +271,9 @@
   <!-- Lista de Arquivos -->
   <div class="flex-1 overflow-y-auto p-1 space-y-0.5">
     {#if loading}
-      <div class="p-4 text-center text-xs text-[var(--text-muted)]">Lendo arquivos...</div>
+      <div class="p-4 text-center text-xs text-(--text-muted)">Lendo arquivos...</div>
     {:else if files.length === 0}
-      <div class="p-4 text-center text-xs text-[var(--text-muted)]">Pasta vazia</div>
+      <div class="p-4 text-center text-xs text-(--text-muted)">Pasta vazia</div>
     {:else}
       {#each files as item (item.path)}
         <FileListItem

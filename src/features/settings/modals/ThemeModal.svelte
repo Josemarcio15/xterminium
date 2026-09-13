@@ -168,16 +168,16 @@
   {/snippet}
 
   <!-- Container de scroll único para todo o conteúdo do modal -->
-  <div class="flex-1 overflow-y-auto pr-1 flex flex-col [scrollbar-width:thin]">
+  <div class="flex-1 overflow-y-auto pr-1 flex flex-col scrollbar-thin">
     <ThemePresetsList onSelect={selectPreset} onRename={openRename} />
 
-    <div class="h-px bg-[var(--border-subtle)] mb-3"></div>
+    <div class="h-px bg-(--border-subtle) mb-3"></div>
 
     <ThemeShapesSliders {draft} onUpdate={updateDraftValue} />
 
     <ThemeEffectControls {draft} onUpdate={updateDraftValue} />
 
-    <div class="h-px bg-[var(--border-subtle)] mb-3"></div>
+    <div class="h-px bg-(--border-subtle) mb-3"></div>
 
     <ThemeColorEditors
       {draft}

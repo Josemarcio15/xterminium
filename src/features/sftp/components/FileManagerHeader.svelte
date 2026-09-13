@@ -24,9 +24,9 @@
   }: Props = $props();
 </script>
 
-<div class="flex items-center justify-between px-4 py-2.5 bg-[var(--bg-titlebar)] border-b border-[var(--border-subtle)] shrink-0 select-none relative">
+<div class="flex items-center justify-between px-4 py-2.5 bg-(--bg-titlebar) border-b border-(--border-subtle) shrink-0 select-none relative">
   <div class="flex items-center gap-2">
-    <svg class="w-4 h-4 text-[var(--accent-sftp)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg class="w-4 h-4 text-(--accent-sftp)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         stroke-linecap="round"
         stroke-linejoin="round"
@@ -34,16 +34,16 @@
         d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
       />
     </svg>
-    <span class="font-semibold text-[var(--text-base)] tracking-wide text-xs">{title}</span>
+    <span class="font-semibold text-(--text-base) tracking-wide text-xs">{title}</span>
   </div>
 
   <div class="flex items-center gap-3 relative">
-    <label class="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-base)] cursor-pointer select-none">
+    <label class="flex items-center gap-1.5 text-xs text-(--text-muted) hover:text-(--text-base) cursor-pointer select-none">
       <input
         type="checkbox"
         checked={showHiddenFiles}
         onchange={(e) => onToggleHiddenFiles(e.currentTarget.checked)}
-        class="w-3.5 h-3.5 rounded border-[var(--border-subtle)] bg-[var(--bg-item-input)] text-blue-500 focus:ring-0 cursor-pointer"
+        class="w-3.5 h-3.5 rounded border-(--border-subtle) bg-(--bg-item-input) text-blue-500 focus:ring-0 cursor-pointer"
       />
       <span>Mostrar ocultos</span>
     </label>
@@ -77,7 +77,7 @@
       <!-- Botão Sininho de Notificações -->
       <button
         onclick={onOpenNotifications}
-        class="p-1.5 rounded-lg border border-[var(--border-subtle)] hover:border-amber-500/40 bg-[var(--bg-item)] hover:bg-amber-500/10 text-[var(--text-muted)] hover:text-amber-400 transition-all cursor-pointer relative flex items-center justify-center group active:scale-95"
+        class="p-1.5 rounded-lg border border-(--border-subtle) hover:border-amber-500/40 bg-(--bg-item) hover:bg-amber-500/10 text-(--text-muted) hover:text-amber-400 transition-all cursor-pointer relative flex items-center justify-center group active:scale-95"
         title="Notificações da conexão SFTP"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:rotate-12">
@@ -87,7 +87,7 @@
 
         <!-- Badge com contagem de notificações -->
         {#if notificationCount > 0}
-          <span class="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-0.5 bg-[var(--accent-sftp)] text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-[var(--bg-titlebar)] shadow">
+          <span class="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-0.5 bg-(--accent-sftp) text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-(--bg-titlebar) shadow">
             {notificationCount > 9 ? '9+' : notificationCount}
           </span>
         {/if}

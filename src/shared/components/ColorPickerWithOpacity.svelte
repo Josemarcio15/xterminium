@@ -32,7 +32,7 @@
 <div class="flex items-center gap-2">
   <!-- Swatch Preview com padrão xadrez atrás caso haja transparência -->
   <div 
-    class="w-6 h-6 rounded-md border border-[var(--border-panel)] shrink-0 shadow-xs relative overflow-hidden bg-checkerboard"
+    class="w-6 h-6 rounded-md border border-(--border-panel) shrink-0 shadow-xs relative overflow-hidden bg-checkerboard"
     title={value}
   >
     <div 
@@ -44,7 +44,7 @@
   <!-- Color Input nativo (hex 6 dígitos) -->
   <input
     type="color"
-    class="w-8 h-6 rounded cursor-pointer border border-[var(--border-panel)] bg-transparent shrink-0"
+    class="w-8 h-6 rounded cursor-pointer border border-(--border-panel) bg-transparent shrink-0"
     value={parsed.hex}
     oninput={handleColorInput}
     aria-label={label || "Cor"}
@@ -52,8 +52,8 @@
 
   {#if allowOpacity}
     <!-- Slider de Opacidade Embutido -->
-    <div class="flex items-center gap-1.5 shrink-0 bg-[var(--bg-item-input)] px-2 py-0.5 rounded-md border border-[var(--border-subtle)]">
-      <span class="text-[9px] text-[var(--text-faint)] font-mono select-none">α</span>
+    <div class="flex items-center gap-1.5 shrink-0 bg-(--bg-item-input) px-2 py-0.5 rounded-md border border-(--border-subtle)">
+      <span class="text-[9px] text-(--text-faint) font-mono select-none">α</span>
       <input
         type="range"
         min="0"
@@ -64,7 +64,7 @@
         oninput={handleOpacityInput}
         title="Opacidade: {parsed.opacity}%"
       />
-      <span class="text-[9px] font-mono text-[var(--text-muted)] w-6 text-right select-none">
+      <span class="text-[9px] font-mono text-(--text-muted) w-6 text-right select-none">
         {parsed.opacity}%
       </span>
     </div>

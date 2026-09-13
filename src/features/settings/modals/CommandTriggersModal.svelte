@@ -117,24 +117,24 @@
 
   <!-- Formulário Novo / Editar Comando -->
   {#if showForm}
-    <form class="bg-[var(--bg-item)] border border-white/10 rounded-md p-2.5 mb-2.5 flex flex-col gap-2" onsubmit={(e) => { e.preventDefault(); saveCommand(); }}>
+    <form class="bg-(--bg-item) border border-white/10 rounded-md p-2.5 mb-2.5 flex flex-col gap-2" onsubmit={(e) => { e.preventDefault(); saveCommand(); }}>
       <div class="text-[11px] font-semibold text-sky-400 flex items-center justify-between">
         <span>{editingId ? 'Editar Comando' : 'Novo Comando'}</span>
         {#if editingId}
-          <button type="button" class="text-[var(--text-faint)] hover:text-[var(--text-muted)] text-[10px] bg-transparent border-none cursor-pointer" onclick={() => { showForm = false; editingId = null; }}>Cancelar</button>
+          <button type="button" class="text-(--text-faint) hover:text-(--text-muted) text-[10px] bg-transparent border-none cursor-pointer" onclick={() => { showForm = false; editingId = null; }}>Cancelar</button>
         {/if}
       </div>
 
       <div class="flex gap-2">
         <input 
-          class="w-1/3 bg-[var(--bg-item-input)] border border-white/10 rounded text-[var(--text-base)] px-2 py-1.5 text-xs outline-none focus:border-sky-400 transition-colors font-mono" 
+          class="w-1/3 bg-(--bg-item-input) border border-white/10 rounded text-(--text-base) px-2 py-1.5 text-xs outline-none focus:border-sky-400 transition-colors font-mono" 
           type="text" 
           placeholder="Comando (ex: rsync)" 
           bind:value={formCommand} 
           required 
         />
         <input 
-          class="flex-1 bg-[var(--bg-item-input)] border border-white/10 rounded text-[var(--text-base)] px-2 py-1.5 text-xs outline-none focus:border-sky-400 transition-colors font-mono" 
+          class="flex-1 bg-(--bg-item-input) border border-white/10 rounded text-(--text-base) px-2 py-1.5 text-xs outline-none focus:border-sky-400 transition-colors font-mono" 
           type="text" 
           placeholder="Args (ex: -avz)" 
           bind:value={formPrefixArgs} 
@@ -143,21 +143,21 @@
 
       <div class="flex gap-2">
         <input 
-          class="flex-1 bg-[var(--bg-item-input)] border border-white/10 rounded text-[var(--text-base)] px-2 py-1.5 text-xs outline-none focus:border-sky-400 transition-colors font-mono" 
+          class="flex-1 bg-(--bg-item-input) border border-white/10 rounded text-(--text-base) px-2 py-1.5 text-xs outline-none focus:border-sky-400 transition-colors font-mono" 
           type="text" 
           placeholder="Template VPS (ex: {`{user}@{ip}`})" 
           bind:value={formTemplate} 
           required 
         />
         <input 
-          class="w-1/2 bg-[var(--bg-item-input)] border border-white/10 rounded text-[var(--text-base)] px-2 py-1.5 text-xs outline-none focus:border-sky-400 transition-colors font-mono" 
+          class="w-1/2 bg-(--bg-item-input) border border-white/10 rounded text-(--text-base) px-2 py-1.5 text-xs outline-none focus:border-sky-400 transition-colors font-mono" 
           type="text" 
           placeholder="Args (ex: :~/)" 
           bind:value={formSuffixArgs} 
         />
       </div>
 
-      <div class="text-[10px] text-[var(--text-muted)] bg-white/[0.02] p-1.5 rounded border border-white/5">
+      <div class="text-[10px] text-(--text-muted) bg-white/2 p-1.5 rounded border border-white/5">
         Variáveis disponíveis: <code class="text-sky-300">{"{user}"}</code>, <code class="text-sky-300">{"{ip}"}</code>, <code class="text-sky-300">{"{port}"}</code>, <code class="text-sky-300">{"{key}"}</code>.
       </div>
 
@@ -168,21 +168,21 @@
   {/if}
 
   <!-- Lista de Comandos -->
-  <div class="max-h-72 overflow-y-auto flex flex-col gap-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+  <div class="max-h-72 overflow-y-auto flex flex-col gap-1.5 scrollbar-none [&::-webkit-scrollbar]:hidden">
     {#each configStore.commands as cmd (cmd.id)}
-      <div class="flex items-center justify-between p-2 rounded bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 transition-all text-xs {editingId === cmd.id ? 'border-sky-400/40 bg-sky-400/10' : ''}">
+      <div class="flex items-center justify-between p-2 rounded bg-white/3 hover:bg-white/6 border border-white/5 transition-all text-xs {editingId === cmd.id ? 'border-sky-400/40 bg-sky-400/10' : ''}">
         <div class="flex flex-col min-w-0 pr-2">
           <div class="flex items-center gap-1.5 font-mono">
             <span class="text-sky-400 font-bold">{cmd.command}</span>
             {#if cmd.prefixArgs}
-              <span class="text-[var(--text-muted)] text-[11px]">{cmd.prefixArgs}</span>
+              <span class="text-(--text-muted) text-[11px]">{cmd.prefixArgs}</span>
             {/if}
-            <span class="text-[var(--text-special)] text-[11px] bg-[var(--text-special)]/10 px-1 py-0.5 rounded border border-[var(--text-special)]/20">{cmd.template}</span>
+            <span class="text-(--text-special) text-[11px] bg-(--text-special)/10 px-1 py-0.5 rounded border border-(--text-special)/20">{cmd.template}</span>
             {#if cmd.suffixArgs}
               <span class="text-emerald-400 font-mono text-[11px] bg-emerald-500/10 px-1 py-0.5 rounded">{cmd.suffixArgs}</span>
             {/if}
           </div>
-          <div class="text-[10px] text-[var(--text-faint)] mt-0.5 font-mono">
+          <div class="text-[10px] text-(--text-faint) mt-0.5 font-mono">
             ex: {cmd.command} {cmd.prefixArgs ? cmd.prefixArgs + ' ' : ''}{cmd.template.replace('{user}', 'root').replace('{ip}', '1.2.3.4').replace('{port}', '22')}{cmd.suffixArgs || ''}
           </div>
         </div>
@@ -190,7 +190,7 @@
           <!-- Botão de Editar (Lápis SVG) -->
           <button 
             type="button" 
-            class="text-[var(--text-muted)] hover:text-sky-300 hover:bg-sky-400/15 p-1 rounded text-xs transition-all cursor-pointer border-none bg-transparent flex items-center justify-center" 
+            class="text-(--text-muted) hover:text-sky-300 hover:bg-sky-400/15 p-1 rounded text-xs transition-all cursor-pointer border-none bg-transparent flex items-center justify-center" 
             onclick={(e) => startEdit(cmd, e)} 
             title="Editar comando"
           >
@@ -201,7 +201,7 @@
           </button>
           <button 
             type="button" 
-            class="bg-transparent border-none text-[var(--text-faint)] hover:text-red-400 p-1 cursor-pointer transition-colors" 
+            class="bg-transparent border-none text-(--text-faint) hover:text-red-400 p-1 cursor-pointer transition-colors" 
             onclick={(e) => removeCommand(cmd.id, e)} 
             title="Remover comando"
           >
@@ -210,7 +210,7 @@
         </div>
       </div>
     {:else}
-      <div class="text-center py-4 text-xs text-[var(--text-faint)]">
+      <div class="text-center py-4 text-xs text-(--text-faint)">
         Nenhum comando configurado.
       </div>
     {/each}

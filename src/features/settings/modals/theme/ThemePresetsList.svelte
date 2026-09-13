@@ -21,7 +21,7 @@
 <!-- Temas Predefinidos -->
 <div class="mb-3">
   <p
-    class="text-[10px] uppercase tracking-wider text-[var(--text-muted)] opacity-90 font-bold mb-2"
+    class="text-[10px] uppercase tracking-wider text-(--text-muted) opacity-90 font-bold mb-2"
   >
     Predefinidos
   </p>
@@ -33,7 +33,7 @@
         class="group relative flex items-center gap-2 px-2.5 py-2 rounded-lg border cursor-pointer transition-all text-left
           {isActive
           ? 'border-violet-500 bg-violet-500/10 shadow-sm'
-          : 'border-[var(--border-subtle)] bg-[var(--bg-item)] hover:border-[var(--border-panel)] hover:brightness-95 dark:hover:brightness-110'}"
+          : 'border-(--border-subtle) bg-(--bg-item) hover:border-(--border-panel) hover:brightness-95 dark:hover:brightness-110'}"
         onclick={() => onSelect(preset)}
       >
         <div class="flex gap-0.5 shrink-0">
@@ -55,7 +55,7 @@
         <span
           class="text-[11px] font-medium {isActive
             ? 'text-violet-600 dark:text-violet-300 font-bold'
-            : 'text-[var(--text-base)]'} truncate"
+            : 'text-(--text-base)'} truncate"
         >
           {preset.name}
         </span>
@@ -75,7 +75,7 @@
 {#if configStore.customThemes.length > 0}
   <div class="mb-3">
     <p
-      class="text-[10px] uppercase tracking-wider text-[var(--text-muted)] opacity-90 font-bold mb-2"
+      class="text-[10px] uppercase tracking-wider text-(--text-muted) opacity-90 font-bold mb-2"
     >
       Meus Temas
     </p>
@@ -87,7 +87,7 @@
           class="group relative flex items-center gap-2 px-2.5 py-2 rounded-lg border cursor-pointer transition-all text-left
             {isActive
             ? 'border-violet-500 bg-violet-500/10 shadow-sm'
-            : 'border-[var(--border-subtle)] bg-[var(--bg-item)] hover:border-[var(--border-panel)] hover:brightness-95 dark:hover:brightness-110'}"
+            : 'border-(--border-subtle) bg-(--bg-item) hover:border-(--border-panel) hover:brightness-95 dark:hover:brightness-110'}"
           onclick={() => onSelect(custom)}
         >
           <div class="flex gap-0.5 shrink-0">
@@ -109,7 +109,7 @@
           <span
             class="text-[11px] font-medium {isActive
               ? 'text-violet-600 dark:text-violet-300 font-bold'
-              : 'text-[var(--text-base)]'} truncate flex-1 min-w-0"
+              : 'text-(--text-base)'} truncate flex-1 min-w-0"
           >
             {custom.name}
           </span>
@@ -120,7 +120,7 @@
             <span
               role="button"
               tabindex="0"
-              class="p-0.5 rounded text-[var(--text-muted)] hover:text-sky-400 hover:bg-sky-400/10 transition-all cursor-pointer"
+              class="p-0.5 rounded text-(--text-muted) hover:text-sky-400 hover:bg-sky-400/10 transition-all cursor-pointer"
               title="Renomear"
               onclick={(e) => {
                 e.stopPropagation();
@@ -145,7 +145,7 @@
             <span
               role="button"
               tabindex="0"
-              class="p-0.5 rounded text-[var(--text-muted)] hover:text-red-400 hover:bg-red-400/10 transition-all cursor-pointer"
+              class="p-0.5 rounded text-(--text-muted) hover:text-red-400 hover:bg-red-400/10 transition-all cursor-pointer"
               title="Excluir"
               onclick={(e) => deleteCustomTheme(custom.name, e)}
               onkeydown={(e) =>

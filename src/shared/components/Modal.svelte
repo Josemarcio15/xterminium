@@ -32,14 +32,14 @@
     aria-label="Fechar modal"
   ></button>
   <div 
-    class="absolute top-9 right-0 {widthClass} {maxHClass} bg-[var(--bg-panel)] border border-[var(--border-panel)] rounded-xl shadow-[var(--shadow-panel)] p-3.5 z-[160] flex flex-col" 
+    class="absolute top-9 right-0 {widthClass} {maxHClass} bg-(--bg-panel) border border-(--border-panel) rounded-xl shadow-(--shadow-panel) p-3.5 z-[160] flex flex-col" 
     role="dialog" 
     tabindex="-1"
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.key === 'Escape' && onClose()}
   >
     <div class="flex justify-between items-center mb-2.5">
-      <div class="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-base)]">
+      <div class="flex items-center gap-1.5 text-xs font-semibold text-(--text-base)">
         {#if icon}
           {@render icon()}
         {/if}

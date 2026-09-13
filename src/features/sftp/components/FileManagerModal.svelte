@@ -124,7 +124,7 @@
 
 {#if isOpen}
   {#snippet content()}
-    <div class="w-full h-full flex flex-col overflow-hidden bg-[var(--bg-base)] text-sm text-[var(--text-base)]">
+    <div class="w-full h-full flex flex-col overflow-hidden bg-(--bg-base) text-sm text-(--text-base)">
       <!-- Cabeçalho Principal Modularizado com Sininho e Notificações -->
       <FileManagerHeader
         showHiddenFiles={showHiddenFiles}
@@ -175,7 +175,7 @@
 
         <!-- PAINEL REMOTO (DIREITA) -->
         {#if !conn.isConnected}
-          <div class="flex-1 flex flex-col bg-[var(--bg-panel)] border border-[var(--border-subtle)] rounded-lg overflow-hidden">
+          <div class="flex-1 flex flex-col bg-(--bg-panel) border border-(--border-subtle) rounded-lg overflow-hidden">
             <ServerListPanel
               hosts={conn.savedHosts}
               isConnecting={conn.isConnecting}
@@ -238,7 +238,7 @@
       }}
     >
       <div
-        class="bg-[var(--bg-panel)] border border-[var(--border-panel)] rounded-xl shadow-2xl w-[92vw] max-w-5xl h-[80vh] flex flex-col overflow-hidden text-sm text-[var(--text-base)]"
+        class="bg-(--bg-panel) border border-(--border-panel) rounded-xl shadow-2xl w-[92vw] max-w-5xl h-[80vh] flex flex-col overflow-hidden text-sm text-(--text-base)"
       >
         {@render content()}
       </div>

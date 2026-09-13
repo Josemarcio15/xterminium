@@ -240,7 +240,7 @@
 </script>
 
 <div
-  class="flex flex-col w-full h-full overflow-hidden rounded-[var(--window-radius)] bg-[var(--bg-base)]"
+  class="flex flex-col w-full h-full overflow-hidden rounded-(--window-radius) bg-(--bg-base)"
 >
   <Titlebar
     {tabs}
@@ -262,7 +262,7 @@
   />
 
   <main
-    class="flex-1 min-h-0 relative bg-[var(--bg-base)] {hasAnyEffect
+    class="flex-1 min-h-0 relative bg-(--bg-base) {hasAnyEffect
       ? 'matrix-rain-active'
       : ''}"
   >
@@ -281,7 +281,7 @@
              da chuva (absolute z-0) e o painel parece translúcido nos temas
              com efeito de animação. -->
         <div
-          class="relative z-[1] w-full h-full"
+          class="relative z-1 w-full h-full"
           style:display={activeTabId === tab.id ? "block" : "none"}
         >
           <FileManagerModal

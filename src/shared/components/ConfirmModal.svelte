@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Button from '@/shared/components/Button.svelte';
+  import Button from "@/shared/components/Button.svelte";
 
   interface Props {
     isOpen: boolean;
@@ -7,7 +7,7 @@
     message: string;
     confirmText?: string;
     cancelText?: string;
-    variant?: 'danger' | 'warning' | 'info' | 'primary';
+    variant?: "danger" | "warning" | "info" | "primary";
     inputMode?: boolean;
     inputLabel?: string;
     inputValue?: string;
@@ -20,23 +20,23 @@
     isOpen,
     title,
     message,
-    confirmText = 'Confirmar',
-    cancelText = 'Cancelar',
-    variant = 'primary',
+    confirmText = "Confirmar",
+    cancelText = "Cancelar",
+    variant = "primary",
     inputMode = false,
-    inputLabel = '',
-    inputValue = '',
-    inputPlaceholder = '',
+    inputLabel = "",
+    inputValue = "",
+    inputPlaceholder = "",
     onConfirm,
     onClose,
   }: Props = $props();
 
-  let textValue = $state('');
+  let textValue = $state("");
   let inputElement = $state<HTMLInputElement | null>(null);
 
   $effect(() => {
     if (isOpen) {
-      textValue = inputValue || '';
+      textValue = inputValue || "";
       if (inputMode) {
         setTimeout(() => {
           inputElement?.focus();
@@ -53,9 +53,9 @@
   }
 
   function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
       onClose();
-    } else if (e.key === 'Enter') {
+    } else if (e.key === "Enter") {
       e.preventDefault();
       handleConfirm();
     }
@@ -78,25 +78,60 @@
     >
       <!-- Cabeçalho -->
       <div class="flex items-center gap-3">
-        {#if variant === 'danger'}
-          <div class="w-9 h-9 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 shrink-0">
-            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+        {#if variant === "danger"}
+          <div
+            class="w-9 h-9 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 shrink-0"
+          >
+            <svg
+              class="w-5 h-5"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+              ></path>
               <line x1="12" y1="9" x2="12" y2="13"></line>
               <line x1="12" y1="17" x2="12.01" y2="17"></line>
             </svg>
           </div>
-        {:else if variant === 'warning'}
-          <div class="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
-            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        {:else if variant === "warning"}
+          <div
+            class="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0"
+          >
+            <svg
+              class="w-5 h-5"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="12" y1="8" x2="12" y2="12"></line>
               <line x1="12" y1="16" x2="12.01" y2="16"></line>
             </svg>
           </div>
         {:else}
-          <div class="w-9 h-9 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
-            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <div
+            class="w-9 h-9 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0"
+          >
+            <svg
+              class="w-5 h-5"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="12" y1="16" x2="12" y2="12"></line>
               <line x1="12" y1="8" x2="12.01" y2="8"></line>
@@ -105,7 +140,9 @@
         {/if}
 
         <div class="min-w-0 flex-1">
-          <h3 class="text-sm font-semibold text-white tracking-wide">{title}</h3>
+          <h3 class="text-sm font-semibold text-white tracking-wide">
+            {title}
+          </h3>
           <p class="text-xs text-gray-400 mt-0.5 leading-relaxed">{message}</p>
         </div>
       </div>
@@ -114,7 +151,10 @@
       {#if inputMode}
         <div class="flex flex-col gap-1.5">
           {#if inputLabel}
-            <label class="text-[11px] font-medium text-gray-400" for="confirm-modal-input">{inputLabel}</label>
+            <label
+              class="text-[11px] font-medium text-gray-400"
+              for="confirm-modal-input">{inputLabel}</label
+            >
           {/if}
           <input
             id="confirm-modal-input"
@@ -128,17 +168,19 @@
       {/if}
 
       <!-- Botões de Ação -->
-      <div class="flex items-center justify-end gap-2 pt-2 border-t border-[var(--border-subtle)]">
-        <Button
-          variant="secondary"
-          size="sm"
-          onclick={onClose}
-        >
+      <div
+        class="flex items-center justify-end gap-2 pt-2 border-t border-(--border-subtle)"
+      >
+        <Button variant="secondary" size="sm" onclick={onClose}>
           {cancelText}
         </Button>
 
         <Button
-          variant={variant === 'danger' ? 'danger' : variant === 'warning' ? 'warn' : 'primary'}
+          variant={variant === "danger"
+            ? "danger"
+            : variant === "warning"
+              ? "warn"
+              : "primary"}
           size="sm"
           onclick={handleConfirm}
           disabled={inputMode && !textValue.trim()}

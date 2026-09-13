@@ -154,7 +154,7 @@
   {#snippet actions()}
     <div class="flex items-center gap-1.5">
       <button
-        class="w-[22px] h-[22px] rounded flex items-center justify-center text-xs bg-white/5 border border-white/10 text-[var(--text-muted)] hover:bg-white/10 hover:text-[var(--text-base)] transition-all cursor-pointer disabled:opacity-50"
+        class="w-5.5 h-5.5 rounded flex items-center justify-center text-xs bg-white/5 border border-white/10 text-(--text-muted) hover:bg-white/10 hover:text-(--text-base) transition-all cursor-pointer disabled:opacity-50"
         onclick={loadShells}
         disabled={loading}
         title="Detectar novamente"
@@ -175,7 +175,7 @@
         </svg>
       </button>
       <button
-        class="w-[22px] h-[22px] rounded flex items-center justify-center text-xs bg-white/5 border border-white/10 text-[var(--text-muted)] hover:bg-white/10 hover:text-[var(--text-base)] transition-all cursor-pointer"
+        class="w-5.5 h-5.5 rounded flex items-center justify-center text-xs bg-white/5 border border-white/10 text-(--text-muted) hover:bg-white/10 hover:text-(--text-base) transition-all cursor-pointer"
         onclick={() => (showForm = !showForm)}
         title={showForm ? "Fechar formulário" : "Adicionar shell manualmente"}
       >
@@ -185,7 +185,7 @@
   {/snippet}
 
   <div class="flex flex-col gap-2.5">
-    <p class="text-[10px] text-[var(--text-muted)] leading-relaxed">
+    <p class="text-[10px] text-(--text-muted) leading-relaxed">
       Escolha o shell usado ao abrir uma nova aba local. A alteração vale para
       as próximas abas.
     </p>
@@ -193,7 +193,7 @@
     <!-- Formulário de shell customizado -->
     {#if showForm}
       <form
-        class="bg-[var(--bg-item)] border border-[var(--border-panel)] rounded-lg p-2.5 flex flex-col gap-2"
+        class="bg-(--bg-item) border border-(--border-panel) rounded-lg p-2.5 flex flex-col gap-2"
         onsubmit={(e) => {
           e.preventDefault();
           addCustom();
@@ -205,20 +205,20 @@
           Adicionar shell manualmente
         </div>
         <input
-          class="bg-[var(--bg-item-input)] border border-[var(--border-subtle)] rounded text-[var(--text-base)] px-2 py-1.5 text-xs outline-none focus:border-emerald-400 transition-colors"
+          class="bg-(--bg-item-input) border border-(--border-subtle) rounded text-(--text-base) px-2 py-1.5 text-xs outline-none focus:border-emerald-400 transition-colors"
           type="text"
           placeholder="Nome (ex: Meu Zsh)"
           bind:value={formName}
         />
         <input
-          class="bg-[var(--bg-item-input)] border border-[var(--border-subtle)] rounded text-[var(--text-base)] px-2 py-1.5 text-xs outline-none focus:border-emerald-400 transition-colors font-mono"
+          class="bg-(--bg-item-input) border border-(--border-subtle) rounded text-(--text-base) px-2 py-1.5 text-xs outline-none focus:border-emerald-400 transition-colors font-mono"
           type="text"
           placeholder="Caminho do executável (ex: /usr/bin/zsh)"
           bind:value={formPath}
           required
         />
         <input
-          class="bg-[var(--bg-item-input)] border border-[var(--border-subtle)] rounded text-[var(--text-base)] px-2 py-1.5 text-xs outline-none focus:border-emerald-400 transition-colors font-mono"
+          class="bg-(--bg-item-input) border border-(--border-subtle) rounded text-(--text-base) px-2 py-1.5 text-xs outline-none focus:border-emerald-400 transition-colors font-mono"
           type="text"
           placeholder="Argumentos (opcional, ex: --login -i)"
           bind:value={formArgs}
@@ -238,17 +238,17 @@
     {#if current}
       <div class="flex flex-col gap-1">
         <label
-          class="text-[10px] font-semibold text-[var(--text-muted)]"
+          class="text-[10px] font-semibold text-(--text-muted)"
           for="shell-args"
         >
-          Argumentos de <span class="text-[var(--text-base)]"
+          Argumentos de <span class="text-(--text-base)"
             >{current.name}</span
           >
         </label>
         <div class="flex gap-1.5">
           <input
             id="shell-args"
-            class="flex-1 bg-[var(--bg-item-input)] border border-[var(--border-subtle)] rounded text-[var(--text-base)] px-2 py-1.5 text-xs outline-none focus:border-emerald-400 transition-colors font-mono"
+            class="flex-1 bg-(--bg-item-input) border border-(--border-subtle) rounded text-(--text-base) px-2 py-1.5 text-xs outline-none focus:border-emerald-400 transition-colors font-mono"
             type="text"
             placeholder="ex: --login -i"
             bind:value={argsDraft}
@@ -283,20 +283,20 @@
         class="flex items-center gap-2 px-2.5 py-2 rounded-lg border text-left transition-all cursor-pointer w-full
           {!current
           ? 'border-emerald-400/60 bg-emerald-500/10'
-          : 'bg-[var(--bg-item)] border-[var(--border-subtle)] hover:border-emerald-400/40 hover:bg-emerald-500/5'}"
+          : 'bg-(--bg-item) border-(--border-subtle) hover:border-emerald-400/40 hover:bg-emerald-500/5'}"
         onclick={useSystemDefault}
       >
         <span
           class="w-3 h-3 rounded-full border shrink-0 flex items-center justify-center
             {!current
             ? 'border-emerald-400 bg-emerald-400'
-            : 'border-[var(--text-faint)]'}"
+            : 'border-(--text-faint)'}"
         ></span>
         <span class="flex flex-col gap-0.5 overflow-hidden flex-1">
-          <span class="text-xs font-medium text-[var(--text-base)]">
+          <span class="text-xs font-medium text-(--text-base)">
             Padrão do sistema
           </span>
-          <span class="text-[10px] text-[var(--text-muted)] truncate">
+          <span class="text-[10px] text-(--text-muted) truncate">
             Usa o shell padrão detectado ao iniciar
           </span>
         </span>
@@ -304,7 +304,7 @@
 
       {#if detected.length > 0 || customOnly.length > 0}
         <div
-          class="text-[10px] font-semibold text-[var(--text-faint)] uppercase tracking-wide mt-1.5 px-0.5"
+          class="text-[10px] font-semibold text-(--text-faint) uppercase tracking-wide mt-1.5 px-0.5"
         >
           Detectados no sistema
         </div>
@@ -316,7 +316,7 @@
           class="flex items-center gap-2 px-2.5 py-2 rounded-lg border transition-all group
             {selected
             ? 'border-emerald-400/60 bg-emerald-500/10'
-            : 'bg-[var(--bg-item)] border-[var(--border-subtle)] hover:border-emerald-400/40 hover:bg-emerald-500/5'}"
+            : 'bg-(--bg-item) border-(--border-subtle) hover:border-emerald-400/40 hover:bg-emerald-500/5'}"
         >
           <button
             type="button"
@@ -328,12 +328,12 @@
               class="w-3 h-3 rounded-full border shrink-0 flex items-center justify-center
                 {selected
                 ? 'border-emerald-400 bg-emerald-400'
-                : 'border-[var(--text-faint)]'}"
+                : 'border-(--text-faint)'}"
             ></span>
             <span class="flex flex-col gap-0.5 overflow-hidden flex-1">
               <span class="flex items-center gap-1.5">
                 <span
-                  class="text-xs font-medium text-[var(--text-base)] truncate"
+                  class="text-xs font-medium text-(--text-base) truncate"
                 >
                   {shell.name}
                 </span>
@@ -352,7 +352,7 @@
                 {/if}
               </span>
               <span
-                class="text-[10px] text-[var(--text-muted)] font-mono truncate"
+                class="text-[10px] text-(--text-muted) font-mono truncate"
               >
                 {shell.path}{shell.args?.length
                   ? ` ${formatArgs(shell.args)}`
@@ -365,7 +365,7 @@
 
       {#if customOnly.length > 0}
         <div
-          class="text-[10px] font-semibold text-[var(--text-faint)] uppercase tracking-wide mt-1.5 px-0.5"
+          class="text-[10px] font-semibold text-(--text-faint) uppercase tracking-wide mt-1.5 px-0.5"
         >
           Adicionados por você
         </div>
@@ -375,7 +375,7 @@
             class="flex items-center gap-2 px-2.5 py-2 rounded-lg border transition-all
               {selected
               ? 'border-emerald-400/60 bg-emerald-500/10'
-              : 'bg-[var(--bg-item)] border-[var(--border-subtle)] hover:border-emerald-400/40 hover:bg-emerald-500/5'}"
+              : 'bg-(--bg-item) border-(--border-subtle) hover:border-emerald-400/40 hover:bg-emerald-500/5'}"
           >
             <button
               type="button"
@@ -387,12 +387,12 @@
                 class="w-3 h-3 rounded-full border shrink-0 flex items-center justify-center
                   {selected
                   ? 'border-emerald-400 bg-emerald-400'
-                  : 'border-[var(--text-faint)]'}"
+                  : 'border-(--text-faint)'}"
               ></span>
               <span class="flex flex-col gap-0.5 overflow-hidden flex-1">
                 <span class="flex items-center gap-1.5">
                   <span
-                    class="text-xs font-medium text-[var(--text-base)] truncate"
+                    class="text-xs font-medium text-(--text-base) truncate"
                   >
                     {shell.name}
                   </span>
@@ -403,7 +403,7 @@
                   {/if}
                 </span>
                 <span
-                  class="text-[10px] text-[var(--text-muted)] font-mono truncate"
+                  class="text-[10px] text-(--text-muted) font-mono truncate"
                 >
                   {shell.path}{shell.args?.length
                     ? ` ${formatArgs(shell.args)}`
@@ -412,7 +412,7 @@
               </span>
             </button>
             <button
-              class="text-[var(--text-muted)] hover:text-red-400 hover:bg-red-400/15 p-1 rounded text-xs leading-none transition-all cursor-pointer border-none bg-transparent shrink-0"
+              class="text-(--text-muted) hover:text-red-400 hover:bg-red-400/15 p-1 rounded text-xs leading-none transition-all cursor-pointer border-none bg-transparent shrink-0"
               onclick={() => removeCustom(shell.id)}
               title="Remover"
             >
@@ -424,7 +424,7 @@
 
       {#if !loading && detected.length === 0 && customOnly.length === 0}
         <div
-          class="text-center text-[var(--text-muted)] text-xs py-4 leading-relaxed"
+          class="text-center text-(--text-muted) text-xs py-4 leading-relaxed"
         >
           Nenhum shell detectado.<br />
           Use o <b>+</b> para informar o caminho manualmente.

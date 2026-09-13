@@ -270,7 +270,7 @@
   bind:this={container}
   class="absolute inset-0 px-[10px] pt-2 pb-5 box-border {active
     ? 'visible pointer-events-auto z-[2]'
-    : 'invisible pointer-events-none z-[1]'}"
+    : 'invisible pointer-events-none z-1'}"
 ></div>
 
 {#if vpsAuto.showDropdown && active}
