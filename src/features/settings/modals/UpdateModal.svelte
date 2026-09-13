@@ -80,12 +80,12 @@
 {#if show}
   <!-- Backdrop -->
   <div
-    class="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+    class="fixed inset-0 z-200 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
     role="dialog"
     tabindex="-1"
   >
     <div
-      class="w-[440px] max-w-full bg-(--bg-panel) border border-(--border-panel) rounded-2xl shadow-2xl p-6 flex flex-col gap-4 relative overflow-hidden"
+      class="w-110 max-w-full bg-(--bg-panel) border border-(--border-panel) rounded-2xl shadow-2xl p-6 flex flex-col gap-4 relative overflow-hidden"
     >
       <!-- Glow ambient background -->
       <div

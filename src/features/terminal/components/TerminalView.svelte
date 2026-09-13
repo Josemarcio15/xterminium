@@ -81,6 +81,26 @@
     () => container,
   );
 
+  /**
+   * Reavalia a sugestão de alias depois que o xterm **processou** a saída.
+   *
+   * O buffer do xterm só conhece a tecla digitada quando o shell a ecoa de
+   * volta (`pty-out` -> `term.write`). Agendar por tempo fixo no `onData`
+   * assume um echo instantâneo: no Windows o ConPTY + o repaint de linha do
+   * PSReadLine devolvem o echo depois do prazo, então o buffer fica uma tecla
+   * atrás — um alias de 3 letras só era reconhecido a partir da 3ª. Amarrando
+   * ao processamento da saída o comportamento fica igual nos dois SOs.
+   */
+  let suggestionTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function scheduleSuggestionCheck() {
+    if (suggestionTimer) return;
+    suggestionTimer = setTimeout(() => {
+      suggestionTimer = null;
+      aliasSug.check(vpsAuto.showDropdown || dirAuto.showDirDropdown);
+    }, 16);
+  }
+
   onMount(async () => {
     if (!container) return;
 
@@ -201,11 +221,6 @@
       if (aliasSug.activeSuggestion && isCancelOrEnter) aliasSug.close();
 
       PtyService.writePty(id, data).catch(console.error);
-
-      // Verificação não-intrusiva de sugestão de aliases
-      setTimeout(() => {
-        aliasSug.check(vpsAuto.showDropdown || dirAuto.showDirDropdown);
-      }, 10);
     });
 
     resizeObserver = new ResizeObserver(() => {
@@ -223,7 +238,9 @@
   });
 
   export function write(data: string) {
-    if (term) term.write(data);
+    if (!term) return;
+    // O callback roda após o xterm parsear o chunk, com o buffer já atualizado.
+    term.write(data, scheduleSuggestionCheck);
   }
 
   export function clear() {
@@ -259,6 +276,7 @@
   });
 
   onDestroy(() => {
+    if (suggestionTimer) clearTimeout(suggestionTimer);
     resizeObserver?.disconnect();
     disableWebglRenderer();
     PtyService.closePty(id).catch(console.error);
@@ -268,8 +286,8 @@
 
 <div
   bind:this={container}
-  class="absolute inset-0 px-[10px] pt-2 pb-5 box-border {active
-    ? 'visible pointer-events-auto z-[2]'
+  class="absolute inset-0 px-2.5 pt-2 pb-5 box-border {active
+    ? 'visible pointer-events-auto z-2'
     : 'invisible pointer-events-none z-1'}"
 ></div>
 
