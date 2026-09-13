@@ -3,15 +3,63 @@
   import { configStore } from "../../core/stores/config.svelte";
   import { RAIN_DEFAULTS } from "../../core/types";
 
+  /**
+   * Resolução interna do canvas, como fração dos pixels físicos da tela.
+   * Neve/geada é difusa, então desenhar abaixo da resolução nativa e deixar o
+   * CSS esticar é imperceptível — e o fill rate (custo dominante aqui) cai na
+   * mesma proporção ao quadrado. Ajuste fino: 0.75 = mais nitidez, menos ganho.
+   */
+  const RENDER_SCALE = 0.6;
+
+  /** Teto de frames. A neve é lenta: 30fps não se distingue de 60fps aqui. */
+  const TARGET_FPS = 30;
+
+  /**
+   * Controle de taxa de quadros + pausa, compartilhado pelos dois caminhos.
+   * `tick` devolve o dt (em segundos) quando o frame deve ser desenhado, ou
+   * `null` para pular (frame adiantado / janela oculta ou sem foco).
+   */
+  function createFrameGate(targetFps: number) {
+    const frameInterval = 1000 / targetFps;
+    let lastDraw = performance.now();
+    let active = document.visibilityState !== "hidden" && document.hasFocus();
+
+    const sync = () => {
+      active = document.visibilityState !== "hidden" && document.hasFocus();
+      // Não deixa o tempo acumular enquanto está pausado
+      lastDraw = performance.now();
+    };
+
+    document.addEventListener("visibilitychange", sync);
+    window.addEventListener("focus", sync);
+    window.addEventListener("blur", sync);
+
+    return {
+      tick(now: number): number | null {
+        if (!active) {
+          lastDraw = now;
+          return null;
+        }
+        if (now - lastDraw < frameInterval) return null;
+        const dt = Math.min((now - lastDraw) / 1000, 0.1);
+        lastDraw = now;
+        return dt;
+      },
+      dispose() {
+        document.removeEventListener("visibilitychange", sync);
+        window.removeEventListener("focus", sync);
+        window.removeEventListener("blur", sync);
+      },
+    };
+  }
+
   let host = $state<HTMLDivElement | null>(null);
 
   // Opções reativas vindas do tema ativo
   const iceDensity = $derived(
     configStore.theme.rainDensity ?? RAIN_DEFAULTS.density,
   );
-  const iceSpeed = $derived(
-    configStore.theme.rainSpeed ?? RAIN_DEFAULTS.speed,
-  );
+  const iceSpeed = $derived(configStore.theme.rainSpeed ?? RAIN_DEFAULTS.speed);
   const iceOpacity = $derived(
     configStore.theme.rainOpacity ?? RAIN_DEFAULTS.opacity,
   );
@@ -63,8 +111,18 @@
 
     let opts = { ...initialOpts };
     let gl: WebGL2RenderingContext | WebGLRenderingContext | null =
-      canvas.getContext("webgl2", { alpha: true, depth: false, antialias: false, preserveDrawingBuffer: false }) ||
-      canvas.getContext("webgl", { alpha: true, depth: false, antialias: false, preserveDrawingBuffer: false });
+      canvas.getContext("webgl2", {
+        alpha: true,
+        depth: false,
+        antialias: false,
+        preserveDrawingBuffer: false,
+      }) ||
+      canvas.getContext("webgl", {
+        alpha: true,
+        depth: false,
+        antialias: false,
+        preserveDrawingBuffer: false,
+      });
 
     if (!gl) {
       return createFallback2DRenderer(canvas, initialOpts);
@@ -264,29 +322,29 @@
     gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
     gl.bufferData(
       gl.ARRAY_BUFFER,
-      new Float32Array([
-        -1, -1,
-         1, -1,
-        -1,  1,
-        -1,  1,
-         1, -1,
-         1,  1,
-      ]),
+      new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
       gl.STATIC_DRAW,
     );
 
     let animationId = 0;
-    let startTime = performance.now();
-    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let elapsed = 0;
+    const gate = createFrameGate(TARGET_FPS);
 
     function resize() {
       const rect = container.getBoundingClientRect();
       const w = Math.max(300, Math.floor(rect.width));
       const h = Math.max(200, Math.floor(rect.height));
-      if (canvas.width !== Math.floor(w * dpr) || canvas.height !== Math.floor(h * dpr)) {
-        canvas.width = Math.floor(w * dpr);
-        canvas.height = Math.floor(h * dpr);
-        if (gl) gl.viewport(0, 0, canvas.width, canvas.height);
+      // dpr até 2 e então reduzido pela escala de render: 1920×1080 em dpr 2
+      // desenha 2304×1296 em vez de 3840×2160 (≈2,8× menos pixels por frame).
+      // O shader só usa u_resolution para o aspect ratio, então o visual se
+      // mantém idêntico — apenas um pouco mais suave quando esticado pelo CSS.
+      const scale = Math.min(window.devicePixelRatio || 1, 2) * RENDER_SCALE;
+      const cw = Math.max(1, Math.round(w * scale));
+      const ch = Math.max(1, Math.round(h * scale));
+      if (canvas.width !== cw || canvas.height !== ch) {
+        canvas.width = cw;
+        canvas.height = ch;
+        if (gl) gl.viewport(0, 0, cw, ch);
       }
     }
 
@@ -296,7 +354,11 @@
 
     function renderLoop(now: number) {
       if (!gl) return;
-      const elapsed = (now - startTime) * 0.001;
+      animationId = requestAnimationFrame(renderLoop);
+
+      const dt = gate.tick(now);
+      if (dt === null) return;
+      elapsed += dt;
 
       gl.useProgram(prog);
 
@@ -316,7 +378,6 @@
       gl.uniform1f(uOpacityLoc, opts.opacity);
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
-      animationId = requestAnimationFrame(renderLoop);
     }
 
     animationId = requestAnimationFrame(renderLoop);
@@ -324,6 +385,7 @@
     return {
       dispose: () => {
         cancelAnimationFrame(animationId);
+        gate.dispose();
         ro.disconnect();
         if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
       },
@@ -341,7 +403,8 @@
     const ctx = canvas.getContext("2d");
     let opts = { ...initialOpts };
     let animationId = 0;
-    const start = performance.now();
+    let elapsed = 0;
+    const gate = createFrameGate(TARGET_FPS);
 
     function resize() {
       const rect = canvas.getBoundingClientRect();
@@ -360,12 +423,18 @@
 
     function draw(now: number) {
       if (!ctx) return;
+      animationId = requestAnimationFrame(draw);
+
+      const dt = gate.tick(now);
+      if (dt === null) return;
+      elapsed += dt;
+
       const w = canvas.width;
       const h = canvas.height;
       const density = Math.max(0.05, opts.density / 100);
       const speed = Math.max(0.05, opts.speed / 100);
       const opacity = Math.max(0, Math.min(1, opts.opacity / 100));
-      const t = (now - start) * 0.001 * speed;
+      const t = elapsed * speed;
 
       ctx.clearRect(0, 0, w, h);
 
@@ -398,14 +467,13 @@
         ctx.arc(x, y, rad, 0, Math.PI * 2);
         ctx.fill();
       }
-
-      animationId = requestAnimationFrame(draw);
     }
     animationId = requestAnimationFrame(draw);
 
     return {
       dispose: () => {
         cancelAnimationFrame(animationId);
+        gate.dispose();
         ro.disconnect();
         if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
       },

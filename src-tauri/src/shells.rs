@@ -1,10 +1,16 @@
-//! Detecção dos shells instalados no sistema.
+//! Metadados de shells e helpers compartilhados entre os sistemas.
 //!
-//! Windows: PowerShell 7 (pwsh), Windows PowerShell, CMD, WSL, Git Bash / MSYS2, Nushell.
-//! Linux/macOS: shells de `/etc/shells` (zsh, bash, fish, sh, ...) + pwsh/nu do PATH.
+//! A **detecção** do que está instalado é específica de cada SO e vive em
+//! `crate::platform` (`detect_shells` / `default_shell_path`). Aqui ficam só o
+//! DTO que a interface consome e a classificação de caminhos — que é a mesma em
+//! qualquer sistema, já que um Linux pode ter `pwsh` no PATH e um Windows pode
+//! ter `bash` (Git Bash).
 //!
-//! A lista é usada para popular o seletor de shell da interface. O shell escolhido
-//! é enviado ao `spawn_pty` através dos parâmetros `command`/`args`.
+//! A lista é usada para popular o seletor de shell da interface. O shell
+//! escolhido é enviado ao `spawn_pty` através dos parâmetros `command`/`args`.
+//!
+//! A busca no PATH (`which`) também é específica de cada SO e vive em
+//! `crate::platform`, porque o Windows resolve por `PATHEXT`.
 
 use std::path::Path;
 
@@ -42,43 +48,14 @@ fn slugify(path: &str) -> String {
     out
 }
 
-fn is_file(path: &str) -> bool {
+pub fn is_file(path: &str) -> bool {
     !path.is_empty() && Path::new(path).is_file()
 }
 
-fn normalize(path: &str) -> String {
+pub fn normalize(path: &str) -> String {
     path.trim()
         .trim_end_matches(['/', '\\'])
         .to_ascii_lowercase()
-}
-
-/// Procura um executável no PATH (respeitando PATHEXT no Windows).
-fn which(cmd: &str) -> Option<String> {
-    let path_var = std::env::var_os("PATH")?;
-
-    #[cfg(target_os = "windows")]
-    let exts: Vec<String> = std::env::var("PATHEXT")
-        .unwrap_or_else(|_| ".EXE;.CMD;.BAT;.COM".to_string())
-        .split(';')
-        .map(|e| e.trim().to_ascii_lowercase())
-        .filter(|e| !e.is_empty())
-        .collect();
-    #[cfg(not(target_os = "windows"))]
-    let exts: Vec<String> = Vec::new();
-
-    for dir in std::env::split_paths(&path_var) {
-        let direct = dir.join(cmd);
-        if direct.is_file() {
-            return Some(direct.to_string_lossy().into_owned());
-        }
-        for ext in &exts {
-            let with_ext = dir.join(format!("{}{}", cmd, ext));
-            if with_ext.is_file() {
-                return Some(with_ext.to_string_lossy().into_owned());
-            }
-        }
-    }
-    None
 }
 
 /// Classifica o shell a partir do nome do executável.
@@ -110,6 +87,15 @@ fn kind_from_path(path: &str) -> &'static str {
     }
 }
 
+/// `true` para PowerShell (pwsh ou Windows PowerShell).
+///
+/// Importa porque o PowerShell nunca chama `chdir` no `Set-Location`: o cwd do
+/// processo fica congelado no diretório de lançamento, então o shell precisa
+/// reportar o diretório atual pelo prompt (OSC 9;9). Ver `pty.rs`.
+pub fn is_powershell(path: &str) -> bool {
+    matches!(kind_from_path(path), "pwsh" | "powershell")
+}
+
 fn display_name(path: &str, kind: &str) -> String {
     match kind {
         "pwsh" => "PowerShell 7 (pwsh)",
@@ -127,7 +113,8 @@ fn display_name(path: &str, kind: &str) -> String {
     .to_string()
 }
 
-fn push_unique(list: &mut Vec<ShellInfo>, path: String, args: Vec<String>, recommended: &str) {
+/// Adiciona à lista se o caminho for um arquivo existente e ainda não listado.
+pub fn push_unique(list: &mut Vec<ShellInfo>, path: String, args: Vec<String>, recommended: &str) {
     if list.len() >= MAX_SHELLS || !is_file(&path) {
         return;
     }
@@ -148,166 +135,10 @@ fn push_unique(list: &mut Vec<ShellInfo>, path: String, args: Vec<String>, recom
     });
 }
 
-#[cfg(target_os = "windows")]
-fn detect_shells(recommended: &str) -> Vec<ShellInfo> {
-    let mut list = Vec::new();
-
-    // PowerShell 7+ (instalação via winget/MSI/store)
-    if let Some(p) = which("pwsh") {
-        push_unique(&mut list, p, vec![], recommended);
-    }
-
-    // Shells nativos do Windows
-    if let Ok(root) = std::env::var("SystemRoot") {
-        push_unique(
-            &mut list,
-            format!(
-                "{}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
-                root
-            ),
-            vec![],
-            recommended,
-        );
-        push_unique(
-            &mut list,
-            format!("{}\\System32\\cmd.exe", root),
-            vec![],
-            recommended,
-        );
-    }
-    if let Some(p) = which("powershell") {
-        push_unique(&mut list, p, vec![], recommended);
-    }
-    if let Some(p) = which("cmd") {
-        push_unique(&mut list, p, vec![], recommended);
-    }
-
-    // WSL (abre a distro padrão)
-    if let Some(p) = which("wsl") {
-        push_unique(&mut list, p, vec![], recommended);
-    }
-
-    // Git Bash / MSYS2 — usa shell de login para carregar /etc/profile
-    let login_args = vec!["--login".to_string(), "-i".to_string()];
-    let mut git_candidates: Vec<String> = Vec::new();
-    if let Ok(pf) = std::env::var("ProgramFiles") {
-        git_candidates.push(format!("{}\\Git\\bin\\bash.exe", pf));
-    }
-    if let Ok(pf) = std::env::var("ProgramFiles(x86)") {
-        git_candidates.push(format!("{}\\Git\\bin\\bash.exe", pf));
-    }
-    if let Ok(local) = std::env::var("LOCALAPPDATA") {
-        git_candidates.push(format!("{}\\Programs\\Git\\bin\\bash.exe", local));
-    }
-    for candidate in git_candidates {
-        push_unique(&mut list, candidate, login_args.clone(), recommended);
-    }
-    if let Some(p) = which("bash") {
-        push_unique(&mut list, p, login_args, recommended);
-    }
-
-    // Nushell
-    if let Some(p) = which("nu") {
-        push_unique(&mut list, p, vec![], recommended);
-    }
-
-    list
-}
-
-#[cfg(not(target_os = "windows"))]
-fn detect_shells(recommended: &str) -> Vec<ShellInfo> {
-    let mut list = Vec::new();
-
-    // Shell atual do usuário
-    if let Ok(user_shell) = std::env::var("SHELL") {
-        if !user_shell.trim().is_empty() {
-            push_unique(&mut list, user_shell, vec![], recommended);
-        }
-    }
-
-    // Shells registrados pelo sistema
-    if let Ok(content) = std::fs::read_to_string("/etc/shells") {
-        for line in content.lines() {
-            let entry = line.trim();
-            if entry.is_empty() || entry.starts_with('#') {
-                continue;
-            }
-            push_unique(&mut list, entry.to_string(), vec![], recommended);
-        }
-    }
-
-    // Caminhos comuns (cobre distros sem /etc/shells e macOS/Homebrew)
-    for candidate in [
-        "/bin/bash",
-        "/usr/bin/bash",
-        "/bin/zsh",
-        "/usr/bin/zsh",
-        "/usr/local/bin/zsh",
-        "/opt/homebrew/bin/zsh",
-        "/bin/fish",
-        "/usr/bin/fish",
-        "/bin/sh",
-        "/usr/bin/sh",
-    ] {
-        push_unique(&mut list, candidate.to_string(), vec![], recommended);
-    }
-
-    // Shells opcionais instalados via gerenciadores de pacote
-    for cmd in ["pwsh", "nu"] {
-        if let Some(p) = which(cmd) {
-            push_unique(&mut list, p, vec![], recommended);
-        }
-    }
-
-    list
-}
-
-/// Shell usado quando nenhuma preferência foi definida pelo usuário.
-pub fn default_shell_path() -> String {
-    #[cfg(target_os = "windows")]
-    {
-        if let Ok(system_root) = std::env::var("SystemRoot") {
-            let ps_path = format!(
-                "{}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
-                system_root
-            );
-            if is_file(&ps_path) {
-                return ps_path;
-            }
-        }
-        if let Some(p) = which("powershell") {
-            return p;
-        }
-        "powershell.exe".to_string()
-    }
-    #[cfg(not(target_os = "windows"))]
-    {
-        // 1. Respeita $SHELL do usuário
-        if let Ok(user_shell) = std::env::var("SHELL") {
-            if !user_shell.is_empty() && is_file(&user_shell) {
-                return user_shell;
-            }
-        }
-        // 2. Zsh
-        for candidate in ["/bin/zsh", "/usr/bin/zsh", "/usr/local/bin/zsh"] {
-            if is_file(candidate) {
-                return candidate.to_string();
-            }
-        }
-        // 3. Bash
-        for candidate in ["/bin/bash", "/usr/bin/bash"] {
-            if is_file(candidate) {
-                return candidate.to_string();
-            }
-        }
-        // 4. POSIX sh
-        "/bin/sh".to_string()
-    }
-}
-
 /// Lista os shells disponíveis no sistema para o seletor de configurações.
+///
+/// A varredura em si é feita pelo módulo do SO ativo (`crate::platform`).
 #[tauri::command]
 pub fn list_shells() -> Vec<ShellInfo> {
-    let recommended = default_shell_path();
-    detect_shells(&recommended)
+    crate::platform::detect_shells(&crate::platform::default_shell_path())
 }

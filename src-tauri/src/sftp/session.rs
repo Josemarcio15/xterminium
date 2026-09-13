@@ -20,13 +20,21 @@ impl Handler for ClientHandler {
         &mut self,
         server_public_key: &PublicKey,
     ) -> Result<bool, Self::Error> {
-        let home = super::local_fs::get_local_home_dir();
+        let home = crate::platform::home_dir();
         let known_hosts_path = home.join(".ssh").join("known_hosts");
 
         if known_hosts_path.exists() {
-            match russh_keys::check_known_hosts_path(&self.host, self.port, server_public_key, &known_hosts_path) {
+            match russh_keys::check_known_hosts_path(
+                &self.host,
+                self.port,
+                server_public_key,
+                &known_hosts_path,
+            ) {
                 Ok(true) => {
-                    log::info!("Chave do servidor SSH '{}' verificada com sucesso em known_hosts.", self.host);
+                    log::info!(
+                        "Chave do servidor SSH '{}' verificada com sucesso em known_hosts.",
+                        self.host
+                    );
                     return Ok(true);
                 }
                 Ok(false) => {
@@ -35,7 +43,11 @@ impl Handler for ClientHandler {
                     return Ok(false);
                 }
                 Err(err) => {
-                    log::warn!("Host '{}' não encontrado em known_hosts ou erro ao ler arquivo: {:?}", self.host, err);
+                    log::warn!(
+                        "Host '{}' não encontrado em known_hosts ou erro ao ler arquivo: {:?}",
+                        self.host,
+                        err
+                    );
                 }
             }
         }
@@ -45,7 +57,6 @@ impl Handler for ClientHandler {
         Ok(true)
     }
 }
-
 
 pub async fn connect_session(
     active_session: &Arc<Mutex<Option<ActiveSftpConnection>>>,
@@ -74,7 +85,6 @@ pub async fn connect_session(
         .await
         .map_err(|e| format!("Falha ao conectar via TCP/SSH ao host: {}", e))?;
 
-
     let mut authenticated = false;
     let mut key_failed_due_to_passphrase = false;
 
@@ -97,7 +107,7 @@ pub async fn connect_session(
         let resolved_key_path: Option<std::path::PathBuf> = if let Some(path_str) = key_path {
             if !path_str.trim().is_empty() {
                 let p = path_str.trim();
-                let home = super::local_fs::get_local_home_dir();
+                let home = crate::platform::home_dir();
                 if p.starts_with("~/") || p.starts_with("~\\") {
                     Some(home.join(&p[2..]))
                 } else if p == "~" {
@@ -116,7 +126,7 @@ pub async fn connect_session(
         let candidate_key = if let Some(p) = resolved_key_path {
             Some(p)
         } else {
-            let home = super::local_fs::get_local_home_dir();
+            let home = crate::platform::home_dir();
             let ssh_dir = home.join(".ssh");
             let candidates = ["id_rsa", "id_ed25519", "id_ecdsa", "id_dsa"];
             candidates
@@ -134,7 +144,11 @@ pub async fn connect_session(
                 }
                 Err(err) => {
                     let err_str = format!("{:?}", err);
-                    log::warn!("Erro ao carregar chave SSH '{}': {}", path.display(), err_str);
+                    log::warn!(
+                        "Erro ao carregar chave SSH '{}': {}",
+                        path.display(),
+                        err_str
+                    );
                     // Se não foi fornecida uma passphrase, qualquer erro ao decodificar/carregar
                     // indica que a chave é criptografada e precisa de passphrase.
                     if key_passphrase.is_none() {
@@ -156,9 +170,13 @@ pub async fn connect_session(
 
     if !authenticated {
         if key_failed_due_to_passphrase && key_passphrase.is_none() {
-            return Err("PASSPHRASE_REQUIRED: A chave privada SSH requer uma passphrase.".to_string());
+            return Err(
+                "PASSPHRASE_REQUIRED: A chave privada SSH requer uma passphrase.".to_string(),
+            );
         }
-        return Err("AUTH_FAILED: Falha na autenticação: Chave ou senha inválida para o host.".to_string());
+        return Err(
+            "AUTH_FAILED: Falha na autenticação: Chave ou senha inválida para o host.".to_string(),
+        );
     }
 
     // Abrir canal SFTP
@@ -211,4 +229,3 @@ pub async fn disconnect_session(active_session: &Arc<Mutex<Option<ActiveSftpConn
     }
     *lock = None;
 }
-

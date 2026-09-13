@@ -1,5 +1,5 @@
-import { invoke } from '@tauri-apps/api/core';
-import { getVersion } from '@tauri-apps/api/app';
+import { invoke } from "@tauri-apps/api/core";
+import { getVersion } from "@tauri-apps/api/app";
 
 export interface GithubReleaseInfo {
   tag_name: string;
@@ -17,13 +17,13 @@ export interface UpdateCheckResult {
   releaseUrl: string;
 }
 
-const REPO_OWNER = 'Josemarcio15';
-const REPO_NAME = 'xterminium';
+const REPO_OWNER = "Josemarcio15";
+const REPO_NAME = "xterminium";
 
 function parseVersionNumbers(v: string): number[] {
   // Remove 'v' inicial e sufixos como '-alpha', '-beta', etc.
-  const clean = v.replace(/^v/i, '').split('-')[0].trim();
-  const parts = clean.split('.').map((p) => parseInt(p, 10) || 0);
+  const clean = v.replace(/^v/i, "").split("-")[0].trim();
+  const parts = clean.split(".").map((p) => parseInt(p, 10) || 0);
   while (parts.length < 3) parts.push(0);
   return parts;
 }
@@ -45,9 +45,9 @@ export class UpdateService {
       return await getVersion();
     } catch {
       try {
-        return await invoke<string>('get_app_version');
+        return await invoke<string>("get_app_version");
       } catch {
-        return '0.0.0';
+        return "0.0.0";
       }
     }
   }
@@ -56,11 +56,14 @@ export class UpdateService {
     try {
       const currentVersion = await this.getCurrentVersion();
       // Consulta a lista completa de releases para incluir pre-releases (alpha/beta)
-      const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases`, {
-        headers: {
-          Accept: 'application/vnd.github.v3+json',
+      const res = await fetch(
+        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases`,
+        {
+          headers: {
+            Accept: "application/vnd.github.v3+json",
+          },
         },
-      });
+      );
 
       if (!res.ok) {
         return null;
@@ -73,27 +76,43 @@ export class UpdateService {
 
       // Pega a primeira release pública publicada (mesmo sendo pre-release)
       const release = releases[0];
-      const latestTag = release.tag_name || '';
+      const latestTag = release.tag_name || "";
       const hasUpdate = isNewerVersion(currentVersion, latestTag);
 
       // Remove blocos legados de instruções de terminal caso a release antiga ainda tenha
-      let cleanNotes = (release.body || '').split('---')[0].trim();
-      cleanNotes = cleanNotes.replace(/```[\s\S]*?```/g, '').trim();
+      let cleanNotes = (release.body || "").split("---")[0].trim();
+      cleanNotes = cleanNotes.replace(/```[\s\S]*?```/g, "").trim();
 
       return {
         hasUpdate,
         currentVersion,
-        latestVersion: latestTag.replace(/^v/i, ''),
+        latestVersion: latestTag.replace(/^v/i, ""),
         releaseNotes: cleanNotes,
-        releaseUrl: release.html_url || `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases`,
+        releaseUrl:
+          release.html_url ||
+          `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases`,
       };
     } catch (err) {
-      console.error('Falha ao verificar atualizações do xterminium:', err);
+      console.error("Falha ao verificar atualizações do xterminium:", err);
       return null;
     }
   }
 
   static async runUpdate(password?: string): Promise<void> {
-    await invoke('run_update_installer', { password: password || null });
+    await invoke("run_update_installer", { password: password || null });
+  }
+
+  /**
+   * Informa se este SO exige senha de administrador para atualizar.
+   *
+   * A política é do backend (`crate::platform`), que conhece o instalador de
+   * cada SO — a interface não deve inferir o sistema por user agent.
+   */
+  static async needsAdminPassword(): Promise<boolean> {
+    try {
+      return await invoke<boolean>("update_needs_password");
+    } catch {
+      return false;
+    }
   }
 }

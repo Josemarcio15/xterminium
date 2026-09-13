@@ -5,11 +5,35 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use tauri::{AppHandle, Emitter, State};
 
+use crate::platform::{process_cwd, pty_foreground_process};
+
 pub struct PtySession {
     pub writer: Arc<Mutex<Box<dyn Write + Send>>>,
     pub master: Arc<Mutex<Box<dyn MasterPty + Send>>>,
     pub child: Arc<Mutex<Box<dyn portable_pty::Child + Send>>>,
+    /// Último diretório reportado pelo próprio shell (OSC 9;9 / OSC 7).
+    ///
+    /// É a fonte mais confiável: o cwd do processo é inútil no PowerShell, que
+    /// não chama `chdir` no `Set-Location`.
+    pub reported_cwd: Arc<Mutex<Option<String>>>,
 }
+
+/// Wrapper de `prompt` que reporta o diretório atual via OSC 9;9.
+///
+/// O `-Command` do PowerShell roda **depois** dos profiles, então o prompt do
+/// usuário (oh-my-posh, PSReadLine, tema custom) já existe e é preservado: nós
+/// só o envolvemos. `ProviderPath` garante caminho absoluto e a checagem de
+/// provider evita reportar locais que não são do filesystem (ex.: `HKLM:`).
+const PROMPT_CWD_REPORT: &str = concat!(
+    "$global:__xtOrig = if (Test-Path function:prompt) { (Get-Item function:prompt).ScriptBlock } else { $null }; ",
+    "function global:prompt { ",
+    "$p = $ExecutionContext.SessionState.Path.CurrentLocation; ",
+    "if ($p.Provider.Name -eq 'FileSystem') { ",
+    "[Console]::Write(([char]27) + ']9;9;' + $p.ProviderPath + ([char]7)) ",
+    "}; ",
+    "if ($global:__xtOrig) { & $global:__xtOrig } else { 'PS ' + $p.Path + '> ' } ",
+    "}",
+);
 
 #[derive(Default)]
 pub struct PtyState {
@@ -28,6 +52,12 @@ pub struct PtyStatusInfo {
     pub foreground_process: Option<String>,
     pub cmdline: Option<String>,
     pub is_ssh: bool,
+}
+
+/// Diretório atual informado pelo shell via OSC (9;9 ou 7), se houver.
+fn shell_reported_cwd(session: &PtySession) -> Option<String> {
+    let slot = session.reported_cwd.lock().ok()?;
+    slot.as_ref().filter(|cwd| !cwd.is_empty()).cloned()
 }
 
 #[tauri::command]
@@ -63,75 +93,38 @@ pub fn resize_pty(id: String, cols: u16, rows: u16, state: State<PtyState>) -> R
 #[tauri::command]
 pub fn get_pty_status(id: String, state: State<PtyState>) -> Result<PtyStatusInfo, String> {
     let sessions = state.sessions.lock().map_err(|e| e.to_string())?;
-    #[allow(unused_mut)]
     let mut cwd = String::new();
-    #[allow(unused_mut)]
     let mut foreground_process: Option<String> = None;
-    #[allow(unused_mut)]
     let mut cmdline: Option<String> = None;
-    #[allow(unused_mut)]
     let mut is_ssh = false;
 
     if let Some(session) = sessions.get(&id) {
+        // O cwd reportado pelo shell ganha do cwd do processo: no PowerShell o
+        // processo nunca muda de diretório depois do lançamento.
+        if let Some(dir) = shell_reported_cwd(session) {
+            cwd = dir;
+        }
+
         let child = session.child.lock().map_err(|e| e.to_string())?;
-        if let Some(_pid) = child.process_id() {
-            #[cfg(target_os = "linux")]
-            let pid = _pid;
-            #[cfg(target_os = "linux")]
-            {
-                if let Ok(target) = std::fs::read_link(format!("/proc/{}/cwd", pid)) {
-                    cwd = target.to_string_lossy().to_string();
+        if let Some(pid) = child.process_id() {
+            if cwd.is_empty() {
+                if let Some(dir) = process_cwd(pid) {
+                    cwd = dir;
                 }
+            }
 
-                // Procura processos filhos em execução no PTY (foreground child)
-                let mut leaf_pid: Option<u32> = None;
-                let task_dir = format!("/proc/{}/task", pid);
-                if let Ok(entries) = std::fs::read_dir(task_dir) {
-                    for entry in entries.flatten() {
-                        let children_path = entry.path().join("children");
-                        if let Ok(content) = std::fs::read_to_string(children_path) {
-                            let pids: Vec<u32> = content
-                                .split_whitespace()
-                                .filter_map(|p| p.parse::<u32>().ok())
-                                .collect();
-                            if let Some(&last_p) = pids.last() {
-                                leaf_pid = Some(last_p);
-                            }
-                        }
-                    }
-                }
-
-                if let Some(fpid) = leaf_pid {
-                    if let Ok(comm) = std::fs::read_to_string(format!("/proc/{}/comm", fpid)) {
-                        let comm_clean = comm.trim().to_string();
-                        if comm_clean == "ssh" {
-                            is_ssh = true;
-                        }
-                        foreground_process = Some(comm_clean);
-                    }
-                    if let Ok(raw_cmd) = std::fs::read(format!("/proc/{}/cmdline", fpid)) {
-                        let parsed = String::from_utf8_lossy(&raw_cmd)
-                            .replace('\0', " ")
-                            .trim()
-                            .to_string();
-                        if !parsed.is_empty() {
-                            if parsed.starts_with("ssh ") || parsed == "ssh" {
-                                is_ssh = true;
-                            }
-                            cmdline = Some(parsed);
-                        }
-                    }
+            if let Some(fg) = pty_foreground_process(pid) {
+                is_ssh = fg.is_ssh;
+                cmdline = fg.cmdline;
+                if !fg.name.is_empty() {
+                    foreground_process = Some(fg.name);
                 }
             }
         }
     }
 
     if cwd.is_empty() {
-        if let Ok(home) = std::env::var("HOME") {
-            cwd = home;
-        } else if let Ok(userprofile) = std::env::var("USERPROFILE") {
-            cwd = userprofile;
-        }
+        cwd = crate::platform::home_dir().to_string_lossy().to_string();
     }
 
     Ok(PtyStatusInfo {
@@ -146,24 +139,19 @@ pub fn get_pty_status(id: String, state: State<PtyState>) -> Result<PtyStatusInf
 pub fn get_pty_cwd(id: String, state: State<PtyState>) -> Result<String, String> {
     let sessions = state.sessions.lock().map_err(|e| e.to_string())?;
     if let Some(session) = sessions.get(&id) {
+        if let Some(dir) = shell_reported_cwd(session) {
+            return Ok(dir);
+        }
+
         let child = session.child.lock().map_err(|e| e.to_string())?;
-        if let Some(_pid) = child.process_id() {
-            #[cfg(target_os = "linux")]
-            {
-                if let Ok(target) = std::fs::read_link(format!("/proc/{}/cwd", _pid)) {
-                    return Ok(target.to_string_lossy().to_string());
-                }
+        if let Some(pid) = child.process_id() {
+            if let Some(dir) = process_cwd(pid) {
+                return Ok(dir);
             }
         }
     }
     // Fallback para home dir caso não consiga determinar
-    if let Ok(home) = std::env::var("HOME") {
-        return Ok(home);
-    }
-    if let Ok(userprofile) = std::env::var("USERPROFILE") {
-        return Ok(userprofile);
-    }
-    Ok("".to_string())
+    Ok(crate::platform::home_dir().to_string_lossy().to_string())
 }
 
 #[tauri::command]
@@ -195,7 +183,16 @@ pub fn spawn_pty(
 
     // Sem preferência do usuário: usa o shell padrão do sistema.
     // (A escolha feita nas configurações chega pelo parâmetro `command`.)
-    let cmd_name = command.unwrap_or_else(crate::shells::default_shell_path);
+    let cmd_name = command.unwrap_or_else(crate::platform::default_shell_path);
+    // Não injeta se o usuário já configurou `-Command`/`-File` no shell:
+    // dois `-Command` no mesmo pwsh entram em conflito.
+    let args_conflict = args.as_ref().is_some_and(|list| {
+        list.iter().any(|arg| {
+            let flag = arg.trim_start_matches('-').to_ascii_lowercase();
+            flag.starts_with("command") || flag.starts_with("file")
+        })
+    });
+    let is_powershell = crate::shells::is_powershell(&cmd_name) && !args_conflict;
 
     let mut cmd = CommandBuilder::new(cmd_name);
     if let Some(arg_list) = args {
@@ -204,12 +201,14 @@ pub fn spawn_pty(
         }
     }
 
-    // Diretório inicial: HOME no Linux/macOS ou USERPROFILE no Windows
-    if let Ok(home) = std::env::var("HOME") {
-        cmd.cwd(home);
-    } else if let Ok(user_profile) = std::env::var("USERPROFILE") {
-        cmd.cwd(user_profile);
+    if is_powershell {
+        cmd.arg("-NoExit");
+        cmd.arg("-Command");
+        cmd.arg(PROMPT_CWD_REPORT);
     }
+
+    // Diretório inicial: home do usuário (detalhe por SO em `crate::platform`)
+    cmd.cwd(crate::platform::home_dir());
 
     // Define variáveis de ambiente essenciais para o terminal reconhecer cores e comandos como clear
     cmd.env("TERM", "xterm-256color");
@@ -220,10 +219,13 @@ pub fn spawn_pty(
     let writer = pair.master.take_writer().map_err(|e| e.to_string())?;
     let mut reader = pair.master.try_clone_reader().map_err(|e| e.to_string())?;
 
+    let reported_cwd: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+
     let session = PtySession {
         writer: Arc::new(Mutex::new(writer)),
         master: Arc::new(Mutex::new(pair.master)),
         child: Arc::new(Mutex::new(child)),
+        reported_cwd: reported_cwd.clone(),
     };
 
     state
@@ -235,12 +237,23 @@ pub fn spawn_pty(
     let session_id = id.clone();
     let app_handle = app.clone();
     thread::spawn(move || {
+        // O shell reporta o diretório atual pelo prompt (OSC 9;9 / OSC 7);
+        // o scanner remonta sequências partidas entre leituras.
+        let mut osc = crate::osc::OscScanner::new();
         let mut buffer = [0u8; 4096];
         while let Ok(n) = reader.read(&mut buffer) {
             if n == 0 {
                 break;
             }
-            let data = String::from_utf8_lossy(&buffer[..n]).to_string();
+            let chunk = &buffer[..n];
+
+            if let Some(cwd) = osc.push(chunk) {
+                if let Ok(mut slot) = reported_cwd.lock() {
+                    *slot = Some(cwd);
+                }
+            }
+
+            let data = String::from_utf8_lossy(chunk).to_string();
             let _ = app_handle.emit(
                 "pty-out",
                 PtyOutputPayload {

@@ -1,19 +1,7 @@
 use std::path::PathBuf;
 
 pub fn get_config_dir() -> PathBuf {
-    if let Ok(appdata) = std::env::var("APPDATA") {
-        PathBuf::from(appdata).join("xterminium")
-    } else if let Ok(config_home) = std::env::var("XDG_CONFIG_HOME") {
-        PathBuf::from(config_home).join("xterminium")
-    } else if let Ok(home) = std::env::var("HOME") {
-        PathBuf::from(home).join(".config").join("xterminium")
-    } else if let Ok(userprofile) = std::env::var("USERPROFILE") {
-        PathBuf::from(userprofile)
-            .join(".config")
-            .join("xterminium")
-    } else {
-        PathBuf::from(".").join(".config").join("xterminium")
-    }
+    crate::platform::config_dir()
 }
 
 #[tauri::command]
@@ -59,10 +47,11 @@ struct SshHostEntry {
 }
 
 fn get_ssh_dir() -> Option<PathBuf> {
-    if let Ok(home) = std::env::var("HOME") {
-        Some(PathBuf::from(home).join(".ssh"))
-    } else if let Ok(userprofile) = std::env::var("USERPROFILE") {
-        Some(PathBuf::from(userprofile).join(".ssh"))
+    let home = crate::platform::home_dir();
+    // Sem home resolvido o helper devolve um caminho relativo; nesse caso é
+    // melhor não mexer em `~/.ssh` nenhum.
+    if home.is_absolute() {
+        Some(home.join(".ssh"))
     } else {
         None
     }
@@ -96,7 +85,10 @@ pub fn sync_ssh_config(json_content: &str) -> Result<(), String> {
     let mut generated_block = String::new();
     generated_block.push_str(begin_marker);
     generated_block.push('\n');
-    generated_block.push_str("# This block is automatically managed by Xterminium based on ~/.config/xterminium/ssh.json\n");
+    generated_block.push_str(&format!(
+        "# This block is automatically managed by Xterminium based on {}\n",
+        get_config_dir().join("ssh.json").display()
+    ));
     generated_block.push_str("# Any manual changes inside this block may be overwritten.\n\n");
 
     for host in &hosts {
@@ -132,14 +124,13 @@ pub fn sync_ssh_config(json_content: &str) -> Result<(), String> {
         if let Some(key) = &host.key {
             let trimmed_key = key.trim();
             if !trimmed_key.is_empty() {
+                // `~` -> home do SO ativo (`crate::platform`), com o separador
+                // nativo: `C:\Users\...` no Windows, `/home/...` no POSIX.
                 let expanded_key = if trimmed_key.starts_with("~/") {
-                    if let Ok(home) = std::env::var("HOME") {
-                        trimmed_key.replacen("~", &home, 1)
-                    } else if let Ok(userprofile) = std::env::var("USERPROFILE") {
-                        trimmed_key.replacen("~", &userprofile, 1)
-                    } else {
-                        trimmed_key.to_string()
-                    }
+                    crate::platform::home_dir()
+                        .join(&trimmed_key[2..])
+                        .to_string_lossy()
+                        .to_string()
                 } else {
                     trimmed_key.to_string()
                 };
@@ -173,11 +164,9 @@ pub fn sync_ssh_config(json_content: &str) -> Result<(), String> {
 
     std::fs::write(&config_path, new_content).map_err(|e| e.to_string())?;
 
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let _ = std::fs::set_permissions(&config_path, std::fs::Permissions::from_mode(0o600));
-    }
+    // O JSON guarda hosts/portas do SSH: restringe ao dono (0600 no POSIX,
+    // no-op no Windows). Detalhe por SO em `crate::platform`.
+    crate::platform::restrict_file_permissions(&config_path);
 
     Ok(())
 }

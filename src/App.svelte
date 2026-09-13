@@ -24,6 +24,7 @@
     UpdateService,
     type UpdateCheckResult,
   } from "./core/services/update.service";
+  import { pathBaseName } from "./core/utils/path";
 
   interface TabData {
     id: string;
@@ -203,9 +204,9 @@
                   tab.isConnectedSsh = false;
                 }
                 if (status.cwd) {
-                  const clean = status.cwd.replace(/\/+$/, "");
-                  const dirName = clean.split("/").pop() || "/";
-                  tab.title = dirName;
+                  // `pathBaseName` entende `/` e `\`, então o título funciona
+                  // tanto no Linux quanto no Windows
+                  tab.title = pathBaseName(status.cwd);
                   if (tab.id === activeTabId) {
                     currentTerminalCwd = status.cwd;
                   }

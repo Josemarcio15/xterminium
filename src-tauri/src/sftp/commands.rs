@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use tauri::{AppHandle, State};
 
-use super::{get_local_home_dir, list_local_directory, FileEntry, SftpState};
+use super::{list_local_directory, FileEntry, SftpState};
 
 #[tauri::command]
 pub async fn sftp_connect(
@@ -44,21 +44,18 @@ pub async fn sftp_list_remote(
 pub async fn sftp_list_local(path: Option<String>) -> Result<Vec<FileEntry>, String> {
     let target_path = match path {
         Some(p) if !p.is_empty() => PathBuf::from(p),
-        _ => get_local_home_dir(),
+        _ => crate::platform::home_dir(),
     };
     list_local_directory(&target_path).await
 }
 
 #[tauri::command]
 pub fn sftp_get_local_home() -> Result<String, String> {
-    Ok(get_local_home_dir().to_string_lossy().to_string())
+    Ok(crate::platform::home_dir().to_string_lossy().to_string())
 }
 
 #[tauri::command]
-pub async fn sftp_create_dir(
-    path: String,
-    sftp_state: State<'_, SftpState>,
-) -> Result<(), String> {
+pub async fn sftp_create_dir(path: String, sftp_state: State<'_, SftpState>) -> Result<(), String> {
     sftp_state.create_remote_dir(&path).await
 }
 
@@ -88,10 +85,7 @@ pub async fn sftp_remove_file(
 }
 
 #[tauri::command]
-pub async fn sftp_remove_dir(
-    path: String,
-    sftp_state: State<'_, SftpState>,
-) -> Result<(), String> {
+pub async fn sftp_remove_dir(path: String, sftp_state: State<'_, SftpState>) -> Result<(), String> {
     sftp_state.remove_remote_dir(&path).await
 }
 
@@ -102,7 +96,9 @@ pub async fn sftp_download_file(
     local_path: String,
     sftp_state: State<'_, SftpState>,
 ) -> Result<(), String> {
-    sftp_state.download_file(&app, &remote_path, &local_path).await
+    sftp_state
+        .download_file(&app, &remote_path, &local_path)
+        .await
 }
 
 #[tauri::command]
@@ -112,7 +108,9 @@ pub async fn sftp_upload_file(
     remote_path: String,
     sftp_state: State<'_, SftpState>,
 ) -> Result<(), String> {
-    sftp_state.upload_file(&app, &local_path, &remote_path).await
+    sftp_state
+        .upload_file(&app, &local_path, &remote_path)
+        .await
 }
 
 #[tauri::command]

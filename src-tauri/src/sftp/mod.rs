@@ -2,14 +2,14 @@ pub mod checksum;
 pub mod commands;
 pub mod local_fs;
 pub mod remote_fs;
+pub mod remote_sudo;
 pub mod session;
-pub mod sudo;
 pub mod transfer;
 pub mod types;
 pub mod upload;
 
 pub use commands::*;
-pub use local_fs::{get_local_home_dir, list_local_directory};
+pub use local_fs::list_local_directory;
 pub use types::{ActiveSftpConnection, FileEntry, SftpTransferProgress};
 
 use std::sync::Arc;
@@ -32,7 +32,16 @@ impl SftpState {
         key_path: Option<&str>,
         key_passphrase: Option<&str>,
     ) -> Result<String, String> {
-        session::connect_session(&self.active_session, host, port, user, password, key_path, key_passphrase).await
+        session::connect_session(
+            &self.active_session,
+            host,
+            port,
+            user,
+            password,
+            key_path,
+            key_passphrase,
+        )
+        .await
     }
 
     /// Desconecta a sessão ativa
@@ -147,13 +156,14 @@ impl SftpState {
 
     /// Executa comando com sudo no servidor remoto
     pub async fn exec_remote_sudo(&self, password: &str, command: &str) -> Result<(), String> {
-        sudo::exec_remote_sudo(&self.active_session, password, command).await
+        remote_sudo::exec_remote_sudo(&self.active_session, password, command).await
     }
 
-    /// Executa comando com sudo na máquina local
+    /// Executa comando com privilégios de administrador na máquina local.
+    ///
+    /// A implementação é específica de cada SO (`crate::platform`): `sudo` no
+    /// POSIX, não suportado no Windows.
     pub async fn exec_local_sudo(&self, password: &str, command: &str) -> Result<(), String> {
-        sudo::exec_local_sudo(password, command).await
+        crate::platform::exec_local_sudo(password, command).await
     }
 }
-
-

@@ -17,23 +17,9 @@ pub async fn new_window(app: AppHandle) -> Result<(), String> {
         .build()
         .map_err(|e| e.to_string())?;
 
-    #[cfg(target_os = "windows")]
-    {
-        let _ = win.set_background_color(Some(tauri::webview::Color(0, 0, 0, 0)));
-    }
-
-    #[cfg(target_os = "linux")]
-    {
-        use gtk::prelude::*;
-        if let Ok(gtk_win) = win.gtk_window() {
-            gtk_win.set_app_paintable(true);
-            if let Some(screen) = gtk::prelude::WidgetExt::screen(&gtk_win) {
-                if let Some(visual) = screen.rgba_visual() {
-                    gtk_win.set_visual(Some(&visual));
-                }
-            }
-        }
-    }
+    // Transparência nativa: sem isso a janela nova não fica 100% transparente
+    // (implementação por SO em `crate::platform`).
+    crate::platform::apply_transparency(&win);
 
     Ok(())
 }

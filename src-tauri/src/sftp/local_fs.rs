@@ -1,5 +1,5 @@
 use super::types::FileEntry;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use tokio::fs as local_fs;
 
 /// Utilitário para listar diretórios locais
@@ -46,27 +46,6 @@ pub async fn list_local_directory(dir_path: &Path) -> Result<Vec<FileEntry>, Str
     Ok(entries)
 }
 
-/// Determina a pasta home local de forma segura (Linux, macOS, Windows)
-pub fn get_local_home_dir() -> PathBuf {
-    if let Ok(home) = std::env::var("HOME") {
-        if !home.is_empty() {
-            return PathBuf::from(home);
-        }
-    }
-    if let Ok(userprofile) = std::env::var("USERPROFILE") {
-        if !userprofile.is_empty() {
-            return PathBuf::from(userprofile);
-        }
-    }
-    if let (Ok(drive), Ok(path)) = (std::env::var("HOMEDRIVE"), std::env::var("HOMEPATH")) {
-        let combined = format!("{}{}", drive, path);
-        if !combined.is_empty() {
-            return PathBuf::from(combined);
-        }
-    }
-    PathBuf::from(".")
-}
-
 /// Cria um novo diretório na máquina local
 pub async fn create_local_directory(path: &str) -> Result<(), String> {
     local_fs::create_dir_all(path)
@@ -102,4 +81,3 @@ pub async fn remove_local_directory(path: &str) -> Result<(), String> {
         .await
         .map_err(|e| format!("Erro ao remover pasta local: {}", e))
 }
-
