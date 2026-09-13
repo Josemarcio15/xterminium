@@ -1,27 +1,27 @@
-import { invoke } from '@tauri-apps/api/core';
-import { 
-  type SshHost, 
-  type SavedPath, 
-  type CustomCommand, 
+import { invoke } from "@tauri-apps/api/core";
+import {
+  type SshHost,
+  type SavedPath,
+  type CustomCommand,
   type CustomAlias,
   type AppTheme,
-  defaultShortcuts, 
+  type ShellsConfig,
+  defaultShortcuts,
   defaultCustomCommands,
   defaultCustomAliases,
   defaultTheme,
-} from '../types';
-
+} from "../types";
 
 export class ConfigService {
   // Hosts SSH
   static async loadSshHosts(): Promise<SshHost[]> {
     try {
-      const content = await invoke<string>('load_config', { filename: 'ssh' });
+      const content = await invoke<string>("load_config", { filename: "ssh" });
       if (content && content.trim()) {
         return JSON.parse(content);
       }
     } catch (e) {
-      console.error('Erro ao ler ~/.config/xterminium/ssh.json', e);
+      console.error("Erro ao ler ~/.config/xterminium/ssh.json", e);
     }
     return [];
   }
@@ -29,9 +29,9 @@ export class ConfigService {
   static async saveSshHosts(hosts: SshHost[]): Promise<void> {
     try {
       const json = JSON.stringify(hosts, null, 2);
-      await invoke('save_config', { filename: 'ssh', content: json });
+      await invoke("save_config", { filename: "ssh", content: json });
     } catch (e) {
-      console.error('Erro ao salvar ~/.config/xterminium/ssh.json', e);
+      console.error("Erro ao salvar ~/.config/xterminium/ssh.json", e);
     }
   }
 
@@ -43,14 +43,16 @@ export class ConfigService {
       return this.cachedShortcuts;
     }
     try {
-      const content = await invoke<string>('load_config', { filename: 'shortcuts' });
+      const content = await invoke<string>("load_config", {
+        filename: "shortcuts",
+      });
       if (content && content.trim()) {
         const parsed = { ...defaultShortcuts, ...JSON.parse(content) };
         this.cachedShortcuts = parsed;
         return parsed;
       }
     } catch (e) {
-      console.error('Erro ao ler ~/.config/xterminium/shortcuts.json', e);
+      console.error("Erro ao ler ~/.config/xterminium/shortcuts.json", e);
     }
 
     const defaults = { ...defaultShortcuts };
@@ -62,21 +64,23 @@ export class ConfigService {
     this.cachedShortcuts = { ...shortcuts };
     try {
       const json = JSON.stringify(shortcuts, null, 2);
-      await invoke('save_config', { filename: 'shortcuts', content: json });
+      await invoke("save_config", { filename: "shortcuts", content: json });
     } catch (e) {
-      console.error('Erro ao salvar ~/.config/xterminium/shortcuts.json', e);
+      console.error("Erro ao salvar ~/.config/xterminium/shortcuts.json", e);
     }
   }
 
   // Caminhos Salvos (Paths)
   static async loadPaths(): Promise<SavedPath[]> {
     try {
-      const content = await invoke<string>('load_config', { filename: 'paths' });
+      const content = await invoke<string>("load_config", {
+        filename: "paths",
+      });
       if (content && content.trim()) {
         return JSON.parse(content);
       }
     } catch (e) {
-      console.error('Erro ao ler ~/.config/xterminium/paths.json', e);
+      console.error("Erro ao ler ~/.config/xterminium/paths.json", e);
     }
     return [];
   }
@@ -84,9 +88,9 @@ export class ConfigService {
   static async savePaths(paths: SavedPath[]): Promise<void> {
     try {
       const json = JSON.stringify(paths, null, 2);
-      await invoke('save_config', { filename: 'paths', content: json });
+      await invoke("save_config", { filename: "paths", content: json });
     } catch (e) {
-      console.error('Erro ao salvar ~/.config/xterminium/paths.json', e);
+      console.error("Erro ao salvar ~/.config/xterminium/paths.json", e);
     }
   }
 
@@ -98,7 +102,9 @@ export class ConfigService {
       return this.cachedCommands;
     }
     try {
-      const content = await invoke<string>('load_config', { filename: 'commands' });
+      const content = await invoke<string>("load_config", {
+        filename: "commands",
+      });
       if (content && content.trim()) {
         const parsed = JSON.parse(content);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -107,7 +113,7 @@ export class ConfigService {
         }
       }
     } catch (e) {
-      console.error('Erro ao ler ~/.config/xterminium/commands.json', e);
+      console.error("Erro ao ler ~/.config/xterminium/commands.json", e);
     }
 
     const defaults = [...defaultCustomCommands];
@@ -119,21 +125,23 @@ export class ConfigService {
     this.cachedCommands = [...commands];
     try {
       const json = JSON.stringify(commands, null, 2);
-      await invoke('save_config', { filename: 'commands', content: json });
+      await invoke("save_config", { filename: "commands", content: json });
     } catch (e) {
-      console.error('Erro ao salvar ~/.config/xterminium/commands.json', e);
+      console.error("Erro ao salvar ~/.config/xterminium/commands.json", e);
     }
   }
 
   // Tema
   static async loadTheme(): Promise<AppTheme> {
     try {
-      const content = await invoke<string>('load_config', { filename: 'theme' });
+      const content = await invoke<string>("load_config", {
+        filename: "theme",
+      });
       if (content && content.trim()) {
         return { ...defaultTheme, ...JSON.parse(content) };
       }
     } catch (e) {
-      console.error('Erro ao ler ~/.config/xterminium/theme.json', e);
+      console.error("Erro ao ler ~/.config/xterminium/theme.json", e);
     }
     return { ...defaultTheme };
   }
@@ -141,21 +149,23 @@ export class ConfigService {
   static async saveTheme(theme: AppTheme): Promise<void> {
     try {
       const json = JSON.stringify(theme, null, 2);
-      await invoke('save_config', { filename: 'theme', content: json });
+      await invoke("save_config", { filename: "theme", content: json });
     } catch (e) {
-      console.error('Erro ao salvar ~/.config/xterminium/theme.json', e);
+      console.error("Erro ao salvar ~/.config/xterminium/theme.json", e);
     }
   }
 
   // Temas Customizados
   static async loadCustomThemes(): Promise<AppTheme[]> {
     try {
-      const content = await invoke<string>('load_config', { filename: 'custom_themes' });
+      const content = await invoke<string>("load_config", {
+        filename: "custom_themes",
+      });
       if (content && content.trim()) {
         return JSON.parse(content);
       }
     } catch (e) {
-      console.error('Erro ao ler ~/.config/xterminium/custom_themes.json', e);
+      console.error("Erro ao ler ~/.config/xterminium/custom_themes.json", e);
     }
     return [];
   }
@@ -163,21 +173,26 @@ export class ConfigService {
   static async saveCustomThemes(themes: AppTheme[]): Promise<void> {
     try {
       const json = JSON.stringify(themes, null, 2);
-      await invoke('save_config', { filename: 'custom_themes', content: json });
+      await invoke("save_config", { filename: "custom_themes", content: json });
     } catch (e) {
-      console.error('Erro ao salvar ~/.config/xterminium/custom_themes.json', e);
+      console.error(
+        "Erro ao salvar ~/.config/xterminium/custom_themes.json",
+        e,
+      );
     }
   }
 
   // Aliases de Comandos
   static async loadAliases(): Promise<CustomAlias[]> {
     try {
-      const content = await invoke<string>('load_config', { filename: 'aliases' });
+      const content = await invoke<string>("load_config", {
+        filename: "aliases",
+      });
       if (content && content.trim()) {
         return JSON.parse(content);
       }
     } catch (e) {
-      console.error('Erro ao ler ~/.config/xterminium/aliases.json', e);
+      console.error("Erro ao ler ~/.config/xterminium/aliases.json", e);
     }
     return [...defaultCustomAliases];
   }
@@ -185,10 +200,37 @@ export class ConfigService {
   static async saveAliases(aliases: CustomAlias[]): Promise<void> {
     try {
       const json = JSON.stringify(aliases, null, 2);
-      await invoke('save_config', { filename: 'aliases', content: json });
+      await invoke("save_config", { filename: "aliases", content: json });
     } catch (e) {
-      console.error('Erro ao salvar ~/.config/xterminium/aliases.json', e);
+      console.error("Erro ao salvar ~/.config/xterminium/aliases.json", e);
+    }
+  }
+
+  // Shell do Terminal
+  static async loadShells(): Promise<ShellsConfig> {
+    try {
+      const content = await invoke<string>("load_config", {
+        filename: "shells",
+      });
+      if (content && content.trim()) {
+        const parsed = JSON.parse(content);
+        return {
+          default: parsed?.default ?? null,
+          custom: Array.isArray(parsed?.custom) ? parsed.custom : [],
+        };
+      }
+    } catch (e) {
+      console.error("Erro ao ler ~/.config/xterminium/shells.json", e);
+    }
+    return { default: null, custom: [] };
+  }
+
+  static async saveShells(config: ShellsConfig): Promise<void> {
+    try {
+      const json = JSON.stringify(config, null, 2);
+      await invoke("save_config", { filename: "shells", content: json });
+    } catch (e) {
+      console.error("Erro ao salvar ~/.config/xterminium/shells.json", e);
     }
   }
 }
-

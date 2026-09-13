@@ -93,32 +93,34 @@ async function main() {
     } else {
       console.log(`Git    : \x1b[33m--no-commit (sem commit/tag/push)\x1b[0m`);
     }
+    console.log('------------------------------------------------------------');
+    console.log('Build  : \x1b[36mo bundle (.deb / .exe) sera gerado pelo GitHub Actions ao enviar a tag\x1b[0m');
     console.log('------------------------------------------------------------\n');
 
-    const confirm = await askPreFilled('Confirma as alteracoes e gerar o bundle? (s/N): ', 's');
+    const confirmMsg = noCommit
+      ? 'Confirma as alteracoes? (s/N): '
+      : 'Confirma as alteracoes e enviar para o Git? (s/N): ';
+    const confirm = await askPreFilled(confirmMsg, 's');
     if (confirm.toLowerCase() !== 's') {
       console.log('Operacao cancelada.');
       process.exit(0);
     }
 
-    console.log('\n[1/5] Atualizando package.json e Cargo.toml...');
+    console.log('\n[1/4] Atualizando package.json e Cargo.toml...');
     updateVersionsInFiles(targetVersion);
     console.log('   OK: package.json');
     console.log('   OK: Cargo.toml');
 
-    console.log('\n[2/5] Sincronizando Cargo.lock...');
+    console.log('\n[2/4] Sincronizando Cargo.lock...');
     execSync('cargo check', { cwd: path.join(rootDir, 'src-tauri'), stdio: 'inherit' });
-
-    console.log('\n[3/5] Gerando bundle .deb via Tauri...');
-    execSync('npx tauri build --bundles deb', { cwd: rootDir, stdio: 'inherit' });
 
     if (noCommit) {
       console.log('\n\x1b[33m[Flag --no-commit detectada: pulando git add, commit, tag e push]\x1b[0m');
-      console.log('\nSucesso! Versão atualizada e bundle gerado com sucesso.\n');
+      console.log('\nSucesso! Versão atualizada. Nada foi enviado ao Git.\n');
       return;
     }
 
-    console.log('\n[4/5] Criando commit e tag Git...');
+    console.log('\n[3/4] Criando commit e tag Git...');
     execSync('git add -A', {
       cwd: rootDir,
       stdio: 'inherit',
@@ -140,7 +142,7 @@ async function main() {
     });
     console.log(`   OK: Tag ${targetTag} criada com sucesso!`);
 
-    console.log('\n[5/5] Envio para o GitHub:');
+    console.log('\n[4/4] Envio para o GitHub:');
     const doPush = await askPreFilled(`Enviar commit e tag ${targetTag} para origin? (S/n): `, 's');
 
     if (doPush.toLowerCase() === 's') {
@@ -148,7 +150,8 @@ async function main() {
       execSync('git push origin main', { cwd: rootDir, stdio: 'inherit' });
       console.log(`Enviando tag ${targetTag}...`);
       execSync(`git push origin ${targetTag}`, { cwd: rootDir, stdio: 'inherit' });
-      console.log(`\nSucesso total! Tag ${targetTag} enviada para o GitHub!\n`);
+      console.log(`\nSucesso total! Tag ${targetTag} enviada para o GitHub!`);
+      console.log('O GitHub Actions vai compilar e publicar o bundle automaticamente.\n');
     } else {
       console.log(`\nTag criada apenas localmente. Para enviar manualmente:\n`);
       console.log(`   git push origin main && git push origin ${targetTag}\n`);

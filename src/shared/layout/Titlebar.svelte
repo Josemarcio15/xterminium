@@ -6,6 +6,7 @@
   import CommandTriggersModal from "../../features/settings/modals/CommandTriggersModal.svelte";
   import AliasesModal from "../../features/settings/modals/AliasesModal.svelte";
   import ThemeModal from "../../features/settings/modals/ThemeModal.svelte";
+  import ShellModal from "../../features/settings/modals/ShellModal.svelte";
   import Button from "@/shared/components/Button.svelte";
   import { type SshHost, type TabItem } from "../../core/types";
 
@@ -42,6 +43,7 @@
   let showAliasesModal = $state(false);
   let showShortcutsModal = $state(false);
   let showThemeModal = $state(false);
+  let showShellModal = $state(false);
   let tabsScrollArea: HTMLDivElement | null = $state(null);
 
   function closeAllModals() {
@@ -51,6 +53,7 @@
     showAliasesModal = false;
     showShortcutsModal = false;
     showThemeModal = false;
+    showShellModal = false;
   }
 
   function handleStartDragging(e: MouseEvent) {
@@ -224,6 +227,7 @@
         showCommandsModal ||
         showShortcutsModal ||
         showThemeModal ||
+        showShellModal ||
         showFileManager
           ? 'bg-sky-400/15 text-sky-400'
           : 'text-[var(--text-muted)]'}"
@@ -374,6 +378,34 @@
             <span class="flex-1">Explorador SFTP</span>
           </button>
 
+          <!-- Item: Shell do Terminal -->
+          <button
+            type="button"
+            class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-white/10 hover:text-[var(--text-base)] transition-all text-left w-full cursor-pointer border-none bg-transparent text-[var(--text-base)]"
+            onclick={() => {
+              showMenu = false;
+              closeAllModals();
+              showShellModal = true;
+            }}
+          >
+            <svg
+              class="text-emerald-400 shrink-0"
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="4 17 10 11 4 5"></polyline>
+              <line x1="12" y1="19" x2="20" y2="19"></line>
+            </svg>
+            <span class="flex-1">Shell do Terminal</span>
+          </button>
+
           <div class="h-[1px] bg-[var(--border-subtle)] my-1"></div>
 
           <!-- Item: Atalhos de Teclado -->
@@ -467,6 +499,11 @@
       <ThemeModal
         show={showThemeModal}
         onClose={() => (showThemeModal = false)}
+      />
+
+      <ShellModal
+        show={showShellModal}
+        onClose={() => (showShellModal = false)}
       />
     </div>
 

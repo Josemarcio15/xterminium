@@ -193,48 +193,9 @@ pub fn spawn_pty(
         })
         .map_err(|e| e.to_string())?;
 
-    let cmd_name = command.unwrap_or_else(|| {
-        #[cfg(target_os = "windows")]
-        {
-            // No Windows: prioriza PowerShell, com fallback para CMD
-            if let Ok(system_root) = std::env::var("SystemRoot") {
-                let ps_path = format!(
-                    "{}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
-                    system_root
-                );
-                if std::path::Path::new(&ps_path).exists() {
-                    return ps_path;
-                }
-            }
-            "powershell.exe".to_string()
-        }
-        #[cfg(not(target_os = "windows"))]
-        {
-            // No Linux / macOS:
-            // 1. Respeita a variável $SHELL do usuário se o binário existir
-            if let Ok(user_shell) = std::env::var("SHELL") {
-                if !user_shell.is_empty() && std::path::Path::new(&user_shell).exists() {
-                    return user_shell;
-                }
-            }
-            // 2. Se não existir, tenta encontrar o Zsh
-            let zsh_candidates = ["/bin/zsh", "/usr/bin/zsh", "/usr/local/bin/zsh"];
-            for candidate in &zsh_candidates {
-                if std::path::Path::new(candidate).exists() {
-                    return candidate.to_string();
-                }
-            }
-            // 3. Fallback para Bash
-            let bash_candidates = ["/bin/bash", "/usr/bin/bash"];
-            for candidate in &bash_candidates {
-                if std::path::Path::new(candidate).exists() {
-                    return candidate.to_string();
-                }
-            }
-            // 4. Fallback final para sh padrão POSIX
-            "/bin/sh".to_string()
-        }
-    });
+    // Sem preferência do usuário: usa o shell padrão do sistema.
+    // (A escolha feita nas configurações chega pelo parâmetro `command`.)
+    let cmd_name = command.unwrap_or_else(crate::shells::default_shell_path);
 
     let mut cmd = CommandBuilder::new(cmd_name);
     if let Some(arg_list) = args {

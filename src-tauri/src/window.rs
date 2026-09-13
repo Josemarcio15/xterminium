@@ -1,7 +1,9 @@
 use tauri::AppHandle;
 
+/// Cria uma nova janela do terminal.
+
 #[tauri::command]
-pub fn new_window(app: AppHandle) -> Result<(), String> {
+pub async fn new_window(app: AppHandle) -> Result<(), String> {
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_millis())

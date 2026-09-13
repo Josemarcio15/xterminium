@@ -1,16 +1,19 @@
-import { 
-  type SshHost, 
-  type CustomCommand, 
+import {
+  type SshHost,
+  type CustomCommand,
   type CustomAlias,
   type SavedPath,
   type AppTheme,
+  type ShellsConfig,
+  type ShellProfile,
+  type ShellPreference,
   defaultCustomCommands,
   defaultCustomAliases,
   defaultShortcuts,
   defaultTheme,
   applyThemeToDom,
-} from '../types';
-import { ConfigService } from '../services/config.service';
+} from "../types";
+import { ConfigService } from "../services/config.service";
 
 export class ConfigStore {
   hosts = $state<SshHost[]>([]);
@@ -20,28 +23,43 @@ export class ConfigStore {
   paths = $state<SavedPath[]>([]);
   theme = $state<AppTheme>({ ...defaultTheme });
   customThemes = $state<AppTheme[]>([]);
+  shells = $state<ShellsConfig>({ default: null, custom: [] });
   initialized = $state(false);
+
+  #initPromise: Promise<void> | null = null;
 
   async init() {
     if (this.initialized) return;
-    const [h, c, a, s, p, t, ct] = await Promise.all([
-      ConfigService.loadSshHosts(),
-      ConfigService.loadCustomCommands(),
-      ConfigService.loadAliases(),
-      ConfigService.loadShortcuts(),
-      ConfigService.loadPaths(),
-      ConfigService.loadTheme(),
-      ConfigService.loadCustomThemes(),
-    ]);
-    this.hosts = h;
-    this.commands = c;
-    this.aliases = a;
-    this.shortcuts = s;
-    this.paths = p;
-    this.theme = t;
-    this.customThemes = ct;
-    applyThemeToDom(t);
-    this.initialized = true;
+    if (this.#initPromise) return this.#initPromise;
+
+    this.#initPromise = (async () => {
+      const [h, c, a, s, p, t, ct, sh] = await Promise.all([
+        ConfigService.loadSshHosts(),
+        ConfigService.loadCustomCommands(),
+        ConfigService.loadAliases(),
+        ConfigService.loadShortcuts(),
+        ConfigService.loadPaths(),
+        ConfigService.loadTheme(),
+        ConfigService.loadCustomThemes(),
+        ConfigService.loadShells(),
+      ]);
+      this.hosts = h;
+      this.commands = c;
+      this.aliases = a;
+      this.shortcuts = s;
+      this.paths = p;
+      this.theme = t;
+      this.customThemes = ct;
+      this.shells = sh;
+      applyThemeToDom(t);
+      this.initialized = true;
+    })().catch((e) => {
+      // Libera a promise para permitir nova tentativa e não quebra os chamadores
+      console.error("[config] falha ao carregar configurações:", e);
+      this.#initPromise = null;
+    });
+
+    return this.#initPromise;
   }
 
   // SSH Hosts
@@ -185,7 +203,39 @@ export class ConfigStore {
     this.customThemes = this.customThemes.filter((t) => t.name !== name);
     await ConfigService.saveCustomThemes(this.customThemes);
   }
+
+  // Shell do Terminal
+  /** Define o shell padrão das novas abas locais (null = padrão do sistema). */
+  async setDefaultShell(shell: ShellPreference | null) {
+    this.shells = { ...this.shells, default: shell ? { ...shell } : null };
+    await ConfigService.saveShells(this.shells);
+  }
+
+  /** Ajusta apenas os argumentos do shell padrão atual. */
+  async setDefaultShellArgs(args: string[]) {
+    if (!this.shells.default) return;
+    this.shells = {
+      ...this.shells,
+      default: { ...this.shells.default, args: [...args] },
+    };
+    await ConfigService.saveShells(this.shells);
+  }
+
+  async addCustomShell(shell: ShellProfile) {
+    this.shells = {
+      ...this.shells,
+      custom: [...this.shells.custom, shell],
+    };
+    await ConfigService.saveShells(this.shells);
+  }
+
+  async removeCustomShell(id: string) {
+    this.shells = {
+      ...this.shells,
+      custom: this.shells.custom.filter((s) => s.id !== id),
+    };
+    await ConfigService.saveShells(this.shells);
+  }
 }
 
 export const configStore = new ConfigStore();
-

@@ -152,10 +152,15 @@
         args: [...keyArg, ...portArg, `${sshInfo.user}@${sshInfo.ip}`],
       }).catch(console.error);
     } else {
+      // Garante que a preferência de shell já foi carregada do disco
+      await configStore.init();
+      const shell = configStore.shells.default;
       PtyService.spawnPty({
         id,
         cols: term.cols,
         rows: term.rows,
+        command: shell?.path || undefined,
+        args: shell?.args && shell.args.length > 0 ? shell.args : undefined,
       }).catch(console.error);
     }
 
