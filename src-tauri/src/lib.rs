@@ -1,5 +1,6 @@
 pub mod clipboard;
 pub mod config;
+pub mod cpu;
 pub mod osc;
 pub mod platform;
 pub mod pty;
@@ -10,6 +11,7 @@ pub mod window;
 
 use clipboard::{read_clipboard, write_clipboard};
 use config::{load_config, save_config};
+use cpu::{get_cpu_temp, get_cpu_usage, CpuMonitorState};
 use pty::{close_pty, get_pty_cwd, get_pty_status, resize_pty, spawn_pty, write_pty, PtyState};
 use sftp::*;
 use shells::list_shells;
@@ -20,12 +22,16 @@ use window::new_window;
 pub fn run() {
     let pty_state = PtyState::default();
     let sftp_state = SftpState::default();
+    let cpu_state = CpuMonitorState::default();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_clipboard_manager::init())
         .manage(pty_state)
         .manage(sftp_state)
+        .manage(cpu_state)
         .invoke_handler(tauri::generate_handler![
+            get_cpu_temp,
+            get_cpu_usage,
             spawn_pty,
             write_pty,
             resize_pty,

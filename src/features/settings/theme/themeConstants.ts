@@ -1,4 +1,4 @@
-import type { AppTheme } from "../../../../core/types";
+import type { AppTheme } from "@/core/types";
 
 export interface ColorField {
   key: keyof AppTheme;

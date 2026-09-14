@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { configStore } from "../../../core/stores/config.svelte";
-  import { presetThemes, type AppTheme } from "../../../core/types";
-  import Modal from "../../../shared/components/Modal.svelte";
+  import { configStore } from "@/core/stores/config.svelte";
+  import { presetThemes, type AppTheme } from "@/core/types";
+  import Modal from "@/shared/components/Modal.svelte";
   import Button from "@/shared/components/Button.svelte";
-  import ThemePresetsList from "./theme/ThemePresetsList.svelte";
-  import ThemeShapesSliders from "./theme/ThemeShapesSliders.svelte";
-  import ThemeEffectControls from "./theme/ThemeEffectControls.svelte";
-  import ThemeColorEditors from "./theme/ThemeColorEditors.svelte";
+  import ThemePresetsList from "@/features/settings/theme/ThemePresetsList.svelte";
+  import ThemeShapesSliders from "@/features/settings/theme/ThemeShapesSliders.svelte";
+  import ThemeEffectControls from "@/features/settings/theme/ThemeEffectControls.svelte";
+  import ThemeColorEditors from "@/features/settings/theme/ThemeColorEditors.svelte";
 
   interface Props {
     show: boolean;

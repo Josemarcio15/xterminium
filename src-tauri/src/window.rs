@@ -14,6 +14,7 @@ pub async fn new_window(app: AppHandle) -> Result<(), String> {
         .inner_size(900.0, 620.0)
         .decorations(false)
         .transparent(true)
+        .shadow(false)
         .build()
         .map_err(|e| e.to_string())?;
 

@@ -1,6 +1,6 @@
 [package]
 name = "xterminium"
-version = "0.0.25-alpha"
+version = "0.0.26-alpha"
 description = "A modern, fast and customizable desktop terminal emulator built with Tauri and Svelte"
 license = "MIT"
 edition = "2021"
@@ -32,10 +32,8 @@ sha2 = "0.10.9"
 shlex = "2.0.1"
 tokio-util = "0.7.19"
 tauri-plugin-clipboard-manager = "2"
+sysinfo = { version = "0.36.1", default-features = false, features = ["system"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk = "0.18"
-
-[target."cfg(windows)".dependencies]
-sysinfo = { version = "0.36.1", default-features = false, features = ["system"] }
 

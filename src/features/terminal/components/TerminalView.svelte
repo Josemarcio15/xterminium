@@ -9,7 +9,7 @@
   import { configStore } from "../../../core/stores/config.svelte";
   import SshAutocompleteDropdown from "./SshAutocompleteDropdown.svelte";
   import DirectoryAutocompleteDropdown from "./DirectoryAutocompleteDropdown.svelte";
-  import AliasSuggestionPopup from "./AliasSuggestionPopup.svelte";
+  import InlineAutocompletePopup from "./InlineAutocompletePopup.svelte";
   import { useAliasSuggestion } from "../composables/useAliasSuggestion.svelte";
   import { useVpsAutocomplete } from "../composables/useVpsAutocomplete.svelte";
   import { useDirectoryAutocomplete } from "../composables/useDirectoryAutocomplete.svelte";
@@ -136,7 +136,9 @@
     const keyHandler = createTerminalKeyHandler(term, id, {
       onNewTab,
       hasActiveAlias: () =>
-        !!aliasSug.activeSuggestion && !!aliasSug.matchedPrefix,
+        aliasSug.suggestions.length > 0 && !!aliasSug.matchedPrefix,
+      onAliasNext: () => aliasSug.next(),
+      onAliasPrev: () => aliasSug.prev(),
       applyAlias: () => aliasSug.apply(),
       closeAlias: () => aliasSug.close(),
 
@@ -186,9 +188,11 @@
 
     // Fluxo de dados e digitação
     term.onData((data) => {
-      // Ignora teclas de navegação vazadas para o terminal caso algum dropdown esteja aberto
+      aliasSug.onUserInput();
+
+      // Ignora teclas de navegação vazadas para o terminal caso algum dropdown ou sugestão esteja aberto
       if (
-        (vpsAuto.showDropdown || dirAuto.showDirDropdown) &&
+        (vpsAuto.showDropdown || dirAuto.showDirDropdown || aliasSug.suggestions.length > 0) &&
         (data === "\t" || data === "\x1b[Z")
       ) {
         return;
@@ -201,24 +205,9 @@
         data === "\x03" ||
         data === "\x15";
 
-      // Se a substituição de alias estiver sendo processada no PTY, ignora inputs concorrentes temporariamente
-      if (aliasSug.isApplying) {
-        return;
-      }
-
-      // Se a sugestão de alias estiver ativa e o usuário apertou Enter (\r),
-      // o evento já foi tratado pelo attachCustomKeyEventHandler para aplicar o alias.
-      // Bloqueia o envio do caractere de quebra de linha para o PTY para não duplicar nem engolir letras!
-      if (
-        aliasSug.activeSuggestion &&
-        (data.includes("\r") || data.includes("\n"))
-      ) {
-        return;
-      }
-
       if (vpsAuto.showDropdown && isCancelOrEnter) vpsAuto.close();
       if (dirAuto.showDirDropdown && isCancelOrEnter) dirAuto.close();
-      if (aliasSug.activeSuggestion && isCancelOrEnter) aliasSug.close();
+      if (aliasSug.suggestions.length > 0 && isCancelOrEnter) aliasSug.close();
 
       PtyService.writePty(id, data).catch(console.error);
     });
@@ -310,11 +299,13 @@
   />
 {/if}
 
-{#if aliasSug.activeSuggestion && active}
-  <AliasSuggestionPopup
-    suggestion={aliasSug.activeSuggestion}
+{#if aliasSug.suggestions.length > 0 && active}
+  <InlineAutocompletePopup
+    suggestions={aliasSug.suggestions}
+    selectedIndex={aliasSug.selectedIndex}
     matchedPrefix={aliasSug.matchedPrefix}
     position={aliasSug.position}
+    onSelect={aliasSug.apply}
   />
 {/if}
 

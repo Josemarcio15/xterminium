@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { configStore } from "../../../../core/stores/config.svelte";
-  import { presetThemes, type AppTheme } from "../../../../core/types";
+  import { configStore } from "@/core/stores/config.svelte";
+  import { presetThemes, type AppTheme } from "@/core/types";
 
   interface Props {
     onSelect: (theme: AppTheme) => void;

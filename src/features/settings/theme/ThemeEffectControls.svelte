@@ -6,7 +6,7 @@
     isIceTheme,
     isWaterRainTheme,
     RAIN_DEFAULTS,
-  } from "../../../../core/types";
+  } from "@/core/types";
 
   interface Props {
     draft: AppTheme;

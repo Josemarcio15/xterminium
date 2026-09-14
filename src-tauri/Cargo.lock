@@ -6036,7 +6036,7 @@ checksum = "ea6fc2961e4ef194dcbfe56bb845534d0dc8098940c7e5c012a258bfec6701bd"
 
 [[package]]
 name = "xterminium"
-version = "0.0.25-alpha"
+version = "0.0.26-alpha"
 dependencies = [
  "async-trait",
  "futures",

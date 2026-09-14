@@ -10,14 +10,14 @@
 //!   `#[cfg(target_os = "linux")]` dentro do próprio módulo.
 //!
 //! Cada lado tem os mesmos módulos: `fs`, `shells`, `update`, `elevate`,
-//! `process` e `transparency`.
+//! `process`, `transparency` e `cpu`.
 //!
 //! Contrato espelhado entre os dois lados (mesmos nomes e assinaturas):
 //! `home_dir`, `config_dir`, `restrict_file_permissions`,
 //! `normalize_reported_path`, `process_cwd`, `pty_foreground_process`,
 //! `apply_transparency`, `detect_shells`, `default_shell_path`,
-//! `run_update_installer`, `update_needs_password`, `exec_local_sudo` + tipo
-//! tipo `ForegroundProcess`.
+//! `run_update_installer`, `update_needs_password`, `exec_local_sudo`,
+//! `read_cpu_temp` + tipos `ForegroundProcess` e `CpuTempData`.
 
 #[cfg(unix)]
 mod unix;
@@ -38,4 +38,13 @@ pub struct ForegroundProcess {
     pub name: String,
     pub cmdline: Option<String>,
     pub is_ssh: bool,
+}
+
+/// Dados de temperatura da CPU retornados pelas implementações específicas de SO.
+#[derive(serde::Serialize, Clone, Default, Debug)]
+pub struct CpuTempData {
+    pub tdie: f32,
+    pub max_temp: f32,
+    pub avg_temp: f32,
+    pub core_temps: Vec<f32>,
 }

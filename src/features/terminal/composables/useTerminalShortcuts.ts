@@ -9,6 +9,8 @@ export interface ShortcutHandlers {
   onNewTab: () => void;
   // Aliases
   hasActiveAlias: () => boolean;
+  onAliasNext: () => void;
+  onAliasPrev: () => void;
   applyAlias: () => void;
   closeAlias: () => void;
   // Autocomplete VPS
@@ -130,8 +132,29 @@ export function createTerminalKeyHandler(
       return false;
     }
 
-    // 3. Intercepta Enter ou Escape para sugestão de Alias (Estilo iOS)
+    // 3. Intercepta teclas para sugestão de Alias Inline (Tab, Setas, Enter, Escape)
     if (handlers.hasActiveAlias()) {
+      const isTabKey =
+        e.key === "Tab" ||
+        e.key === "Backtab" ||
+        e.code === "Tab" ||
+        e.keyCode === 9;
+      const isShift = e.shiftKey || e.key === "Backtab";
+      const isBackTab = isTabKey && isShift;
+      const isNextTab = isTabKey && !isShift;
+
+      if (e.key === "ArrowDown" || isNextTab) {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onAliasNext();
+        return false;
+      }
+      if (e.key === "ArrowUp" || isBackTab) {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onAliasPrev();
+        return false;
+      }
       if (e.key === "Enter") {
         e.preventDefault();
         e.stopPropagation();

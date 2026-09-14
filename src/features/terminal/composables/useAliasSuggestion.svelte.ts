@@ -8,13 +8,26 @@ export function useAliasSuggestion(
   getTerm: () => Terminal | null,
   getContainer: () => HTMLDivElement | null,
 ) {
-  let activeSuggestion = $state<CustomAlias | null>(null);
+  let suggestions = $state<CustomAlias[]>([]);
+  let selectedIndex = $state(0);
   let matchedPrefix = $state("");
   let position = $state({ x: 100, y: 100 });
+  let isApplying = $state(false);
+
+  // Evita que o eco do comando recém-aplicado reabra a sugestão imediatamente
+  let justApplied = false;
+  let justAppliedTimer: ReturnType<typeof setTimeout> | null = null;
+  let lastAppliedCommand: string = "";
+
+  const activeSuggestion = $derived(
+    suggestions.length > 0 && selectedIndex < suggestions.length
+      ? suggestions[selectedIndex]
+      : null
+  );
 
   function check(isOtherDropdownOpen: boolean) {
     const term = getTerm();
-    if (!term || isOtherDropdownOpen) {
+    if (!term || isOtherDropdownOpen || isApplying || justApplied) {
       close();
       return;
     }
@@ -25,7 +38,7 @@ export function useAliasSuggestion(
       return;
     }
 
-    // Lê a linha do cursor
+    // Lê a linha onde está o cursor no buffer do xterm
     const buffer = term.buffer.active;
     const cursorY = buffer.cursorY;
     const lineObj = buffer.getLine(buffer.baseY + cursorY);
@@ -35,23 +48,74 @@ export function useAliasSuggestion(
       textBeforeCursor = fullLine.slice(0, buffer.cursorX);
     }
 
-    // Extrai a última palavra digitada antes do cursor
-    const match = textBeforeCursor.match(/([a-zA-Z0-9_\-\.\/]+)$/);
-    const currentWord = match ? match[1] : "";
+    if (!textBeforeCursor || textBeforeCursor.trim().length === 0) {
+      close();
+      return;
+    }
 
-    // Sugere a partir de 2 caracteres digitados se coincidir com o início de algum alias
-    if (currentWord.length >= 2) {
-      const wordLower = currentWord.toLowerCase();
-      const matched = availableAliases.find((a) =>
-        a.alias.toLowerCase().startsWith(wordLower)
-      );
+    // Se a linha termina exatamente com o comando que acabou de ser aplicado pelo autocomplete, não sugere
+    if (lastAppliedCommand && textBeforeCursor.toLowerCase().endsWith(lastAppliedCommand.toLowerCase())) {
+      close();
+      return;
+    }
 
-      if (matched) {
-        activeSuggestion = matched;
-        matchedPrefix = currentWord;
-        updatePosition();
-        return;
+    const textLower = textBeforeCursor.toLowerCase();
+    const matchedItems: { alias: CustomAlias; prefix: string; priority: number }[] = [];
+
+    // Busca quais aliases batem com o final do que foi digitado
+    for (const a of availableAliases) {
+      // Se o comando completo já está no final da linha e é idêntico ao alias, não precisa sugerir
+      if (
+        textLower.endsWith(a.command.toLowerCase()) &&
+        a.alias.toLowerCase() === a.command.toLowerCase()
+      ) {
+        continue;
       }
+
+      const aliasLower = a.alias.toLowerCase();
+
+      // Testa do maior prefixo possível até no mínimo 2 caracteres
+      for (let len = aliasLower.length; len >= 2; len--) {
+        const candidatePrefix = aliasLower.slice(0, len);
+
+        if (textLower.endsWith(candidatePrefix)) {
+          const prefixStartIdx = textBeforeCursor.length - len;
+          const charBefore =
+            prefixStartIdx > 0 ? textBeforeCursor[prefixStartIdx - 1] : "";
+
+          // O prefixo deve iniciar em uma fronteira válida de comando ou palavra
+          const isBoundary =
+            prefixStartIdx === 0 ||
+            /[\s;&|>$#❯]/.test(charBefore);
+
+          if (isBoundary) {
+            const actualPrefix = textBeforeCursor.slice(prefixStartIdx);
+            matchedItems.push({
+              alias: a,
+              prefix: actualPrefix,
+              priority: len,
+            });
+            break; // Garante o maior prefixo para este alias
+          }
+        }
+      }
+    }
+
+    if (matchedItems.length > 0) {
+      // Ordena pelos que tiveram maior correspondência primeiro
+      matchedItems.sort((a, b) => b.priority - a.priority);
+
+      const newSuggestions = matchedItems.map((m) => m.alias);
+      suggestions = newSuggestions;
+      matchedPrefix = matchedItems[0].prefix;
+
+      // Mantém o índice selecionado dentro dos limites válidos
+      if (selectedIndex >= newSuggestions.length) {
+        selectedIndex = 0;
+      }
+
+      updatePosition();
+      return;
     }
 
     close();
@@ -72,34 +136,68 @@ export function useAliasSuggestion(
     const cursorY = term.buffer.active.cursorY;
 
     const posX = rect.left + cursorX * cellWidth;
-    let posY = rect.top + (cursorY - 1.8) * cellHeight;
-    if (posY < rect.top + 5) {
+    
+    // Calcula altura aproximada para não cobrir a linha do cursor
+    const estimatedHeight =
+      suggestions.length > 1 ? Math.min(180, suggestions.length * 30 + 34) : 38;
+    
+    let posY = rect.top + cursorY * cellHeight - estimatedHeight - 6;
+    if (posY < rect.top + 10) {
       posY = rect.top + (cursorY + 1.2) * cellHeight;
     }
 
     position = {
-      x: Math.min(posX, window.innerWidth - 320),
+      x: Math.min(posX, Math.max(10, window.innerWidth - 380)),
       y: Math.max(10, posY),
     };
   }
 
-  let isApplying = $state(false);
+  function next() {
+    if (suggestions.length > 0) {
+      selectedIndex = (selectedIndex + 1) % suggestions.length;
+    }
+  }
+
+  function prev() {
+    if (suggestions.length > 0) {
+      selectedIndex =
+        (selectedIndex - 1 + suggestions.length) % suggestions.length;
+    }
+  }
 
   function close() {
-    activeSuggestion = null;
+    suggestions = [];
+    selectedIndex = 0;
     matchedPrefix = "";
   }
 
-  function apply() {
-    if (!activeSuggestion || isApplying) return;
+  function onUserInput() {
+    lastAppliedCommand = "";
+    if (justApplied) {
+      justApplied = false;
+      if (justAppliedTimer) {
+        clearTimeout(justAppliedTimer);
+        justAppliedTimer = null;
+      }
+    }
+  }
+
+  function apply(targetAlias?: CustomAlias) {
+    const aliasToApply = targetAlias || activeSuggestion;
+    if (!aliasToApply || isApplying) return;
 
     isApplying = true;
+    justApplied = true;
+    lastAppliedCommand = aliasToApply.command;
+    if (justAppliedTimer) clearTimeout(justAppliedTimer);
+    justAppliedTimer = setTimeout(() => {
+      isApplying = false;
+      justApplied = false;
+    }, 1000);
+
     const term = getTerm();
     let wordToErase = matchedPrefix;
 
-    // Recalcula em tempo real a palavra antes do cursor para garantir
-    // que se o usuário digitou letras a mais rapidamente antes do Enter,
-    // todos os caracteres digitados sejam apagados sem sobrar nada!
     if (term) {
       const buffer = term.buffer.active;
       const cursorY = buffer.cursorY;
@@ -107,27 +205,32 @@ export function useAliasSuggestion(
       if (lineObj) {
         const fullLine = lineObj.translateToString(true);
         const textBeforeCursor = fullLine.slice(0, buffer.cursorX);
-        const match = textBeforeCursor.match(/([a-zA-Z0-9_\-\.\/]+)$/);
-        if (match && match[1]) {
-          wordToErase = match[1];
+        const aliasLower = aliasToApply.alias.toLowerCase();
+        
+        // Encontra exatamente quantos caracteres daquele alias estavam no final da linha
+        for (let len = aliasLower.length; len >= 1; len--) {
+          const candidate = aliasLower.slice(0, len);
+          if (textBeforeCursor.toLowerCase().endsWith(candidate)) {
+            wordToErase = textBeforeCursor.slice(textBeforeCursor.length - len);
+            break;
+          }
         }
       }
     }
 
-    // Se mesmo assim wordToErase tiver menos caracteres que matchedPrefix, usa o maior
     const eraseLength = Math.max(wordToErase.length, matchedPrefix.length);
     const backspaces = "\x7f".repeat(eraseLength);
-    const commandToInsert = activeSuggestion.command;
+    const commandToInsert = aliasToApply.command;
+
+    // Fecha o popup imediatamente
+    close();
 
     PtyService.writePty(getId(), backspaces + commandToInsert)
       .catch(console.error)
       .finally(() => {
-        setTimeout(() => {
-          isApplying = false;
-        }, 50);
+        isApplying = false;
       });
 
-    close();
     if (term) {
       term.focus();
       requestAnimationFrame(() => term.focus());
@@ -135,6 +238,12 @@ export function useAliasSuggestion(
   }
 
   return {
+    get suggestions() {
+      return suggestions;
+    },
+    get selectedIndex() {
+      return selectedIndex;
+    },
     get activeSuggestion() {
       return activeSuggestion;
     },
@@ -148,8 +257,10 @@ export function useAliasSuggestion(
       return isApplying;
     },
     check,
+    next,
+    prev,
     close,
     apply,
+    onUserInput,
   };
 }
-

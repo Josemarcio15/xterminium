@@ -12,10 +12,29 @@ const rootDir = path.resolve(__dirname, '..');
 
 const packageJsonPath = path.join(rootDir, 'package.json');
 const cargoTomlPath = path.join(rootDir, 'src-tauri', 'Cargo.toml');
+const changelogPath = path.join(rootDir, 'CHANGELOG.md');
 
 function readCurrentVersion() {
   const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
   return pkg.version;
+}
+
+function extractChangelogNotes(version) {
+  if (!fs.existsSync(changelogPath)) return '';
+  const content = fs.readFileSync(changelogPath, 'utf-8');
+  
+  // Limpa 'v' inicial para comparar, ex: 0.0.26-alpha
+  const cleanVersion = version.replace(/^v/i, '').trim();
+  
+  // Procura por ## [0.0.26-alpha] ou ## 0.0.26-alpha ou ## [v0.0.26-alpha]
+  const escaped = cleanVersion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const sectionRegex = new RegExp(`##\\s*\\[?v?${escaped}\\]?([\\s\\S]*?)(?=(?:\\n##\\s|\$))`, 'i');
+  
+  const match = content.match(sectionRegex);
+  if (match && match[1]) {
+    return match[1].trim();
+  }
+  return '';
 }
 
 function suggestNextVersion(current) {
@@ -74,6 +93,14 @@ async function main() {
 
     let targetTag = '';
     let commitMsg = '';
+    let changelogNotes = extractChangelogNotes(targetVersion);
+
+    if (changelogNotes) {
+      console.log(`\n\x1b[32m[Changelog encontrado para ${targetVersion}]:\x1b[0m\n${changelogNotes}\n`);
+    } else {
+      console.log(`\n\x1b[33m[Aviso: Nenhuma seção encontrada no CHANGELOG.md para a versão ${targetVersion}]\x1b[0m`);
+      console.log(`Dica: Você pode preencher o arquivo CHANGELOG.md com: ## [${targetVersion}]\n`);
+    }
 
     if (!noCommit) {
       // 2. Nome da Tag Git
@@ -85,11 +112,19 @@ async function main() {
       commitMsg = await askPreFilled('Mensagem do commit: ', suggestedCommitMsg);
     }
 
+    // A anotação da Tag levará o changelog completo se presente, para o GitHub Release expor nas releaseNotes
+    const tagAnnotation = changelogNotes
+      ? `${commitMsg || `release: ${targetTag}`}\n\n${changelogNotes}`
+      : (commitMsg || `release: ${targetTag}`);
+
     console.log('\n------------------------------------------------------------');
     console.log(`Versao : \x1b[33m${targetVersion}\x1b[0m`);
     if (!noCommit) {
       console.log(`Tag    : \x1b[32m${targetTag}\x1b[0m`);
       console.log(`Commit : \x1b[36m${commitMsg}\x1b[0m`);
+      if (changelogNotes) {
+        console.log(`Notas  : \x1b[32m${changelogNotes.split('\n').length} linha(s) vinculadas do CHANGELOG.md\x1b[0m`);
+      }
     } else {
       console.log(`Git    : \x1b[33m--no-commit (sem commit/tag/push)\x1b[0m`);
     }
@@ -135,11 +170,17 @@ async function main() {
       console.log('   (Nenhuma mudanca nos arquivos para commitar)');
     }
 
-    // Cria a tag anotada com a mesma mensagem
-    execSync(`git tag -a ${targetTag} -m "${commitMsg.replace(/"/g, '\\"')}"`, {
-      cwd: rootDir,
-      stdio: 'inherit',
-    });
+    // Cria a tag anotada com a mensagem + changelog formatado (usa arquivo temporário para preservar quebras de linha com segurança)
+    const tempTagFile = path.join(rootDir, '.git', 'TAG_EDITMSG_TEMP');
+    fs.writeFileSync(tempTagFile, tagAnnotation, 'utf-8');
+    try {
+      execSync(`git tag -a ${targetTag} -F "${tempTagFile}"`, {
+        cwd: rootDir,
+        stdio: 'inherit',
+      });
+    } finally {
+      if (fs.existsSync(tempTagFile)) fs.unlinkSync(tempTagFile);
+    }
     console.log(`   OK: Tag ${targetTag} criada com sucesso!`);
 
     console.log('\n[4/4] Envio para o GitHub:');

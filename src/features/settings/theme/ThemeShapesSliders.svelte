@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { AppTheme } from "../../../../core/types";
+  import type { AppTheme } from "@/core/types";
 
   interface Props {
     draft: AppTheme;

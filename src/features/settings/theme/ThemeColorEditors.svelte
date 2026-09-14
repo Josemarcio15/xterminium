@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { AppTheme } from "../../../../core/types";
+  import type { AppTheme } from "@/core/types";
   import Button from "@/shared/components/Button.svelte";
   import ColorPickerWithOpacity from "@/shared/components/ColorPickerWithOpacity.svelte";
   import { colorFields, themeColorGroups } from "./themeConstants";

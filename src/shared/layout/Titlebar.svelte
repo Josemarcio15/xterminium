@@ -8,6 +8,7 @@
   import ThemeModal from "../../features/settings/modals/ThemeModal.svelte";
   import ShellModal from "../../features/settings/modals/ShellModal.svelte";
   import Button from "@/shared/components/Button.svelte";
+  import CpuIndicator from "../components/CpuIndicator.svelte";
   import { type SshHost, type TabItem } from "../../core/types";
 
   const appWindow = getCurrentWindow();
@@ -506,6 +507,8 @@
         onClose={() => (showShellModal = false)}
       />
     </div>
+
+    <CpuIndicator />
 
     <div class="w-[1px] h-3.5 bg-(--border-subtle) mx-1.5"></div>
 

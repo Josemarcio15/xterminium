@@ -182,14 +182,27 @@ export function useVpsAutocomplete(
         cmdName === "sftp";
 
       // Verifica se o comando tem prefixArgs configurado (ex: '-c 4' para ping, ou '-avz' para rsync)
-      // e verifica se o usuário já não digitou esses argumentos na linha antes do cursor
+      // e verifica se o usuário já não digitou esses argumentos ou outros parâmetros na linha antes do cursor.
+      // Se o usuário já passou arquivos/caminhos (ex: `rsync ./.gemini/ `), as flags não devem ser jogadas no final.
       let prefixToInsert = "";
       if (
         activeMatchedCommand.prefixArgs &&
         activeMatchedCommand.prefixArgs.trim()
       ) {
         const configuredPrefix = activeMatchedCommand.prefixArgs.trim();
-        if (!textBeforeCursor.includes(configuredPrefix)) {
+        // Obtém o texto na linha logo após o comando disparador
+        const cmdRegex = new RegExp(`(?:^|[;&|\\s])${activeMatchedCommand.command}\\s+`, "i");
+        const matchCmd = textBeforeCursor.match(cmdRegex);
+        const argsAfterCmd = matchCmd
+          ? textBeforeCursor.slice(matchCmd.index! + matchCmd[0].length).trim()
+          : "";
+
+        // Se o prefixo configurado já foi digitado OU se o usuário já começou a digitar
+        // outros argumentos/caminhos (sem ser a query de busca atual), não injeta prefixArgs na posição do host
+        const isPrefixAlreadyPresent = textBeforeCursor.includes(configuredPrefix);
+        const hasPrecedingArgs = argsAfterCmd.length > currentMatchedQuery.length;
+
+        if (!isPrefixAlreadyPresent && !hasPrecedingArgs) {
           prefixToInsert = `${configuredPrefix} `;
         }
       }

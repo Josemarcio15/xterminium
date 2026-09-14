@@ -9,4 +9,5 @@ use tauri::WebviewWindow;
 /// que não aceitam a cor transparente).
 pub fn apply_transparency(window: &WebviewWindow) {
     let _ = window.set_background_color(Some(tauri::webview::Color(0, 0, 0, 0)));
+    let _ = window.set_shadow(false);
 }
