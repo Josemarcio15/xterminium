@@ -7,6 +7,7 @@
   import AliasesModal from "../../features/settings/modals/AliasesModal.svelte";
   import ThemeModal from "../../features/settings/modals/ThemeModal.svelte";
   import ShellModal from "../../features/settings/modals/ShellModal.svelte";
+  import AboutModal from "../../features/settings/modals/AboutModal.svelte";
   import Button from "@/shared/components/Button.svelte";
   import CpuIndicator from "../components/CpuIndicator.svelte";
   import { type SshHost, type TabItem } from "../../core/types";
@@ -45,6 +46,7 @@
   let showShortcutsModal = $state(false);
   let showThemeModal = $state(false);
   let showShellModal = $state(false);
+  let showAboutModal = $state(false);
   let tabsScrollArea: HTMLDivElement | null = $state(null);
 
   function closeAllModals() {
@@ -55,6 +57,7 @@
     showShortcutsModal = false;
     showThemeModal = false;
     showShellModal = false;
+    showAboutModal = false;
   }
 
   function handleStartDragging(e: MouseEvent) {
@@ -229,6 +232,7 @@
         showShortcutsModal ||
         showThemeModal ||
         showShellModal ||
+        showAboutModal ||
         showFileManager
           ? 'bg-sky-400/15 text-sky-400'
           : 'text-(--text-muted)'}"
@@ -469,6 +473,35 @@
             </svg>
             <span class="flex-1">Temas & Aparência</span>
           </button>
+
+          <!-- Item: Sobre o xterminium -->
+          <button
+            type="button"
+            class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 hover:text-(--text-base) transition-all text-left w-full cursor-pointer border-none bg-transparent text-(--text-base)"
+            onclick={() => {
+              showMenu = false;
+              closeAllModals();
+              showAboutModal = true;
+            }}
+          >
+            <svg
+              class="text-sky-400 shrink-0"
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <span class="flex-1">Sobre</span>
+          </button>
         </div>
       {/if}
 
@@ -505,6 +538,11 @@
       <ShellModal
         show={showShellModal}
         onClose={() => (showShellModal = false)}
+      />
+
+      <AboutModal
+        show={showAboutModal}
+        onClose={() => (showAboutModal = false)}
       />
     </div>
 

@@ -60,50 +60,77 @@ export function useAliasSuggestion(
     }
 
     const textLower = textBeforeCursor.toLowerCase();
-    const matchedItems: { alias: CustomAlias; prefix: string; priority: number }[] = [];
 
-    // Busca quais aliases batem com o final do que foi digitado
-    for (const a of availableAliases) {
-      // Se o comando completo já está no final da linha e é idêntico ao alias, não precisa sugerir
-      if (
-        textLower.endsWith(a.command.toLowerCase()) &&
-        a.alias.toLowerCase() === a.command.toLowerCase()
-      ) {
-        continue;
+    // Delimitadores que separam comandos independentes (pipes, encadeamento, redirecionamentos ou prompts)
+    const delimiters = [";", "&", "|", ">", "$", "#", "❯", "\n", "\r"];
+    let lastDelimIdx = -1;
+    for (const d of delimiters) {
+      const idx = textBeforeCursor.lastIndexOf(d);
+      if (idx > lastDelimIdx) lastDelimIdx = idx;
+    }
+
+    const commandSegment = lastDelimIdx >= 0 ? textBeforeCursor.slice(lastDelimIdx + 1) : textBeforeCursor;
+    // Remove espaços iniciais logo após o delimitador (ex: "$   npm ")
+    const leadingSpaces = commandSegment.match(/^\s*/)?.[0]?.length || 0;
+    const trimmedCommandStart = (lastDelimIdx >= 0 ? lastDelimIdx + 1 : 0) + leadingSpaces;
+    const typedCommand = textBeforeCursor.slice(trimmedCommandStart);
+
+    // Também consideramos as palavras no final (ex: "sudo npm i" -> "npm i", "i")
+    const wordsWithIndices: { text: string; startIdx: number }[] = [];
+    wordsWithIndices.push({ text: typedCommand, startIdx: trimmedCommandStart });
+
+    // Encontra as palavras intermediárias para o caso do comando ser precedido por "sudo", "npx", etc.
+    const spaceIndices: number[] = [];
+    for (let i = 0; i < typedCommand.length; i++) {
+      if (typedCommand[i] === " ") spaceIndices.push(i);
+    }
+    for (const spIdx of spaceIndices) {
+      const sub = typedCommand.slice(spIdx + 1);
+      if (sub.length >= 2) {
+        wordsWithIndices.push({
+          text: sub,
+          startIdx: trimmedCommandStart + spIdx + 1,
+        });
+      }
+    }
+
+    let matchedItems: { alias: CustomAlias; prefix: string; priority: number }[] = [];
+
+    for (const { text: candidateText, startIdx } of wordsWithIndices) {
+      if (!candidateText || candidateText.length < 2) continue;
+      const candidateLower = candidateText.toLowerCase();
+
+      const items: { alias: CustomAlias; prefix: string; priority: number }[] = [];
+
+      for (const a of availableAliases) {
+        const aliasLower = a.alias.toLowerCase();
+
+        // Se o alias já foi digitado por completo na íntegra, não precisa sugerir
+        if (textLower.endsWith(aliasLower) && candidateLower === aliasLower) {
+          continue;
+        }
+
+        // O alias tem que começar exatamente com o que foi digitado!
+        // Se digitei "npm ", aliases como "npm run dev", "npm install", "npm start" continuam ativos!
+        // Se digitei "npm inst", aliases como "npm install" permanecem, e os outros somem.
+        if (aliasLower.startsWith(candidateLower)) {
+          items.push({
+            alias: a,
+            prefix: textBeforeCursor.slice(startIdx),
+            priority: candidateLower.length,
+          });
+        }
       }
 
-      const aliasLower = a.alias.toLowerCase();
-
-      // Testa do maior prefixo possível até no mínimo 2 caracteres
-      for (let len = aliasLower.length; len >= 2; len--) {
-        const candidatePrefix = aliasLower.slice(0, len);
-
-        if (textLower.endsWith(candidatePrefix)) {
-          const prefixStartIdx = textBeforeCursor.length - len;
-          const charBefore =
-            prefixStartIdx > 0 ? textBeforeCursor[prefixStartIdx - 1] : "";
-
-          // O prefixo deve iniciar em uma fronteira válida de comando ou palavra
-          const isBoundary =
-            prefixStartIdx === 0 ||
-            /[\s;&|>$#❯]/.test(charBefore);
-
-          if (isBoundary) {
-            const actualPrefix = textBeforeCursor.slice(prefixStartIdx);
-            matchedItems.push({
-              alias: a,
-              prefix: actualPrefix,
-              priority: len,
-            });
-            break; // Garante o maior prefixo para este alias
-          }
-        }
+      if (items.length > 0) {
+        matchedItems = items;
+        break; // Dá preferência ao casamento mais específico / mais longo
       }
     }
 
     if (matchedItems.length > 0) {
-      // Ordena pelos que tiveram maior correspondência primeiro
-      matchedItems.sort((a, b) => b.priority - a.priority);
+      // Ordena alfabeticamente
+      matchedItems.sort((a, b) => a.alias.alias.localeCompare(b.alias.alias));
 
       const newSuggestions = matchedItems.map((m) => m.alias);
       suggestions = newSuggestions;
