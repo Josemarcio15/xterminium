@@ -155,6 +155,35 @@ pub fn get_pty_cwd(id: String, state: State<PtyState>) -> Result<String, String>
 }
 
 #[tauri::command]
+pub fn list_subdirectories(id: String, state: State<PtyState>, relative_path: Option<String>) -> Result<Vec<String>, String> {
+    let base_cwd = get_pty_cwd(id, state)?;
+    let mut target = std::path::PathBuf::from(&base_cwd);
+
+    if let Some(rel) = relative_path {
+        let trimmed = rel.trim();
+        if !trimmed.is_empty() {
+            target = target.join(trimmed);
+        }
+    }
+
+    let read_dir = std::fs::read_dir(&target).map_err(|e| e.to_string())?;
+    let mut dirs: Vec<String> = Vec::new();
+
+    for entry in read_dir.flatten() {
+        if let Ok(file_type) = entry.file_type() {
+            if file_type.is_dir() {
+                if let Ok(name) = entry.file_name().into_string() {
+                    dirs.push(name);
+                }
+            }
+        }
+    }
+
+    dirs.sort_by(|a, b| a.to_lowercase().cmp(&b.to_lowercase()));
+    Ok(dirs)
+}
+
+#[tauri::command]
 pub fn close_pty(id: String, state: State<PtyState>) -> Result<(), String> {
     let mut sessions = state.sessions.lock().map_err(|e| e.to_string())?;
     sessions.remove(&id);

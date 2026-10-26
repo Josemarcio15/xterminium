@@ -20,13 +20,19 @@ export interface ShortcutHandlers {
   onVpsSelect: () => void;
   onVpsClose: () => void;
   triggerVpsManual: () => void;
-  // Autocomplete Diretórios
+  // Autocomplete Diretórios Salvos
   hasActiveDir: () => boolean;
   onDirNext: () => void;
   onDirPrev: () => void;
   onDirSelect: () => void;
   onDirClose: () => void;
   triggerDirManual: () => void;
+  // Autocomplete Inline CD (pastas do disco)
+  hasActiveCd?: () => boolean;
+  onCdNext?: () => void;
+  onCdPrev?: () => void;
+  onCdSelect?: () => void;
+  onCdClose?: () => void;
 }
 
 export function createTerminalKeyHandler(
@@ -132,7 +138,44 @@ export function createTerminalKeyHandler(
       return false;
     }
 
-    // 3. Intercepta teclas para sugestão de Alias Inline (Tab, Setas, Enter, Escape)
+    // 3. Intercepta teclas para sugestão de CD Inline (Tab, Setas, Enter, Escape)
+    if (handlers.hasActiveCd && handlers.hasActiveCd()) {
+      const isTabKey =
+        e.key === "Tab" ||
+        e.key === "Backtab" ||
+        e.code === "Tab" ||
+        e.keyCode === 9;
+      const isShift = e.shiftKey || e.key === "Backtab";
+      const isBackTab = isTabKey && isShift;
+      const isNextTab = isTabKey && !isShift;
+
+      if (e.key === "ArrowDown" || isNextTab) {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onCdNext?.();
+        return false;
+      }
+      if (e.key === "ArrowUp" || isBackTab) {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onCdPrev?.();
+        return false;
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onCdSelect?.();
+        return false;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        handlers.onCdClose?.();
+        return false;
+      }
+    }
+
+    // 4. Intercepta teclas para sugestão de Alias Inline (Tab, Setas, Enter, Escape)
     if (handlers.hasActiveAlias()) {
       const isTabKey =
         e.key === "Tab" ||

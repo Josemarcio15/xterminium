@@ -53,16 +53,14 @@ export function useAliasSuggestion(
       return;
     }
 
-    // Se a linha termina exatamente com o comando que acabou de ser aplicado pelo autocomplete, não sugere
-    if (lastAppliedCommand && textBeforeCursor.toLowerCase().endsWith(lastAppliedCommand.toLowerCase())) {
+    // Se a linha contiver o comando 'cd' (ex: "cd", "cd git", "cd mydir"), NUNCA sugere aliases
+    if (/(?:^|[\s;&|❯$#>%\n\r])cd(?:\s|$)/i.test(textBeforeCursor)) {
       close();
       return;
     }
 
-    const textLower = textBeforeCursor.toLowerCase();
-
-    // Delimitadores que separam comandos independentes (pipes, encadeamento, redirecionamentos ou prompts)
-    const delimiters = [";", "&", "|", ">", "$", "#", "❯", "\n", "\r"];
+    // Delimitadores que separam comandos independentes ou prompts (ex: PS C:\> cd, $ cd, ; cd)
+    const delimiters = [";", "&", "|", ">", "$", "#", "❯", "%", "\n", "\r"];
     let lastDelimIdx = -1;
     for (const d of delimiters) {
       const idx = textBeforeCursor.lastIndexOf(d);
@@ -70,10 +68,22 @@ export function useAliasSuggestion(
     }
 
     const commandSegment = lastDelimIdx >= 0 ? textBeforeCursor.slice(lastDelimIdx + 1) : textBeforeCursor;
-    // Remove espaços iniciais logo após o delimitador (ex: "$   npm ")
-    const leadingSpaces = commandSegment.match(/^\s*/)?.[0]?.length || 0;
-    const trimmedCommandStart = (lastDelimIdx >= 0 ? lastDelimIdx + 1 : 0) + leadingSpaces;
+    const trimmedCommandStart = (lastDelimIdx >= 0 ? lastDelimIdx + 1 : 0) + (commandSegment.match(/^\s*/)?.[0]?.length || 0);
     const typedCommand = textBeforeCursor.slice(trimmedCommandStart);
+
+    // Se estiver digitando um comando 'cd' (ex: "cd", "cd ", "cd pasta"), o autocomplete de aliases não deve aparecer!
+    if (/^cd(?:\s|$)/i.test(typedCommand)) {
+      close();
+      return;
+    }
+
+    // Se a linha termina exatamente com o comando que acabou de ser aplicado pelo autocomplete, não sugere
+    if (lastAppliedCommand && textBeforeCursor.toLowerCase().endsWith(lastAppliedCommand.toLowerCase())) {
+      close();
+      return;
+    }
+
+    const textLower = textBeforeCursor.toLowerCase();
 
     // Também consideramos as palavras no final (ex: "sudo npm i" -> "npm i", "i")
     const wordsWithIndices: { text: string; startIdx: number }[] = [];

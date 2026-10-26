@@ -12,7 +12,7 @@ pub mod window;
 use clipboard::{read_clipboard, write_clipboard};
 use config::{load_config, save_config};
 use cpu::{get_cpu_temp, get_cpu_usage, CpuMonitorState};
-use pty::{close_pty, get_pty_cwd, get_pty_status, resize_pty, spawn_pty, write_pty, PtyState};
+use pty::{close_pty, get_pty_cwd, get_pty_status, list_subdirectories, resize_pty, spawn_pty, write_pty, PtyState};
 use sftp::*;
 use shells::list_shells;
 use updater::{get_app_version, run_update_installer, update_needs_password};
@@ -37,6 +37,7 @@ pub fn run() {
             resize_pty,
             close_pty,
             get_pty_cwd,
+            list_subdirectories,
             get_pty_status,
             list_shells,
             new_window,

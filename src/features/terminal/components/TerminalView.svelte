@@ -10,9 +10,11 @@
   import SshAutocompleteDropdown from "./SshAutocompleteDropdown.svelte";
   import DirectoryAutocompleteDropdown from "./DirectoryAutocompleteDropdown.svelte";
   import InlineAutocompletePopup from "./InlineAutocompletePopup.svelte";
+  import CdInlineAutocompletePopup from "./CdInlineAutocompletePopup.svelte";
   import { useAliasSuggestion } from "../composables/useAliasSuggestion.svelte";
   import { useVpsAutocomplete } from "../composables/useVpsAutocomplete.svelte";
   import { useDirectoryAutocomplete } from "../composables/useDirectoryAutocomplete.svelte";
+  import { useCdAutocomplete } from "../composables/useCdAutocomplete.svelte";
   import { createTerminalKeyHandler } from "../composables/useTerminalShortcuts";
 
   interface Props {
@@ -81,6 +83,13 @@
     () => container,
   );
 
+  const cdAuto = useCdAutocomplete(
+    () => id,
+    () => type,
+    () => term,
+    () => container,
+  );
+
   /**
    * Reavalia a sugestão de alias depois que o xterm **processou** a saída.
    *
@@ -95,9 +104,11 @@
 
   function scheduleSuggestionCheck() {
     if (suggestionTimer) return;
-    suggestionTimer = setTimeout(() => {
+    suggestionTimer = setTimeout(async () => {
       suggestionTimer = null;
-      aliasSug.check(vpsAuto.showDropdown || dirAuto.showDirDropdown);
+      const isDropdownOpen = vpsAuto.showDropdown || dirAuto.showDirDropdown;
+      const isCd = await cdAuto.check(isDropdownOpen);
+      aliasSug.check(isDropdownOpen || isCd);
     }, 16);
   }
 
@@ -157,6 +168,12 @@
       onDirSelect: () => dirAuto.selectCurrent(),
       onDirClose: () => dirAuto.close(),
       triggerDirManual: () => dirAuto.trigger(),
+
+      hasActiveCd: () => cdAuto.isOpen && cdAuto.directories.length > 0,
+      onCdNext: () => cdAuto.next(),
+      onCdPrev: () => cdAuto.prev(),
+      onCdSelect: () => cdAuto.selectCurrent(),
+      onCdClose: () => cdAuto.close(),
     });
 
     term.attachCustomKeyEventHandler(keyHandler);
@@ -192,7 +209,10 @@
 
       // Ignora teclas de navegação vazadas para o terminal caso algum dropdown ou sugestão esteja aberto
       if (
-        (vpsAuto.showDropdown || dirAuto.showDirDropdown || aliasSug.suggestions.length > 0) &&
+        (vpsAuto.showDropdown ||
+          dirAuto.showDirDropdown ||
+          cdAuto.isOpen ||
+          aliasSug.suggestions.length > 0) &&
         (data === "\t" || data === "\x1b[Z")
       ) {
         return;
@@ -207,9 +227,15 @@
 
       if (vpsAuto.showDropdown && isCancelOrEnter) vpsAuto.close();
       if (dirAuto.showDirDropdown && isCancelOrEnter) dirAuto.close();
+      if (cdAuto.isOpen && isCancelOrEnter) cdAuto.close();
       if (aliasSug.suggestions.length > 0 && isCancelOrEnter) aliasSug.close();
 
       PtyService.writePty(id, data).catch(console.error);
+
+      // Reavalia imediatamente no onData para digitação rápida (apenas se não for Enter / cancel)
+      if (!isCancelOrEnter) {
+        scheduleSuggestionCheck();
+      }
     });
 
     resizeObserver = new ResizeObserver(() => {
@@ -296,6 +322,17 @@
     selectedIndex={dirAuto.selectedDirIndex}
     position={dirAuto.dirDropdownPosition}
     onSelect={dirAuto.apply}
+  />
+{/if}
+
+{#if cdAuto.isOpen && cdAuto.directories.length > 0 && active}
+  <CdInlineAutocompletePopup
+    directories={cdAuto.directories}
+    selectedIndex={cdAuto.selectedIndex}
+    matchedQuery={cdAuto.matchedQuery}
+    totalMatches={cdAuto.totalMatches}
+    position={cdAuto.position}
+    onSelect={cdAuto.apply}
   />
 {/if}
 

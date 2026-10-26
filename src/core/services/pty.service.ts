@@ -29,6 +29,16 @@ export class PtyService {
     return invoke("resize_pty", { id, cols, rows });
   }
 
+  static async listSubdirectories(
+    id: string,
+    relativePath?: string,
+  ): Promise<string[]> {
+    return invoke<string[]>("list_subdirectories", {
+      id,
+      relativePath: relativePath || null,
+    });
+  }
+
   static async closePty(id: string): Promise<void> {
     return invoke("close_pty", { id });
   }
