@@ -151,6 +151,7 @@
 
     listen<string>("pty-exit", (event) => {
       const exitId = event.payload;
+      console.log("[PTY Exit Event]", exitId);
       closeTab(exitId);
     }).then((fn) => {
       unlistenExit = fn;

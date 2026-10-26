@@ -250,10 +250,13 @@ pub fn spawn_pty(
 
     let reported_cwd: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
 
+    let child_arc: Arc<Mutex<Box<dyn portable_pty::Child + Send>>> = Arc::new(Mutex::new(child));
+    let child_for_wait = child_arc.clone();
+
     let session = PtySession {
         writer: Arc::new(Mutex::new(writer)),
         master: Arc::new(Mutex::new(pair.master)),
-        child: Arc::new(Mutex::new(child)),
+        child: child_arc,
         reported_cwd: reported_cwd.clone(),
     };
 
@@ -265,6 +268,37 @@ pub fn spawn_pty(
 
     let session_id = id.clone();
     let app_handle = app.clone();
+    let sessions_for_exit = state.sessions.clone();
+
+    // Thread para aguardar a morte do processo do shell (exit / kill / crash)
+    let exit_app = app_handle.clone();
+    let exit_id = session_id.clone();
+    let sessions_cleanup = sessions_for_exit.clone();
+    thread::spawn(move || {
+        // No Windows / ConPTY, `wait()` bloqueia até que o handle do processo seja sinalizado
+        loop {
+            let has_exited = if let Ok(mut child_lock) = child_for_wait.lock() {
+                match child_lock.try_wait() {
+                    Ok(Some(_status)) => true,
+                    Ok(None) => false,
+                    Err(_) => true,
+                }
+            } else {
+                true
+            };
+
+            if has_exited {
+                break;
+            }
+            thread::sleep(std::time::Duration::from_millis(150));
+        }
+
+        if let Ok(mut sess) = sessions_cleanup.lock() {
+            sess.remove(&exit_id);
+        }
+        let _ = exit_app.emit("pty-exit", exit_id);
+    });
+
     thread::spawn(move || {
         // O shell reporta o diretório atual pelo prompt (OSC 9;9 / OSC 7);
         // o scanner remonta sequências partidas entre leituras.
@@ -291,8 +325,12 @@ pub fn spawn_pty(
                 },
             );
         }
-        // Quando o processo do shell é encerrado (exit/Ctrl+D/EOF), emite pty-exit
-        let _ = app_handle.emit("pty-exit", session_id);
+        // Fallback: se o reader fechar antes do wait, garante limpeza e evento
+        if let Ok(mut sess) = sessions_for_exit.lock() {
+            if sess.remove(&session_id).is_some() {
+                let _ = app_handle.emit("pty-exit", session_id);
+            }
+        }
     });
 
     Ok(())
