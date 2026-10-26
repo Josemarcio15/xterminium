@@ -159,7 +159,11 @@
       onVpsPrev: () => vpsAuto.prev(),
       onVpsSelect: () => vpsAuto.selectCurrent(),
       onVpsClose: () => vpsAuto.close(),
-      triggerVpsManual: () => vpsAuto.trigger(),
+      triggerVpsManual: () => {
+        cdAuto.close();
+        aliasSug.close();
+        vpsAuto.trigger();
+      },
 
       hasActiveDir: () =>
         dirAuto.showDirDropdown && dirAuto.filteredPaths.length > 0,
@@ -167,7 +171,11 @@
       onDirPrev: () => dirAuto.prev(),
       onDirSelect: () => dirAuto.selectCurrent(),
       onDirClose: () => dirAuto.close(),
-      triggerDirManual: () => dirAuto.trigger(),
+      triggerDirManual: () => {
+        cdAuto.close();
+        aliasSug.close();
+        dirAuto.trigger();
+      },
 
       hasActiveCd: () => cdAuto.isOpen && cdAuto.directories.length > 0,
       onCdNext: () => cdAuto.next(),
