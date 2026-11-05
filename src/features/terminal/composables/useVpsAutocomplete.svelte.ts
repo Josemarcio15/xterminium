@@ -2,6 +2,7 @@ import { Terminal } from "@xterm/xterm";
 import { PtyService } from "../../../core/services";
 import { configStore } from "../../../core/stores/config.svelte";
 import type { PipelineItem } from "../components/VpsPipelineDropdown.svelte";
+import type { PipelineArgOption } from "../components/ArgsDualColumnModal.svelte";
 
 export function useVpsAutocomplete(
   getId: () => string,
@@ -9,34 +10,47 @@ export function useVpsAutocomplete(
   getTerm: () => Terminal | null,
   getContainer: () => HTMLDivElement | null,
 ) {
+  // Modal de Colunas Duplas (Args 1 & Args 2)
+  let showDualModal = $state(false);
+  let activeColumn = $state<"arg1" | "arg2">("arg1");
+  let arg1List = $state<PipelineArgOption[]>([]);
+  let arg2List = $state<PipelineArgOption[]>([]);
+  let selectedArg1Index = $state(0);
+  let selectedArg2Index = $state(0);
+
+  // Dropdown da VPS
   let showDropdown = $state(false);
-  let activeStep = $state<"arg1" | "vps" | "arg2">("arg1");
+  let activeStep = $state<"dual" | "vps">("dual");
   let items = $state<PipelineItem[]>([]);
   let selectedIndex = $state(0);
   let dropdownPosition = $state({ x: 100, y: 100 });
   let activeTrigger = $state("");
   let stepTitle = $state("");
-  let stepColor = $state<"amber" | "purple" | "emerald">("amber");
+  let stepColor = $state<"amber" | "purple" | "emerald">("purple");
   let eraseLength = 0;
-  let lastAppliedSuffix = "";
+
+  // Guarda o sufixo escolhido (Args 2) para ser anexado após a VPS
+  let pendingSuffix = "";
+  let dismissedTrigger = "";
 
   function close() {
-    // Se estava na etapa de Args 1 e apertou Esc, avança diretamente para a etapa da VPS!
-    if (showDropdown && activeStep === "arg1") {
-      openVpsStep();
-      return;
-    }
-
+    showDualModal = false;
     showDropdown = false;
     items = [];
     selectedIndex = 0;
     activeTrigger = "";
   }
 
+  function dismiss() {
+    dismissedTrigger = activeTrigger;
+    close();
+  }
+
   function openVpsStep() {
+    showDualModal = false;
     const hosts = configStore.hosts || [];
     if (hosts.length === 0) {
-      showDropdown = false;
+      close();
       return;
     }
     activeStep = "vps";
@@ -48,32 +62,9 @@ export function useVpsAutocomplete(
       id: `vps-${h.id}`,
       label: h.label || h.ip,
       sublabel: `${h.user}@${h.ip}${h.port && h.port !== "22" ? ` :${h.port}` : ""}`,
-      value: (h.label ? h.label.trim().replace(/\s+/g, "_") : `${h.user}@${h.ip}`),
+      value: h.label ? h.label.trim().replace(/\s+/g, "_") : `${h.user}@${h.ip}`,
       type: "vps" as const,
       raw: h,
-    }));
-    selectedIndex = 0;
-    updatePosition();
-    showDropdown = true;
-  }
-
-  function openSuffixStep() {
-    const suffixArgs = configStore.vpsPipeline?.suffixArgs || [];
-    if (suffixArgs.length === 0) {
-      showDropdown = false;
-      return;
-    }
-    activeStep = "arg2";
-    stepTitle = `Args 2 (Pós-VPS / Destino)`;
-    stepColor = "emerald";
-    eraseLength = 0;
-
-    items = suffixArgs.map((suf) => ({
-      id: `arg2-${suf}`,
-      label: suf,
-      sublabel: "Caminho remoto pós-VPS",
-      value: suf,
-      type: "arg2" as const,
     }));
     selectedIndex = 0;
     updatePosition();
@@ -97,19 +88,18 @@ export function useVpsAutocomplete(
     const posX = rect.left + cursorX * cellWidth;
     const posY = rect.top + (cursorY + 1.2) * cellHeight;
     const finalY =
-      posY + 220 > window.innerHeight ? Math.max(10, posY - 240) : posY;
+      posY + 260 > window.innerHeight ? Math.max(10, posY - 280) : posY;
 
     dropdownPosition = {
-      x: Math.min(posX, Math.max(10, window.innerWidth - 380)),
+      x: Math.min(posX, Math.max(10, window.innerWidth - 500)),
       y: finalY,
     };
   }
 
-  // Avaliação automática chamada em tempo real durante a digitação
   function check(isOtherOpen: boolean) {
     const term = getTerm();
     if (!term || isOtherOpen) {
-      if (showDropdown) close();
+      if (showDualModal || showDropdown) close();
       return;
     }
 
@@ -122,7 +112,8 @@ export function useVpsAutocomplete(
     }
 
     if (!textBeforeCursor || textBeforeCursor.trim().length === 0) {
-      if (showDropdown) close();
+      dismissedTrigger = "";
+      if (showDualModal || showDropdown) close();
       return;
     }
 
@@ -132,196 +123,151 @@ export function useVpsAutocomplete(
       ...(configStore.commands || []).map((c) => c.command),
     ];
 
-    // Procura se a linha começa ou contém um dos gatilhos seguido de espaço: ex: "ssh ", "rsync -avz "
+    // Procura se a linha começa ou contém um dos gatilhos seguido de espaço: ex: "ssh ", "rsync "
     const match = textBeforeCursor.match(/(?:^|[\s;&|❯$#>%\n\r])([a-zA-Z0-9_\-]+)\s+(.*)$/);
     if (!match) {
-      if (showDropdown) close();
+      dismissedTrigger = "";
+      if (showDualModal || showDropdown) close();
       return;
     }
 
     const typedCmd = match[1].toLowerCase();
     if (!triggers.includes(typedCmd)) {
-      if (showDropdown) close();
+      dismissedTrigger = "";
+      if (showDualModal || showDropdown) close();
+      return;
+    }
+
+    // Se o usuário já dispensou para esse comando na linha atual
+    if (dismissedTrigger === typedCmd) {
+      if (showDualModal || showDropdown) close();
       return;
     }
 
     activeTrigger = typedCmd;
     const afterCmd = match[2]; // o que foi digitado após o comando e o espaço
 
-    // Identifica tokens após o comando
     const tokens = afterCmd.trim().split(/\s+/).filter(Boolean);
-    const lastWord = afterCmd.endsWith(" ") ? "" : (tokens[tokens.length - 1] || "");
-
-    const prefixArgs = configStore.vpsPipeline?.prefixArgs || [];
-    const suffixArgs = configStore.vpsPipeline?.suffixArgs || [];
     const hosts = configStore.hosts || [];
 
-    // FASE 1: O usuário acabou de digitar o comando e está no primeiro argumento (ex: "ssh " ou "ssh -")
-    // Se digitou uma flag (ex: "-p 8080") OU se apertou Esc para pular, passamos para a Fase 2 (VPS)
-    const isAtFirstArg = tokens.length === 0 || (tokens.length === 1 && !afterCmd.endsWith(" ") && lastWord.startsWith("-"));
-
-    // Se houver prefixArgs configurados e estiver no primeiro argumento e NÃO tiver pulado explicitamente com Esc
-    if (prefixArgs.length > 0 && isAtFirstArg && activeStep !== "vps") {
-      activeStep = "arg1";
-      stepTitle = `Args 1 (Pré-VPS) para ${typedCmd.toUpperCase()}`;
-      stepColor = "amber";
-      eraseLength = lastWord.length;
-
-      const q = lastWord.toLowerCase();
-      const filteredPrefix = prefixArgs.filter((a) => a.toLowerCase().includes(q));
-
-      if (filteredPrefix.length > 0) {
-        items = filteredPrefix.map((arg) => ({
-          id: `arg1-${arg}`,
-          label: arg,
-          sublabel: "Argumento pré-vps",
-          value: `${arg} `,
-          type: "arg1" as const,
-        }));
-        if (selectedIndex >= items.length) selectedIndex = 0;
-        updatePosition();
-        showDropdown = true;
-        return;
-      }
-    }
-
-    // FASE 2: Busca da VPS
-    // Acontece se:
-    // 1) O usuário apertou Esc na fase 1 (activeStep === "vps")
-    // 2) O usuário já digitou/escolheu uma flag (ex: "ssh -p 8080 ")
-    // 3) Não há prefixArgs cadastrados
-    // 4) O usuário começou a digitar o nome da VPS (não começa com "-")
+    // Se já foi digitada uma VPS completa na linha, não precisa de modal
     const hasHostSelected = hosts.some((h) => {
       const alias = (h.label || "").trim().toLowerCase();
       const ip = h.ip.toLowerCase();
       return tokens.some((t) => t.toLowerCase() === alias || t.toLowerCase() === ip || t.toLowerCase().includes(ip));
     });
 
-    if (!hasHostSelected) {
-      activeStep = "vps";
-      stepTitle = `Selecionar VPS para ${typedCmd.toUpperCase()}`;
-      stepColor = "purple";
-      eraseLength = lastWord.length;
-
-      const q = lastWord.toLowerCase();
-      const filteredHosts = hosts.filter((h) => {
-        const lMatch = h.label && h.label.toLowerCase().includes(q);
-        const ipMatch = h.ip.toLowerCase().includes(q);
-        const uMatch = h.user.toLowerCase().includes(q);
-        return lMatch || ipMatch || uMatch;
-      });
-
-      if (filteredHosts.length > 0) {
-        items = filteredHosts.map((h) => ({
-          id: `vps-${h.id}`,
-          label: h.label || h.ip,
-          sublabel: `${h.user}@${h.ip}${h.port && h.port !== "22" ? ` :${h.port}` : ""}`,
-          value: (h.label ? h.label.trim().replace(/\s+/g, "_") : `${h.user}@${h.ip}`),
-          type: "vps" as const,
-          raw: h,
-        }));
-        if (selectedIndex >= items.length) selectedIndex = 0;
-        updatePosition();
-        showDropdown = true;
-        return;
-      }
+    if (hasHostSelected) {
+      if (showDualModal || showDropdown) close();
+      return;
     }
 
-    // FASE 3: Se a VPS já foi inserida de verdade na linha, sugere Args 2 logo após a VPS
-    if (hasHostSelected && suffixArgs.length > 0) {
-      // Se a linha termina exatamente com o sufixo que acabou de ser aplicado, NÃO sugere novamente
-      if (lastAppliedSuffix && textBeforeCursor.endsWith(lastAppliedSuffix)) {
-        close();
-        return;
-      }
+    // Se ainda estamos no início após o comando (apenas deu espaço ou começou a digitar flags)
+    const isJustAfterCommand = tokens.length === 0 || (tokens.length === 1 && !afterCmd.endsWith(" ") && afterCmd.startsWith("-"));
 
-      // Se a linha não termina mais com o sufixo aplicado (o usuário apagou), reseta para permitir sugerir de novo
-      if (lastAppliedSuffix && !textBeforeCursor.endsWith(lastAppliedSuffix)) {
-        lastAppliedSuffix = "";
-      }
+    if (isJustAfterCommand && !showDropdown) {
+      // Carrega listas de Args 1 e Args 2
+      const prefixArgs = configStore.vpsPipeline?.prefixArgs || [];
+      const suffixArgs = configStore.vpsPipeline?.suffixArgs || [];
 
-      // Procura se tem algum sufixo já digitado por completo na linha
-      const alreadyHasSuffix = suffixArgs.some((suf) => textBeforeCursor.endsWith(suf));
-      if (alreadyHasSuffix) {
-        close();
-        return;
-      }
+      // Monta lista de Arg 1
+      arg1List = [
+        { label: "Nenhum (padrão)", value: "" },
+        ...prefixArgs.map((p) => ({ label: p, value: p })),
+      ];
 
-      // Encontra a VPS que está na linha
-      const matchedHost = hosts.find((h) => {
-        const alias = (h.label || "").trim().toLowerCase();
-        const ip = h.ip.toLowerCase();
-        return tokens.some((t) => t.toLowerCase() === alias || t.toLowerCase().startsWith(alias) || t.toLowerCase() === ip || t.toLowerCase().startsWith(ip));
-      });
+      // Monta lista de Arg 2
+      arg2List = [
+        { label: "Nenhum (padrão)", value: "" },
+        ...suffixArgs.map((s) => ({ label: s, value: s })),
+      ];
 
-      // Calcula o que está sendo digitado logo após o identificador da VPS
-      // Exemplo: se a VPS é "local", e a linha é "rsync local:", o fragmento digitado após a VPS é ":"
-      let queryAfterVps = "";
-      if (matchedHost) {
-        const alias = (matchedHost.label || "").trim();
-        const hostToken = alias || `${matchedHost.user}@${matchedHost.ip}`;
-        const idx = textBeforeCursor.lastIndexOf(hostToken);
-        if (idx !== -1) {
-          queryAfterVps = textBeforeCursor.slice(idx + hostToken.length);
-        }
-      }
-
-      const q = queryAfterVps.toLowerCase();
-      const filteredSuffix = suffixArgs.filter((s) => s.toLowerCase().startsWith(q) || s.toLowerCase().includes(q));
-
-      if (filteredSuffix.length > 0) {
-        activeStep = "arg2";
-        stepTitle = `Args 2 (Pós-VPS / Destino)`;
-        stepColor = "emerald";
-        eraseLength = queryAfterVps.length;
-
-        items = filteredSuffix.map((suf) => ({
-          id: `arg2-${suf}`,
-          label: suf,
-          sublabel: "Caminho remoto pós-VPS",
-          value: suf,
-          type: "arg2" as const,
-        }));
-        if (selectedIndex >= items.length) selectedIndex = 0;
-        updatePosition();
-        showDropdown = true;
-        return;
-      }
+      updatePosition();
+      showDualModal = true;
+      activeStep = "dual";
+      return;
     }
-
-    close();
   }
 
+  // Navegação no Modal de Colunas Duplas (Args 1 & Args 2)
+  function dualNext() {
+    if (activeColumn === "arg1") {
+      selectedArg1Index = (selectedArg1Index + 1) % arg1List.length;
+    } else {
+      selectedArg2Index = (selectedArg2Index + 1) % arg2List.length;
+    }
+  }
+
+  function dualPrev() {
+    if (activeColumn === "arg1") {
+      selectedArg1Index = (selectedArg1Index - 1 + arg1List.length) % arg1List.length;
+    } else {
+      selectedArg2Index = (selectedArg2Index - 1 + arg2List.length) % arg2List.length;
+    }
+  }
+
+  function dualToggleColumn() {
+    activeColumn = activeColumn === "arg1" ? "arg2" : "arg1";
+  }
+
+  function dualConfirm() {
+    const chosenArg1 = arg1List[selectedArg1Index]?.value || "";
+    const chosenArg2 = arg2List[selectedArg2Index]?.value || "";
+
+    pendingSuffix = chosenArg2;
+
+    // Se selecionou Arg 1, insere no terminal após o comando
+    if (chosenArg1) {
+      PtyService.writePty(getId(), `${chosenArg1} `).catch(console.error);
+    }
+
+    showDualModal = false;
+    setTimeout(() => openVpsStep(), 30);
+  }
+
+  // Navegação no Dropdown de VPS
   function next() {
-    if (items.length > 0) {
+    if (showDualModal) {
+      dualNext();
+    } else if (items.length > 0) {
       selectedIndex = (selectedIndex + 1) % items.length;
     }
   }
 
   function prev() {
-    if (items.length > 0) {
+    if (showDualModal) {
+      dualPrev();
+    } else if (items.length > 0) {
       selectedIndex = (selectedIndex - 1 + items.length) % items.length;
     }
   }
 
   function selectCurrent() {
-    const selected = items[selectedIndex];
-    if (selected) {
-      apply(selected);
+    if (showDualModal) {
+      dualConfirm();
+    } else {
+      const selected = items[selectedIndex];
+      if (selected) {
+        apply(selected);
+      }
     }
   }
 
   function apply(item: PipelineItem) {
     const term = getTerm();
-    const backspaces = "\x7f".repeat(eraseLength);
-    const toInsert = item.value;
+    let toInsert = item.value;
 
-    PtyService.writePty(getId(), backspaces + toInsert).catch(console.error);
-
-    const prevStep = activeStep;
-    if (prevStep === "arg2") {
-      lastAppliedSuffix = toInsert;
+    // Se havia um Args 2 selecionado (ex: ':~/')
+    if (pendingSuffix) {
+      if (pendingSuffix.startsWith(":")) {
+        toInsert = `${toInsert}${pendingSuffix}`;
+      } else {
+        toInsert = `${toInsert} ${pendingSuffix}`;
+      }
+      pendingSuffix = "";
     }
+
+    PtyService.writePty(getId(), toInsert).catch(console.error);
 
     showDropdown = false;
     items = [];
@@ -331,32 +277,33 @@ export function useVpsAutocomplete(
       term.focus();
       requestAnimationFrame(() => term.focus());
     }
-
-    // Transição automática para a próxima etapa:
-    // Se selecionou Arg 1 -> abre a lista de VPS
-    if (prevStep === "arg1") {
-      setTimeout(() => openVpsStep(), 30);
-    }
-    // Se selecionou a VPS -> abre a lista de Args 2 (se houver cadastrados)
-    else if (prevStep === "vps") {
-      const suffixArgs = configStore.vpsPipeline?.suffixArgs || [];
-      if (suffixArgs.length > 0) {
-        setTimeout(() => openSuffixStep(), 30);
-      }
-    }
   }
 
-  // Mantido para compatibilidade com atalho manual
   function trigger() {
     check(false);
   }
 
   return {
+    get showDualModal() {
+      return showDualModal;
+    },
     get showDropdown() {
       return showDropdown;
     },
-    get activeStep() {
-      return activeStep;
+    get activeColumn() {
+      return activeColumn;
+    },
+    get arg1List() {
+      return arg1List;
+    },
+    get arg2List() {
+      return arg2List;
+    },
+    get selectedArg1Index() {
+      return selectedArg1Index;
+    },
+    get selectedArg2Index() {
+      return selectedArg2Index;
     },
     get items() {
       return items;
@@ -373,12 +320,22 @@ export function useVpsAutocomplete(
     get stepColor() {
       return stepColor;
     },
+    get activeTrigger() {
+      return activeTrigger;
+    },
     check,
     trigger,
     close,
+    dismiss,
     next,
     prev,
+    dualToggleColumn,
+    dualConfirm,
+    openVpsStep,
     selectCurrent,
     apply,
+    setColumn: (col: "arg1" | "arg2") => (activeColumn = col),
+    setArg1Index: (idx: number) => (selectedArg1Index = idx),
+    setArg2Index: (idx: number) => (selectedArg2Index = idx),
   };
 }

@@ -223,7 +223,22 @@ pub fn spawn_pty(
 
     // Sem preferência do usuário: usa o shell padrão do sistema.
     // (A escolha feita nas configurações chega pelo parâmetro `command`.)
-    let cmd_name = command.unwrap_or_else(crate::platform::default_shell_path);
+    let resolved_cmd = match command {
+        Some(ref c) if !c.trim().is_empty() => {
+            let p = std::path::Path::new(c);
+            // Se o executável configurado for absoluto mas não existir neste sistema operacional
+            // (ex: caminho C:\Windows ou C:\Users trazido de backup do Windows para Linux, ou vice-versa),
+            // faz fallback automático para o shell padrão do SO atual para não travar o terminal.
+            if p.is_absolute() && !p.exists() {
+                log::warn!("Shell configurado '{}' não existe neste SO. Usando shell padrão.", c);
+                crate::platform::default_shell_path()
+            } else {
+                c.clone()
+            }
+        }
+        _ => crate::platform::default_shell_path(),
+    };
+    let cmd_name = resolved_cmd;
     // Não injeta se o usuário já configurou `-Command`/`-File` no shell:
     // dois `-Command` no mesmo pwsh entram em conflito.
     let args_conflict = args.as_ref().is_some_and(|list| {

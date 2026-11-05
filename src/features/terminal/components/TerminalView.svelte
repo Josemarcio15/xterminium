@@ -9,6 +9,7 @@
   import { configStore } from "../../../core/stores/config.svelte";
   import SshAutocompleteDropdown from "./SshAutocompleteDropdown.svelte";
   import VpsPipelineDropdown from "./VpsPipelineDropdown.svelte";
+  import ArgsDualColumnModal from "./ArgsDualColumnModal.svelte";
   import DirectoryAutocompleteDropdown from "./DirectoryAutocompleteDropdown.svelte";
   import InlineAutocompletePopup from "./InlineAutocompletePopup.svelte";
   import CdInlineAutocompletePopup from "./CdInlineAutocompletePopup.svelte";
@@ -156,11 +157,12 @@
       closeAlias: () => aliasSug.close(),
 
       hasActiveVps: () =>
-        vpsAuto.showDropdown && vpsAuto.items.length > 0,
+        vpsAuto.showDualModal || (vpsAuto.showDropdown && vpsAuto.items.length > 0),
       onVpsNext: () => vpsAuto.next(),
       onVpsPrev: () => vpsAuto.prev(),
       onVpsSelect: () => vpsAuto.selectCurrent(),
-      onVpsClose: () => vpsAuto.close(),
+      onVpsClose: () => vpsAuto.dismiss(),
+      onVpsToggleColumn: () => vpsAuto.dualToggleColumn(),
       triggerVpsManual: () => {
         cdAuto.close();
         aliasSug.close();
@@ -315,6 +317,24 @@
     ? 'visible pointer-events-auto z-2'
     : 'invisible pointer-events-none z-1'}"
 ></div>
+
+{#if vpsAuto.showDualModal && active}
+  <ArgsDualColumnModal
+    show={vpsAuto.showDualModal}
+    activeColumn={vpsAuto.activeColumn}
+    arg1List={vpsAuto.arg1List}
+    arg2List={vpsAuto.arg2List}
+    selectedArg1Index={vpsAuto.selectedArg1Index}
+    selectedArg2Index={vpsAuto.selectedArg2Index}
+    position={vpsAuto.dropdownPosition}
+    triggerCmd={vpsAuto.activeTrigger}
+    onSelectColumn={vpsAuto.setColumn}
+    onSelectArg1={vpsAuto.setArg1Index}
+    onSelectArg2={vpsAuto.setArg2Index}
+    onConfirm={vpsAuto.dualConfirm}
+    onSkipToVps={vpsAuto.openVpsStep}
+  />
+{/if}
 
 {#if vpsAuto.showDropdown && active}
   <VpsPipelineDropdown

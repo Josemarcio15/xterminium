@@ -19,6 +19,7 @@ export interface ShortcutHandlers {
   onVpsPrev: () => void;
   onVpsSelect: () => void;
   onVpsClose: () => void;
+  onVpsToggleColumn?: () => void;
   triggerVpsManual: () => void;
   // Autocomplete Diretórios Salvos
   hasActiveDir: () => boolean;
@@ -227,6 +228,12 @@ export function createTerminalKeyHandler(
       const isNextTab = isTabKey && !isShift;
 
       if (isVpsActive) {
+        if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+          e.preventDefault();
+          e.stopPropagation();
+          handlers.onVpsToggleColumn?.();
+          return false;
+        }
         if (e.key === "ArrowDown" || isNextTab) {
           e.preventDefault();
           e.stopPropagation();
