@@ -6,9 +6,11 @@ import {
   type CustomAlias,
   type AppTheme,
   type ShellsConfig,
+  type VpsPipelineConfig,
   defaultShortcuts,
   defaultCustomCommands,
   defaultCustomAliases,
+  defaultVpsPipeline,
   defaultTheme,
 } from "../types";
 
@@ -131,6 +133,35 @@ export class ConfigService {
     }
   }
 
+  // Pipeline VPS Desacoplado (Gatilhos, Args 1 e Args 2 independentes)
+  static async loadVpsPipeline(): Promise<VpsPipelineConfig> {
+    try {
+      const content = await invoke<string>("load_config", {
+        filename: "vps_pipeline",
+      });
+      if (content && content.trim()) {
+        const parsed = JSON.parse(content);
+        return {
+          triggers: Array.isArray(parsed?.triggers) ? parsed.triggers : defaultVpsPipeline.triggers,
+          prefixArgs: Array.isArray(parsed?.prefixArgs) ? parsed.prefixArgs : defaultVpsPipeline.prefixArgs,
+          suffixArgs: Array.isArray(parsed?.suffixArgs) ? parsed.suffixArgs : defaultVpsPipeline.suffixArgs,
+        };
+      }
+    } catch (e) {
+      console.error("Erro ao ler ~/.config/xterminium/vps_pipeline.json", e);
+    }
+    return { ...defaultVpsPipeline };
+  }
+
+  static async saveVpsPipeline(pipeline: VpsPipelineConfig): Promise<void> {
+    try {
+      const json = JSON.stringify(pipeline, null, 2);
+      await invoke("save_config", { filename: "vps_pipeline", content: json });
+    } catch (e) {
+      console.error("Erro ao salvar ~/.config/xterminium/vps_pipeline.json", e);
+    }
+  }
+
   // Tema
   static async loadTheme(): Promise<AppTheme> {
     try {
@@ -232,5 +263,30 @@ export class ConfigService {
     } catch (e) {
       console.error("Erro ao salvar ~/.config/xterminium/shells.json", e);
     }
+  }
+
+  // Localização da pasta de configurações
+  static async getConfigLocation(): Promise<{ current_path: string; default_path: string; is_custom: boolean }> {
+    return await invoke<{ current_path: string; default_path: string; is_custom: boolean }>("get_config_location");
+  }
+
+  static async checkMigrationTarget(target_path: string): Promise<{
+    target_exists: boolean;
+    target_has_files: boolean;
+    conflicting_files: string[];
+  }> {
+    return await invoke<{
+      target_exists: boolean;
+      target_has_files: boolean;
+      conflicting_files: string[];
+    }>("check_migration_target", { targetPath: target_path });
+  }
+
+  static async changeConfigLocation(target_path: string, overwrite: boolean): Promise<string> {
+    return await invoke<string>("change_config_location", { targetPath: target_path, overwrite });
+  }
+
+  static async pickConfigFolder(): Promise<string | null> {
+    return await invoke<string | null>("pick_config_folder");
   }
 }

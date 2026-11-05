@@ -30,4 +30,16 @@ export const defaultCustomAliases: CustomAlias[] = [
     command: 'curl -s ifconfig.me',
     description: 'Descobrir IP público da máquina',
   },
+  {
+    id: 'alias-npm-run-dev',
+    alias: 'npm run dev',
+    command: 'npm run dev',
+    description: 'Iniciar servidor de desenvolvimento frontend',
+  },
+  {
+    id: 'alias-tauri-dev',
+    alias: 'npx tauri dev',
+    command: 'npx tauri dev',
+    description: 'Iniciar aplicação desktop em modo dev Tauri',
+  },
 ];

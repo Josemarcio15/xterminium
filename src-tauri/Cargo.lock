@@ -906,6 +906,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "dlib"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab8ecd87370524b461f8557c119c405552c396ed91fc0a8eec68679eab26f94a"
+dependencies = [
+ "libloading",
+]
+
+[[package]]
 name = "dlopen2"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3148,6 +3157,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "pollster"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f3a9f18d041e6d0e102a0a46750538147e5e8992d3b4873aaafee2520b00ce3"
+
+[[package]]
 name = "poly1305"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3508,6 +3523,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "rfd"
+version = "0.17.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "20dafead71c16a34e1ff357ddefc8afc11e7d51d6d2b9fbd07eaa48e3e540220"
+dependencies = [
+ "block2",
+ "dispatch2",
+ "js-sys",
+ "libc",
+ "log",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-core-foundation",
+ "objc2-foundation",
+ "percent-encoding",
+ "pollster",
+ "raw-window-handle",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "wayland-backend",
+ "wayland-client",
+ "wayland-protocols",
+ "web-sys",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "rsa"
 version = "0.9.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3754,6 +3796,12 @@ dependencies = [
  "serde_derive_internals",
  "syn 2.0.119",
 ]
+
+[[package]]
+name = "scoped-tls"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e1cf6437eb19a8f4a6cc0f7dca544973b0b78843adbfeb3683d1a94a0024a294"
 
 [[package]]
 name = "scopeguard"
@@ -5359,6 +5407,7 @@ dependencies = [
  "cc",
  "downcast-rs",
  "rustix",
+ "scoped-tls",
  "smallvec",
  "wayland-sys",
 ]
@@ -5417,6 +5466,8 @@ version = "0.31.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8eab23fefc9e41f8e841df4a9c707e8a8c4ed26e944ef69297184de2785e3be"
 dependencies = [
+ "dlib",
+ "log",
  "pkg-config",
 ]
 
@@ -6036,13 +6087,14 @@ checksum = "ea6fc2961e4ef194dcbfe56bb845534d0dc8098940c7e5c012a258bfec6701bd"
 
 [[package]]
 name = "xterminium"
-version = "0.0.32-alpha"
+version = "0.0.34-alpha"
 dependencies = [
  "async-trait",
  "futures",
  "gtk",
  "log",
  "portable-pty",
+ "rfd",
  "russh",
  "russh-keys",
  "russh-sftp",

@@ -1,7 +1,181 @@
 use std::path::PathBuf;
+use std::sync::Mutex;
+use serde::{Deserialize, Serialize};
+
+static CUSTOM_CONFIG_DIR: Mutex<Option<PathBuf>> = Mutex::new(None);
+
+fn get_pointer_file() -> PathBuf {
+    crate::platform::config_dir().join(".config_location")
+}
 
 pub fn get_config_dir() -> PathBuf {
+    if let Ok(guard) = CUSTOM_CONFIG_DIR.lock() {
+        if let Some(ref path) = *guard {
+            return path.clone();
+        }
+    }
+
+    let ptr = get_pointer_file();
+    if ptr.exists() {
+        if let Ok(custom) = std::fs::read_to_string(ptr) {
+            let custom_trimmed = custom.trim();
+            if !custom_trimmed.is_empty() {
+                let p = PathBuf::from(custom_trimmed);
+                if let Ok(mut guard) = CUSTOM_CONFIG_DIR.lock() {
+                    *guard = Some(p.clone());
+                }
+                return p;
+            }
+        }
+    }
+
     crate::platform::config_dir()
+}
+
+pub fn get_default_config_dir() -> PathBuf {
+    crate::platform::config_dir()
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ConfigLocationInfo {
+    pub current_path: String,
+    pub default_path: String,
+    pub is_custom: bool,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct MigrationCheckResult {
+    pub target_exists: bool,
+    pub target_has_files: bool,
+    pub conflicting_files: Vec<String>,
+}
+
+#[tauri::command]
+pub fn get_config_location() -> Result<ConfigLocationInfo, String> {
+    let current = get_config_dir();
+    let default = get_default_config_dir();
+    let is_custom = current != default;
+    Ok(ConfigLocationInfo {
+        current_path: current.to_string_lossy().to_string(),
+        default_path: default.to_string_lossy().to_string(),
+        is_custom,
+    })
+}
+
+#[tauri::command]
+pub fn check_migration_target(target_path: String) -> Result<MigrationCheckResult, String> {
+    let target = PathBuf::from(target_path.trim());
+    if !target.exists() {
+        return Ok(MigrationCheckResult {
+            target_exists: false,
+            target_has_files: false,
+            conflicting_files: vec![],
+        });
+    }
+
+    let current = get_config_dir();
+    let mut conflicts = Vec::new();
+    let mut has_files = false;
+
+    if let Ok(entries) = std::fs::read_dir(&target) {
+        for entry in entries.flatten() {
+            if let Ok(ft) = entry.file_type() {
+                if ft.is_file() {
+                    has_files = true;
+                    let fname = entry.file_name().to_string_lossy().to_string();
+                    if fname.ends_with(".json") && current.join(&fname).exists() {
+                        conflicts.push(fname);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(MigrationCheckResult {
+        target_exists: true,
+        target_has_files: has_files,
+        conflicting_files: conflicts,
+    })
+}
+
+#[tauri::command]
+pub fn change_config_location(target_path: String, overwrite: bool) -> Result<String, String> {
+    let trimmed = target_path.trim();
+    if trimmed.is_empty() {
+        return Err("O caminho não pode ser vazio".to_string());
+    }
+
+    let target = PathBuf::from(trimmed);
+    let current = get_config_dir();
+
+    if current == target {
+        return Ok(target.to_string_lossy().to_string());
+    }
+
+    std::fs::create_dir_all(&target).map_err(|e| format!("Falha ao criar diretório de destino: {}", e))?;
+
+    // Mover / copiar arquivos da pasta antiga para a nova pasta
+    if current.exists() {
+        if let Ok(entries) = std::fs::read_dir(&current) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_file() {
+                    let fname = entry.file_name();
+                    let fname_str = fname.to_string_lossy();
+                    // Evitar mover o arquivo ponteiro se ele estiver na raiz
+                    if fname_str == ".config_location" {
+                        continue;
+                    }
+                    if fname_str.ends_with(".json") {
+                        let dest_file = target.join(&fname);
+                        if dest_file.exists() && !overwrite {
+                            // Se já existir e não quer sobrescrever, mantém o do destino e remove o antigo ou preserva
+                            continue;
+                        }
+                        if let Err(e) = std::fs::copy(&path, &dest_file) {
+                            return Err(format!("Falha ao mover arquivo {}: {}", fname_str, e));
+                        }
+                        let _ = std::fs::remove_file(&path);
+                    }
+                }
+            }
+        }
+    }
+
+    // Atualizar ponteiro
+    let default = get_default_config_dir();
+    let ptr = get_pointer_file();
+
+    if target == default {
+        // Se voltou para o padrão, podemos deletar o ponteiro
+        if ptr.exists() {
+            let _ = std::fs::remove_file(&ptr);
+        }
+        if let Ok(mut guard) = CUSTOM_CONFIG_DIR.lock() {
+            *guard = None;
+        }
+    } else {
+        if let Some(parent) = ptr.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        std::fs::write(&ptr, target.to_string_lossy().to_string())
+            .map_err(|e| format!("Falha ao salvar ponteiro de configuração: {}", e))?;
+        if let Ok(mut guard) = CUSTOM_CONFIG_DIR.lock() {
+            *guard = Some(target.clone());
+        }
+    }
+
+    Ok(target.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub fn pick_config_folder() -> Result<Option<String>, String> {
+    let current = get_config_dir();
+    let folder = rfd::FileDialog::new()
+        .set_directory(current)
+        .pick_folder();
+
+    Ok(folder.map(|p| p.to_string_lossy().to_string()))
 }
 
 #[tauri::command]

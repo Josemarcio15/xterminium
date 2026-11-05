@@ -7,6 +7,7 @@
   import AliasesModal from "../../features/settings/modals/AliasesModal.svelte";
   import ThemeModal from "../../features/settings/modals/ThemeModal.svelte";
   import ShellModal from "../../features/settings/modals/ShellModal.svelte";
+  import ConfigLocationModal from "../../features/settings/modals/ConfigLocationModal.svelte";
   import AboutModal from "../../features/settings/modals/AboutModal.svelte";
   import Button from "@/shared/components/Button.svelte";
   import CpuIndicator from "../components/CpuIndicator.svelte";
@@ -45,6 +46,7 @@
   let showAliasesModal = $state(false);
   let showShortcutsModal = $state(false);
   let showThemeModal = $state(false);
+  let showConfigLocationModal = $state(false);
   let showShellModal = $state(false);
   let showAboutModal = $state(false);
   let tabsScrollArea: HTMLDivElement | null = $state(null);
@@ -56,6 +58,7 @@
     showAliasesModal = false;
     showShortcutsModal = false;
     showThemeModal = false;
+    showConfigLocationModal = false;
     showShellModal = false;
     showAboutModal = false;
   }
@@ -231,6 +234,7 @@
         showCommandsModal ||
         showShortcutsModal ||
         showThemeModal ||
+        showConfigLocationModal ||
         showShellModal ||
         showAboutModal ||
         showFileManager
@@ -411,6 +415,34 @@
             <span class="flex-1">Shell do Terminal</span>
           </button>
 
+          <!-- Item: Pasta de Configuração -->
+          <button
+            type="button"
+            class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-white/10 hover:text-(--text-base) transition-all text-left w-full cursor-pointer border-none bg-transparent text-(--text-base)"
+            onclick={() => {
+              showMenu = false;
+              closeAllModals();
+              showConfigLocationModal = true;
+            }}
+          >
+            <svg
+              class="text-sky-400 shrink-0"
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              <circle cx="12" cy="13" r="2"></circle>
+            </svg>
+            <span class="flex-1">Pasta de Configuração</span>
+          </button>
+
           <div class="h-[1px] bg-(--border-subtle) my-1"></div>
 
           <!-- Item: Atalhos de Teclado -->
@@ -538,6 +570,11 @@
       <ShellModal
         show={showShellModal}
         onClose={() => (showShellModal = false)}
+      />
+
+      <ConfigLocationModal
+        show={showConfigLocationModal}
+        onClose={() => (showConfigLocationModal = false)}
       />
 
       <AboutModal

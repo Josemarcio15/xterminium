@@ -30,7 +30,7 @@
       SftpService.getLocalHome().then((home) => {
         if (home) {
           const sep = home.includes('\\') ? '\\' : '/';
-          defaultSshKeyPath = `${home}${sep}.ssh${sep}id_rsa`;
+          defaultSshKeyPath = `${home}${sep}.ssh${sep}id_ed25519`;
         }
       }).catch(() => {});
     }
@@ -42,7 +42,7 @@
     formUser = '';
     formIp = '';
     formPort = '22';
-    formKey = defaultSshKeyPath || '~/.ssh/id_rsa';
+    formKey = defaultSshKeyPath || '~/.ssh/id_ed25519';
     showForm = !showForm;
   }
 
@@ -136,7 +136,7 @@
         <input class="w-16 bg-(--bg-item-input) border border-(--border-subtle) rounded text-(--text-base) px-2 py-1.5 text-xs outline-none focus:border-sky-400 transition-colors" type="text" placeholder="Porta" bind:value={formPort} />
       </div>
       <input class="bg-(--bg-item-input) border border-(--border-subtle) rounded text-(--text-base) px-2 py-1.5 text-xs outline-none focus:border-sky-400 transition-colors" type="text" placeholder="IP / Hostname (ex: 192.168.1.10)" bind:value={formIp} required />
-      <input class="bg-(--bg-item-input) border border-(--border-subtle) rounded text-(--text-base) px-2 py-1.5 text-xs outline-none focus:border-sky-400 transition-colors" type="text" placeholder="Chave Privada (ex: ~/.ssh/id_rsa - opcional)" bind:value={formKey} />
+      <input class="bg-(--bg-item-input) border border-(--border-subtle) rounded text-(--text-base) px-2 py-1.5 text-xs outline-none focus:border-sky-400 transition-colors" type="text" placeholder="Chave Privada (ex: ~/.ssh/id_ed25519 - opcional)" bind:value={formKey} />
       <Button type="submit" variant="primary" size="sm" class="w-full justify-center">
         {editingId ? 'Atualizar Conexão' : 'Salvar'}
       </Button>

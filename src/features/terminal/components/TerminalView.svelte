@@ -8,6 +8,7 @@
   import { PtyService } from "../../../core/services";
   import { configStore } from "../../../core/stores/config.svelte";
   import SshAutocompleteDropdown from "./SshAutocompleteDropdown.svelte";
+  import VpsPipelineDropdown from "./VpsPipelineDropdown.svelte";
   import DirectoryAutocompleteDropdown from "./DirectoryAutocompleteDropdown.svelte";
   import InlineAutocompletePopup from "./InlineAutocompletePopup.svelte";
   import CdInlineAutocompletePopup from "./CdInlineAutocompletePopup.svelte";
@@ -106,6 +107,7 @@
     if (suggestionTimer) return;
     suggestionTimer = setTimeout(async () => {
       suggestionTimer = null;
+      vpsAuto.check(dirAuto.showDirDropdown || cdAuto.isOpen);
       const isDropdownOpen = vpsAuto.showDropdown || dirAuto.showDirDropdown;
       const isCd = await cdAuto.check(isDropdownOpen);
       aliasSug.check(isDropdownOpen || isCd);
@@ -154,7 +156,7 @@
       closeAlias: () => aliasSug.close(),
 
       hasActiveVps: () =>
-        vpsAuto.showDropdown && vpsAuto.filteredHosts.length > 0,
+        vpsAuto.showDropdown && vpsAuto.items.length > 0,
       onVpsNext: () => vpsAuto.next(),
       onVpsPrev: () => vpsAuto.prev(),
       onVpsSelect: () => vpsAuto.selectCurrent(),
@@ -315,11 +317,12 @@
 ></div>
 
 {#if vpsAuto.showDropdown && active}
-  <SshAutocompleteDropdown
-    hosts={vpsAuto.filteredHosts}
-    selectedIndex={vpsAuto.selectedHostIndex}
+  <VpsPipelineDropdown
+    items={vpsAuto.items}
+    selectedIndex={vpsAuto.selectedIndex}
     position={vpsAuto.dropdownPosition}
-    commandName={vpsAuto.activeMatchedCommand?.command || "vps"}
+    stepTitle={vpsAuto.stepTitle}
+    stepColor={vpsAuto.stepColor}
     onSelect={vpsAuto.apply}
   />
 {/if}

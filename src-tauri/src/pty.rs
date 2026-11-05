@@ -162,7 +162,18 @@ pub fn list_subdirectories(id: String, state: State<PtyState>, relative_path: Op
     if let Some(rel) = relative_path {
         let trimmed = rel.trim();
         if !trimmed.is_empty() {
-            target = target.join(trimmed);
+            if trimmed == "~" {
+                target = crate::platform::home_dir();
+            } else if trimmed.starts_with("~/") || trimmed.starts_with("~\\") {
+                target = crate::platform::home_dir().join(&trimmed[2..]);
+            } else {
+                let path = std::path::Path::new(trimmed);
+                if path.is_absolute() {
+                    target = path.to_path_buf();
+                } else {
+                    target = target.join(trimmed);
+                }
+            }
         }
     }
 

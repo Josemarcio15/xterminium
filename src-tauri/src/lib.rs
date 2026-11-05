@@ -10,7 +10,10 @@ pub mod updater;
 pub mod window;
 
 use clipboard::{read_clipboard, write_clipboard};
-use config::{load_config, save_config};
+use config::{
+    change_config_location, check_migration_target, get_config_location, load_config,
+    pick_config_folder, save_config,
+};
 use cpu::{get_cpu_temp, get_cpu_usage, CpuMonitorState};
 use pty::{close_pty, get_pty_cwd, get_pty_status, list_subdirectories, resize_pty, spawn_pty, write_pty, PtyState};
 use sftp::*;
@@ -45,6 +48,10 @@ pub fn run() {
             write_clipboard,
             load_config,
             save_config,
+            get_config_location,
+            check_migration_target,
+            change_config_location,
+            pick_config_folder,
             sftp_connect,
             sftp_disconnect,
             sftp_list_remote,

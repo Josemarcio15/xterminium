@@ -7,8 +7,10 @@ import {
   type ShellsConfig,
   type ShellProfile,
   type ShellPreference,
+  type VpsPipelineConfig,
   defaultCustomCommands,
   defaultCustomAliases,
+  defaultVpsPipeline,
   defaultShortcuts,
   defaultTheme,
   applyThemeToDom,
@@ -24,6 +26,7 @@ export class ConfigStore {
   theme = $state<AppTheme>({ ...defaultTheme });
   customThemes = $state<AppTheme[]>([]);
   shells = $state<ShellsConfig>({ default: null, custom: [] });
+  vpsPipeline = $state<VpsPipelineConfig>({ ...defaultVpsPipeline });
   initialized = $state(false);
 
   #initPromise: Promise<void> | null = null;
@@ -33,7 +36,7 @@ export class ConfigStore {
     if (this.#initPromise) return this.#initPromise;
 
     this.#initPromise = (async () => {
-      const [h, c, a, s, p, t, ct, sh] = await Promise.all([
+      const [h, c, a, s, p, t, ct, sh, vp] = await Promise.all([
         ConfigService.loadSshHosts(),
         ConfigService.loadCustomCommands(),
         ConfigService.loadAliases(),
@@ -42,6 +45,7 @@ export class ConfigStore {
         ConfigService.loadTheme(),
         ConfigService.loadCustomThemes(),
         ConfigService.loadShells(),
+        ConfigService.loadVpsPipeline(),
       ]);
       this.hosts = h;
       this.commands = c;
@@ -51,6 +55,7 @@ export class ConfigStore {
       this.theme = t;
       this.customThemes = ct;
       this.shells = sh;
+      this.vpsPipeline = vp;
       applyThemeToDom(t);
       this.initialized = true;
     })().catch((e) => {
@@ -103,6 +108,51 @@ export class ConfigStore {
   async resetCommands() {
     this.commands = [...defaultCustomCommands];
     await ConfigService.saveCustomCommands(this.commands);
+  }
+
+  // Métodos do Pipeline VPS Desacoplado
+  async addPipelineTrigger(cmd: string) {
+    const val = cmd.trim().toLowerCase();
+    if (val && !this.vpsPipeline.triggers.includes(val)) {
+      this.vpsPipeline.triggers.push(val);
+      await ConfigService.saveVpsPipeline(this.vpsPipeline);
+    }
+  }
+
+  async removePipelineTrigger(cmd: string) {
+    this.vpsPipeline.triggers = this.vpsPipeline.triggers.filter((t) => t !== cmd);
+    await ConfigService.saveVpsPipeline(this.vpsPipeline);
+  }
+
+  async addPipelinePrefixArg(arg: string) {
+    const val = arg.trim();
+    if (val && !this.vpsPipeline.prefixArgs.includes(val)) {
+      this.vpsPipeline.prefixArgs.push(val);
+      await ConfigService.saveVpsPipeline(this.vpsPipeline);
+    }
+  }
+
+  async removePipelinePrefixArg(arg: string) {
+    this.vpsPipeline.prefixArgs = this.vpsPipeline.prefixArgs.filter((a) => a !== arg);
+    await ConfigService.saveVpsPipeline(this.vpsPipeline);
+  }
+
+  async addPipelineSuffixArg(arg: string) {
+    const val = arg.trim();
+    if (val && !this.vpsPipeline.suffixArgs.includes(val)) {
+      this.vpsPipeline.suffixArgs.push(val);
+      await ConfigService.saveVpsPipeline(this.vpsPipeline);
+    }
+  }
+
+  async removePipelineSuffixArg(arg: string) {
+    this.vpsPipeline.suffixArgs = this.vpsPipeline.suffixArgs.filter((a) => a !== arg);
+    await ConfigService.saveVpsPipeline(this.vpsPipeline);
+  }
+
+  async resetVpsPipeline() {
+    this.vpsPipeline = { ...defaultVpsPipeline };
+    await ConfigService.saveVpsPipeline(this.vpsPipeline);
   }
 
   // Custom Aliases
@@ -235,6 +285,13 @@ export class ConfigStore {
       custom: this.shells.custom.filter((s) => s.id !== id),
     };
     await ConfigService.saveShells(this.shells);
+  }
+
+  // Recarregar todas as configurações (útil após migração de pasta)
+  async reloadAll() {
+    this.initialized = false;
+    this.#initPromise = null;
+    await this.init();
   }
 }
 

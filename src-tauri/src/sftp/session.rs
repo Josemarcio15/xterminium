@@ -128,7 +128,7 @@ pub async fn connect_session(
         } else {
             let home = crate::platform::home_dir();
             let ssh_dir = home.join(".ssh");
-            let candidates = ["id_rsa", "id_ed25519", "id_ecdsa", "id_dsa"];
+            let candidates = ["id_ed25519", "id_rsa", "id_ecdsa", "id_dsa"];
             candidates
                 .iter()
                 .map(|c| ssh_dir.join(c))

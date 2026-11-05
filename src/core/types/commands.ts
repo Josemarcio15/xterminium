@@ -6,6 +6,19 @@ export interface CustomCommand {
   suffixArgs?: string;  // Caminho ou argumentos após a VPS (ex: ':~/teste/aqui/', ':~/', '/var/www')
 }
 
+// Configuração modular desacoplada: Peças independentes
+export interface VpsPipelineConfig {
+  triggers: string[];    // ex: ['ssh', 'sshfs', 'rsync', 'scp', 'ping']
+  prefixArgs: string[];  // ex: ['-p 8080', '-p 8358', '-avz', '-c 4']
+  suffixArgs: string[];  // ex: [':~/', ':/var/www/', ':/etc/nginx/']
+}
+
+export const defaultVpsPipeline: VpsPipelineConfig = {
+  triggers: ['ssh', 'sshfs', 'rsync', 'scp', 'ping'],
+  prefixArgs: ['-p 8080', '-p 8358', '-avz', '-c 4'],
+  suffixArgs: [':~/', ':/var/www/html/', ':/etc/nginx/'],
+};
+
 export const defaultCustomCommands: CustomCommand[] = [
   {
     id: 'cmd-ssh',
