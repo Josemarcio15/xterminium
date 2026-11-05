@@ -14,6 +14,11 @@ export function useCdAutocomplete(
   let position = $state({ x: 100, y: 100 });
   let isOpen = $state(false);
 
+  const PAGE_SIZE = 10;
+  let visibleCount = PAGE_SIZE;
+  let allFiltered: string[] = [];
+  let lastQueryKey = "";
+
   // Cache para evitar spam de chamadas assíncronas ao Rust
   let cachedCwd = "";
   let cachedDirs: string[] = [];
@@ -26,14 +31,14 @@ export function useCdAutocomplete(
       : null
   );
 
-  async function fetchDirectoriesIfNeeded(): Promise<string[]> {
+  async function fetchDirectoriesIfNeeded(relativePath?: string): Promise<string[]> {
     if (getType() === "ssh") {
       return [];
     }
 
     try {
       isFetching = true;
-      const res = await PtyService.listSubdirectories(getId());
+      const res = await PtyService.listSubdirectories(getId(), relativePath);
       cachedDirs = res || [];
       return cachedDirs;
     } catch (err) {
@@ -84,11 +89,17 @@ export function useCdAutocomplete(
       return false;
     }
 
-    const typedQuery = (cdMatch[1] || "").trim();
+    const fullQuery = (cdMatch[1] || "").trimStart();
+
+    // Separa "MEGA/sub/pa" em pasta pai ("MEGA/sub/") e o trecho final ("pa").
+    // Digitar "/" (ou "\" no Windows) dispara a sugestão do próximo nível.
+    const lastSep = Math.max(fullQuery.lastIndexOf("/"), fullQuery.lastIndexOf("\\"));
+    const parentPath = lastSep >= 0 ? fullQuery.slice(0, lastSep + 1).replace(/["']/g, "") : "";
+    const typedQuery = lastSep >= 0 ? fullQuery.slice(lastSep + 1) : fullQuery.trim();
     matchedQuery = typedQuery;
 
-    // Busca diretórios
-    const allDirs = await fetchDirectoriesIfNeeded();
+    // Busca diretórios (relativos à pasta pai, se houver)
+    const allDirs = await fetchDirectoriesIfNeeded(parentPath || undefined);
     console.log("[CD Autocomplete] Matched CD!", { textBeforeCursor, typedQuery, allDirsCount: allDirs.length });
     if (!allDirs || allDirs.length === 0) {
       close();
@@ -107,8 +118,15 @@ export function useCdAutocomplete(
     }
 
     totalMatches = filtered.length;
-    // Exibe no máximo 10 diretórios por vez
-    directories = filtered.slice(0, 10);
+    // Exibe 10 diretórios por vez; ao navegar até o último, carrega mais 10 (ver next())
+    const queryKey = parentPath + "\u0000" + typedQuery;
+    if (queryKey !== lastQueryKey) {
+      lastQueryKey = queryKey;
+      visibleCount = PAGE_SIZE;
+      selectedIndex = 0;
+    }
+    allFiltered = filtered;
+    directories = filtered.slice(0, visibleCount);
 
     if (selectedIndex >= directories.length) {
       selectedIndex = 0;
@@ -146,13 +164,23 @@ export function useCdAutocomplete(
   function close() {
     isOpen = false;
     directories = [];
+    allFiltered = [];
+    visibleCount = PAGE_SIZE;
+    lastQueryKey = "";
     totalMatches = 0;
     selectedIndex = 0;
     matchedQuery = "";
   }
 
   function next() {
-    if (directories.length > 0) {
+    if (directories.length === 0) return;
+    const isLast = selectedIndex === directories.length - 1;
+    if (isLast && directories.length < allFiltered.length) {
+      // Chegou ao fim da página: carrega mais 10
+      visibleCount += PAGE_SIZE;
+      directories = allFiltered.slice(0, visibleCount);
+      selectedIndex++;
+    } else {
       selectedIndex = (selectedIndex + 1) % directories.length;
     }
   }
@@ -189,15 +217,19 @@ export function useCdAutocomplete(
 
     // Se a pasta começar exatamente com o que já foi digitado (sem aspas necessárias):
     // basta inserir apenas o restante (remaining) sem precisar dar backspace!
-    if (!dirName.includes(" ") && matchedQuery && dirName.toLowerCase().startsWith(matchedQuery.toLowerCase())) {
+    // Comparação case-sensitive: se o case digitado diferir do real (ex: "ca" vs "CaG"),
+    // cai no else e reescreve o nome exatamente como está no sistema.
+    if (!dirName.includes(" ") && matchedQuery && dirName.startsWith(matchedQuery)) {
       const remaining = dirName.slice(matchedQuery.length);
       PtyService.writePty(getId(), remaining).catch(console.error);
     } else {
-      // Se precisar de aspas ou ajuste completo, apaga exatamente o que foi digitado após "cd "
+      // Apaga apenas o trecho final digitado (após o último separador, ou após "cd ")
       let charsToErase = matchedQuery.length;
       const match = textBeforeCursor.match(/(?:^|[\s;&|❯$#>%\n\r])cd\s+(.*)$/i);
       if (match && match[1] !== undefined) {
-        charsToErase = match[1].length;
+        const typed = match[1];
+        const sep = Math.max(typed.lastIndexOf("/"), typed.lastIndexOf("\\"));
+        charsToErase = sep >= 0 ? typed.length - sep - 1 : typed.length;
       }
       const backspaces = "\x7f".repeat(charsToErase);
       PtyService.writePty(getId(), backspaces + formattedDir).catch(console.error);
