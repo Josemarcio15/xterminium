@@ -123,20 +123,44 @@ export function useVpsAutocomplete(
       ...(configStore.commands || []).map((c) => c.command),
     ];
 
-    // Procura se a linha começa ou contém um dos gatilhos seguido de espaço: ex: "ssh ", "rsync "
-    const match = textBeforeCursor.match(/(?:^|[\s;&|❯$#>%\n\r])([a-zA-Z0-9_\-]+)\s+(.*)$/);
-    if (!match) {
+    // Localiza o comando disparador mais recente digitado na linha (ex: "ssh ", "rsync ")
+    // Compatível com:
+    // - CMD padrão: "C:\Users\Marcio>ssh "
+    // - PowerShell 5.1 / 7 padrão: "PS C:\Users\Marcio> ssh "
+    // - Oh-My-Posh / Starship: " Marcio  ~  ssh ", "⚡ marcio@win ~/git ❯ ssh "
+    // - Git Bash / WSL / Zsh: "user@host:~$ ssh "
+    let matchedTrigger: string | null = null;
+    let matchIdx = -1;
+    let afterCmd = "";
+
+    for (const trig of triggers) {
+      // Regex que aceita como prefixo:
+      // 1) Início da linha (^)
+      // 2) Espaços e quebras de linha (\s, \n, \r)
+      // 3) Separadores de comandos shell (; & |)
+      // 4) Prompts típicos: '>' (CMD/PowerShell), '$', '#', '%', '❯', '➜', 'λ', '»', ':'
+      // 5) Caracteres de glifos/powerline do Oh-My-Posh (\uE0A0-\uE0D4, etc.)
+      const reg = new RegExp(
+        `(?:^|[\\s;&|❯➜λ»>$#%:\n\r\uE0A0-\uE0D4])${trig}(?:\\.exe)?\\s+(.*)$`,
+        "i"
+      );
+      const m = textBeforeCursor.match(reg);
+      if (m && m.index !== undefined) {
+        if (m.index > matchIdx) {
+          matchIdx = m.index;
+          matchedTrigger = trig.toLowerCase();
+          afterCmd = m[1];
+        }
+      }
+    }
+
+    if (!matchedTrigger || matchIdx === -1) {
       dismissedTrigger = "";
       if (showDualModal || showDropdown) close();
       return;
     }
 
-    const typedCmd = match[1].toLowerCase();
-    if (!triggers.includes(typedCmd)) {
-      dismissedTrigger = "";
-      if (showDualModal || showDropdown) close();
-      return;
-    }
+    const typedCmd = matchedTrigger;
 
     // Se o usuário já dispensou para esse comando na linha atual
     if (dismissedTrigger === typedCmd) {
@@ -145,7 +169,6 @@ export function useVpsAutocomplete(
     }
 
     activeTrigger = typedCmd;
-    const afterCmd = match[2]; // o que foi digitado após o comando e o espaço
 
     const tokens = afterCmd.trim().split(/\s+/).filter(Boolean);
     const hosts = configStore.hosts || [];
@@ -280,7 +303,44 @@ export function useVpsAutocomplete(
   }
 
   function trigger() {
-    check(false);
+    // Ao disparar manualmente (via atalho do teclado), sempre abre a seleção de VPS
+    const hosts = configStore.hosts || [];
+    if (hosts.length === 0) return;
+
+    const term = getTerm();
+    if (!term) return;
+
+    const buffer = term.buffer.active;
+    const cursorY = buffer.cursorY;
+    const lineObj = buffer.getLine(buffer.baseY + cursorY);
+    let textBeforeCursor = "";
+    if (lineObj) {
+      textBeforeCursor = lineObj.translateToString(true).slice(0, buffer.cursorX);
+    }
+
+    const triggers = [
+      ...(configStore.vpsPipeline?.triggers || []),
+      ...(configStore.commands || []).map((c) => c.command),
+    ];
+
+    let matchedTrigger: string | null = null;
+    let matchIdx = -1;
+
+    for (const trig of triggers) {
+      const reg = new RegExp(
+        `(?:^|[\\s;&|❯➜λ»>$#%:\n\r\uE0A0-\uE0D4])${trig}(?:\\.exe)?\\s*(.*)$`,
+        "i"
+      );
+      const m = textBeforeCursor.match(reg);
+      if (m && m.index !== undefined && m.index > matchIdx) {
+        matchIdx = m.index;
+        matchedTrigger = trig.toLowerCase();
+      }
+    }
+
+    activeTrigger = matchedTrigger || "ssh";
+    dismissedTrigger = "";
+    openVpsStep();
   }
 
   return {
