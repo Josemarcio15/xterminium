@@ -106,15 +106,8 @@ pub async fn connect_session(
     if !authenticated {
         let resolved_key_path: Option<std::path::PathBuf> = if let Some(path_str) = key_path {
             if !path_str.trim().is_empty() {
-                let p = path_str.trim();
-                let home = crate::platform::home_dir();
-                if p.starts_with("~/") || p.starts_with("~\\") {
-                    Some(home.join(&p[2..]))
-                } else if p == "~" {
-                    Some(home)
-                } else {
-                    Some(std::path::PathBuf::from(p))
-                }
+                let resolved = crate::config::resolve_universal_path(path_str);
+                Some(std::path::PathBuf::from(resolved))
             } else {
                 None
             }

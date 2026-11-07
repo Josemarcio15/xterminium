@@ -36,6 +36,63 @@ pub fn get_default_config_dir() -> PathBuf {
     crate::platform::config_dir()
 }
 
+/// Resolve um caminho de arquivo de forma universal e tolerante a Windows/Linux.
+/// - Converte `~` ou `$HOME` para o home do SO atual
+/// - Se for um caminho absoluto de outro SO (ex: `C:\Users\Marcio\.ssh\id_ed25519` no Linux ou `/home/marcio/...` no Windows),
+///   tenta adaptar relativamente ao HOME ou encontrar o arquivo com o mesmo nome em `~/.ssh/`.
+pub fn resolve_universal_path(raw: &str) -> String {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return String::new();
+    }
+
+    let home = crate::platform::home_dir();
+
+    // 1. Tratamento para `~` ou `$HOME`
+    if trimmed == "~" || trimmed == "$HOME" {
+        return home.to_string_lossy().to_string();
+    }
+    if trimmed.starts_with("~/") || trimmed.starts_with("~\\") {
+        let sub = &trimmed[2..].replace('\\', "/");
+        return home.join(sub).to_string_lossy().to_string();
+    }
+    if trimmed.starts_with("$HOME/") || trimmed.starts_with("$HOME\\") {
+        let sub = &trimmed[6..].replace('\\', "/");
+        return home.join(sub).to_string_lossy().to_string();
+    }
+
+    // 2. Se o arquivo existe exatamente como especificado
+    let p = std::path::Path::new(trimmed);
+    if p.exists() {
+        return trimmed.to_string();
+    }
+
+    // 3. Fallback inteligente para chaves SSH cruzadas de outro SO
+    // Ex: "C:\Users\...\.ssh\id_ed25519" no Linux ou "/home/.../.ssh/id_ed25519" no Windows
+    let normalized = trimmed.replace('\\', "/");
+    if let Some(ssh_idx) = normalized.find("/.ssh/") {
+        let sub = &normalized[ssh_idx + 6..]; // nome do arquivo dentro de .ssh
+        let candidate = home.join(".ssh").join(sub);
+        if candidate.exists() {
+            return candidate.to_string_lossy().to_string();
+        }
+    }
+
+    // Se tiver apenas o nome de arquivo em ~/.ssh
+    let file_name = trimmed.rsplit(['/', '\\']).next().unwrap_or(trimmed);
+    let candidate = home.join(".ssh").join(file_name);
+    if candidate.exists() {
+        return candidate.to_string_lossy().to_string();
+    }
+
+    trimmed.to_string()
+}
+
+#[tauri::command]
+pub fn resolve_path(path: String) -> String {
+    resolve_universal_path(&path)
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct ConfigLocationInfo {
     pub current_path: String,
@@ -298,16 +355,7 @@ pub fn sync_ssh_config(json_content: &str) -> Result<(), String> {
         if let Some(key) = &host.key {
             let trimmed_key = key.trim();
             if !trimmed_key.is_empty() {
-                // `~` -> home do SO ativo (`crate::platform`), com o separador
-                // nativo: `C:\Users\...` no Windows, `/home/...` no POSIX.
-                let expanded_key = if trimmed_key.starts_with("~/") {
-                    crate::platform::home_dir()
-                        .join(&trimmed_key[2..])
-                        .to_string_lossy()
-                        .to_string()
-                } else {
-                    trimmed_key.to_string()
-                };
+                let expanded_key = resolve_universal_path(trimmed_key);
                 generated_block.push_str(&format!("    IdentityFile {}\n", expanded_key));
             }
         }

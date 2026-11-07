@@ -3,7 +3,7 @@
 use crate::shells::{is_file, push_unique, ShellInfo};
 
 /// Procura um executável no PATH (no POSIX o nome é literal, sem `PATHEXT`).
-fn which(cmd: &str) -> Option<String> {
+pub fn which(cmd: &str) -> Option<String> {
     let path_var = std::env::var_os("PATH")?;
     for dir in std::env::split_paths(&path_var) {
         let direct = dir.join(cmd);

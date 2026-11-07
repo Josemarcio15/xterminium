@@ -225,15 +225,33 @@ pub fn spawn_pty(
     // (A escolha feita nas configurações chega pelo parâmetro `command`.)
     let resolved_cmd = match command {
         Some(ref c) if !c.trim().is_empty() => {
-            let p = std::path::Path::new(c);
-            // Se o executável configurado for absoluto mas não existir neste sistema operacional
-            // (ex: caminho C:\Windows ou C:\Users trazido de backup do Windows para Linux, ou vice-versa),
-            // faz fallback automático para o shell padrão do SO atual para não travar o terminal.
-            if p.is_absolute() && !p.exists() {
-                log::warn!("Shell configurado '{}' não existe neste SO. Usando shell padrão.", c);
-                crate::platform::default_shell_path()
+            let trimmed = c.trim();
+            let p = std::path::Path::new(trimmed);
+            
+            // Verifica se o caminho indicado existe diretamente no disco
+            if p.is_file() {
+                trimmed.to_string()
             } else {
-                c.clone()
+                // Extrai apenas o nome base do binário (ex: "pwsh.exe" -> "pwsh", "/usr/bin/bash" -> "bash")
+                let file_name = trimmed
+                    .rsplit(['/', '\\'])
+                    .next()
+                    .unwrap_or(trimmed)
+                    .to_ascii_lowercase();
+                let stem = file_name.strip_suffix(".exe").unwrap_or(&file_name);
+
+                // Tenta encontrar o mesmo binário no PATH deste sistema operacional
+                if let Some(found_in_path) = crate::platform::which(stem) {
+                    found_in_path
+                } else if let Some(found_in_path) = crate::platform::which(&file_name) {
+                    found_in_path
+                } else {
+                    log::warn!(
+                        "Shell configurado '{}' não existe neste SO. Usando shell padrão.",
+                        c
+                    );
+                    crate::platform::default_shell_path()
+                }
             }
         }
         _ => crate::platform::default_shell_path(),
@@ -251,8 +269,20 @@ pub fn spawn_pty(
 
     let mut cmd = CommandBuilder::new(cmd_name);
     if let Some(arg_list) = args {
-        for arg in arg_list {
-            cmd.arg(arg);
+        let mut i = 0;
+        while i < arg_list.len() {
+            let arg = &arg_list[i];
+            // Se for flag de chave SSH (-i), resolve caminhos como ~, $HOME ou caminhos absolutos do outro SO
+            if arg == "-i" && i + 1 < arg_list.len() {
+                cmd.arg(arg);
+                i += 1;
+                let raw_key = &arg_list[i];
+                let resolved_key = crate::config::resolve_universal_path(raw_key);
+                cmd.arg(resolved_key);
+            } else {
+                cmd.arg(arg);
+            }
+            i += 1;
         }
     }
 

@@ -3,7 +3,7 @@
 use crate::shells::{is_file, push_unique, ShellInfo};
 
 /// Procura um executável no PATH, respeitando `PATHEXT` (`pwsh` -> `pwsh.exe`).
-fn which(cmd: &str) -> Option<String> {
+pub fn which(cmd: &str) -> Option<String> {
     let path_var = std::env::var_os("PATH")?;
     let exts: Vec<String> = std::env::var("PATHEXT")
         .unwrap_or_else(|_| ".EXE;.CMD;.BAT;.COM".to_string())
