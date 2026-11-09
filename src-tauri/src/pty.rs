@@ -7,6 +7,45 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::platform::{process_cwd, pty_foreground_process};
 
+/// Detecta o diretório inicial a partir dos argumentos de linha de comando ou do diretório de trabalho atual.
+fn detect_initial_directory() -> Option<std::path::PathBuf> {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    let mut iter = args.iter();
+    while let Some(arg) = iter.next() {
+        if arg == "--dir" || arg == "--working-directory" || arg == "-d" {
+            if let Some(val) = iter.next() {
+                let p = std::path::PathBuf::from(val);
+                if p.is_dir() {
+                    return p.canonicalize().ok().or(Some(p));
+                }
+            }
+        } else if let Some(val) = arg.strip_prefix("--dir=") {
+            let p = std::path::PathBuf::from(val);
+            if p.is_dir() {
+                return p.canonicalize().ok().or(Some(p));
+            }
+        } else if let Some(val) = arg.strip_prefix("--working-directory=") {
+            let p = std::path::PathBuf::from(val);
+            if p.is_dir() {
+                return p.canonicalize().ok().or(Some(p));
+            }
+        } else if !arg.starts_with('-') {
+            let p = std::path::PathBuf::from(arg);
+            if p.is_dir() {
+                return p.canonicalize().ok().or(Some(p));
+            }
+        }
+    }
+
+    if let Ok(current) = std::env::current_dir() {
+        if current.is_dir() {
+            return Some(current);
+        }
+    }
+
+    None
+}
+
 pub struct PtySession {
     pub writer: Arc<Mutex<Box<dyn Write + Send>>>,
     pub master: Arc<Mutex<Box<dyn MasterPty + Send>>>,
@@ -209,6 +248,7 @@ pub fn spawn_pty(
     rows: u16,
     command: Option<String>,
     args: Option<Vec<String>>,
+    cwd: Option<String>,
     state: State<PtyState>,
 ) -> Result<(), String> {
     let pty_system = native_pty_system();
@@ -292,8 +332,19 @@ pub fn spawn_pty(
         cmd.arg(PROMPT_CWD_REPORT);
     }
 
-    // Diretório inicial: home do usuário (detalhe por SO em `crate::platform`)
-    cmd.cwd(crate::platform::home_dir());
+    // Diretório inicial:
+    // 1. Se explicitamente passado via parâmetro `cwd` (ex: nova aba na pasta atual ou SFTP)
+    // 2. Se passado via argumentos de CLI (--dir, --working-directory, ou diretório como arg)
+    // 3. Diretório herdado de execução (ex: aberto pelo terminal, nautilus, explorer)
+    // 4. Fallback final: pasta home do usuário
+    let target_dir = cwd
+        .as_ref()
+        .map(std::path::PathBuf::from)
+        .filter(|p| p.is_dir())
+        .or_else(detect_initial_directory)
+        .unwrap_or_else(crate::platform::home_dir);
+
+    cmd.cwd(target_dir);
 
     // Define variáveis de ambiente essenciais para o terminal reconhecer cores e comandos como clear
     cmd.env("TERM", "xterm-256color");

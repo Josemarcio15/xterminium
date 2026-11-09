@@ -8,6 +8,7 @@ export class PtyService {
     rows?: number;
     command?: string;
     args?: string[];
+    cwd?: string;
   }): Promise<void> {
     return invoke("spawn_pty", options);
   }

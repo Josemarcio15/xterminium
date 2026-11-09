@@ -49,13 +49,13 @@
   const hasWaterRain = $derived(isWaterRainTheme(configStore.theme));
   const hasAnyEffect = $derived(hasBackgroundEffect(configStore.theme));
 
-  function createTab(type: "local" | "ssh", sshHost?: SshHost) {
+  function createTab(type: "local" | "ssh", sshHost?: SshHost, initialPath?: string) {
     const id = crypto.randomUUID();
     const title =
       type === "local"
         ? "New Tab"
         : sshHost?.label || `${sshHost?.user}@${sshHost?.ip}`;
-    tabs.push({ id, title, type, sshInfo: sshHost });
+    tabs.push({ id, title, type, sshInfo: sshHost, initialPath });
     activeTabId = id;
   }
 
@@ -252,7 +252,7 @@
     )}
     onSelectTab={switchTab}
     onCloseTab={closeTab}
-    onNewTab={() => createTab("local")}
+    onNewTab={() => createTab("local", undefined, currentTerminalCwd)}
     onConnectSsh={(host) => createTab("ssh", host)}
     onToggleFileManager={() => {
       const activeTab = tabs.find((t) => t.id === activeTabId);
@@ -303,8 +303,9 @@
           id={tab.id}
           type={tab.type}
           sshInfo={tab.sshInfo}
+          initialPath={tab.initialPath}
           active={activeTabId === tab.id}
-          onNewTab={() => createTab("local")}
+          onNewTab={() => createTab("local", undefined, currentTerminalCwd)}
         />
       {/if}
     {/each}

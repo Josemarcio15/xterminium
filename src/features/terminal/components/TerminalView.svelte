@@ -23,11 +23,12 @@
     id: string;
     type: "local" | "ssh";
     sshInfo?: SshHost;
+    initialPath?: string;
     active: boolean;
     onNewTab: () => void;
   }
 
-  let { id, type, sshInfo, active, onNewTab }: Props = $props();
+  let { id, type, sshInfo, initialPath, active, onNewTab }: Props = $props();
 
   let container = $state<HTMLDivElement | null>(null);
   let term: Terminal | null = null;
@@ -212,6 +213,7 @@
         rows: term.rows,
         command: shell?.path || undefined,
         args: shell?.args && shell.args.length > 0 ? shell.args : undefined,
+        cwd: initialPath,
       }).catch(console.error);
     }
 
