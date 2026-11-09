@@ -1,12 +1,18 @@
 import { invoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 
+export interface GithubReleaseAsset {
+  name: string;
+  browser_download_url: string;
+}
+
 export interface GithubReleaseInfo {
   tag_name: string;
   name: string;
   body: string;
   published_at: string;
   html_url: string;
+  assets?: GithubReleaseAsset[];
 }
 
 export interface UpdateCheckResult {
@@ -74,10 +80,28 @@ export class UpdateService {
         return null;
       }
 
-      // Pega a primeira release pública publicada (mesmo sendo pre-release)
-      const release = releases[0];
+      // Pega a primeira release pública que já possua o instalador do SO atual compilado
+      const requiresDeb = await this.needsAdminPassword();
+      const release =
+        releases.find((r) => {
+          const assets = r.assets || [];
+          if (requiresDeb) {
+            return assets.some((a) => /\.deb$/i.test(a.name));
+          }
+          return assets.some(
+            (a) => /\.(exe|msi)$/i.test(a.name) && !/\.sig$/i.test(a.name),
+          );
+        }) || releases[0];
+
       const latestTag = release.tag_name || "";
-      const hasUpdate = isNewerVersion(currentVersion, latestTag);
+      const assets = release.assets || [];
+      const hasPlatformAsset = requiresDeb
+        ? assets.some((a) => /\.deb$/i.test(a.name))
+        : assets.some(
+            (a) => /\.(exe|msi)$/i.test(a.name) && !/\.sig$/i.test(a.name),
+          );
+      const hasUpdate =
+        hasPlatformAsset && isNewerVersion(currentVersion, latestTag);
 
       // Remove blocos legados de instruções de terminal caso a release antiga ainda tenha
       let cleanNotes = (release.body || "").split("---")[0].trim();

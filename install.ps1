@@ -72,23 +72,51 @@ $tempPath = Join-Path $env:TEMP $fileName
 
 # 3. Download do instalador
 Write-Step "Baixando $fileName..."
-Invoke-WebRequest -Uri $downloadUrl -OutFile $tempPath -UseBasicParsing
+$ProgressPreference = 'SilentlyContinue'
+if (Get-Command curl.exe -ErrorAction SilentlyContinue) {
+    & curl.exe -fL --retry 3 --retry-delay 2 --progress-bar $downloadUrl -o $tempPath
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Falha no download via curl." -ForegroundColor Red
+        exit 1
+    }
+} else {
+    Invoke-WebRequest -Uri $downloadUrl -OutFile $tempPath -UseBasicParsing
+}
 
 Write-Step "Download concluido com sucesso."
 
 # 4. Executa o instalador
 Write-Step "Iniciando instalacao..."
-if ($fileName -match '\.msi$') {
-    Start-Process msiexec.exe -ArgumentList "/i `"$tempPath`" /qb" -Wait
+if ($env:XTERMINIUM_AUTO_UPDATE -eq '1') {
+    # Quando disparado pelo auto-update interno do xterminium:
+    # Inicia o instalador desacoplado (sem -Wait) para nao causar deadlock
+    # quando o instalador precisar fechar o xterminium em execucao.
+    if ($fileName -match '\.msi$') {
+        Start-Process msiexec.exe -ArgumentList "/i `"$tempPath`" /qb"
+    } else {
+        Start-Process -FilePath $tempPath
+    }
+    Write-Success "Instalador do xterminium $tag iniciado!"
 } else {
-    # Instalador NSIS (.exe) - executa silenciosamente se suportado ou normal
-    Start-Process -FilePath $tempPath -Wait
-}
+    if ($fileName -match '\.msi$') {
+        Start-Process msiexec.exe -ArgumentList "/i `"$tempPath`" /qb" -Wait
+    } else {
+        # Instalador NSIS (.exe)
+        Start-Process -FilePath $tempPath -Wait
+    }
 
-# Remove instalador temporario
-if (Test-Path $tempPath) {
-    Remove-Item $tempPath -Force -ErrorAction SilentlyContinue
-}
+    # Remove instalador temporario
+    if (Test-Path $tempPath) {
+        Remove-Item $tempPath -Force -ErrorAction SilentlyContinue
+    }
 
-Write-Success "xterminium $tag instalado/atualizado com sucesso! 🚀"
-Write-Step "Procure por 'xterminium' no Menu Iniciar para abrir."
+    Write-Success "xterminium $tag instalado/atualizado com sucesso! 🚀"
+    Write-Step "Procure por 'xterminium' no Menu Iniciar para abrir."
+    Write-Host ""
+    for ($i = 10; $i -ge 1; $i--) {
+        Write-Host "`r[xterminium] Saindo automaticamente em $i s... " -ForegroundColor DarkGray -NoNewline
+        Start-Sleep -Seconds 1
+    }
+    Write-Host ""
+    exit 0
+}
