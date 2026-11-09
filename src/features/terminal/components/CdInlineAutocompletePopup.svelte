@@ -3,15 +3,17 @@
     directories: string[];
     selectedIndex: number;
     matchedQuery: string;
+    typedFull?: string;
     totalMatches: number;
     position: { x: number; y: number };
-    onSelect?: (dirName: string) => void;
+    onSelect?: (dirName: string, isTypedOption?: boolean) => void;
   }
 
   let {
     directories,
     selectedIndex,
     matchedQuery,
+    typedFull = "",
     totalMatches,
     position,
     onSelect,
@@ -60,9 +62,12 @@
       >
         {#each directories as dir, idx}
           {@const isSelected = idx === selectedIndex}
-          {@const remaining = dir.toLowerCase().startsWith(matchedQuery.toLowerCase())
-            ? dir.slice(matchedQuery.length)
-            : dir}
+          {@const isTypedOption = idx === 0 && typedFull.length > 0 && dir === typedFull}
+          {@const remaining = isTypedOption
+            ? ""
+            : dir.toLowerCase().startsWith(matchedQuery.toLowerCase())
+              ? dir.slice(matchedQuery.length)
+              : dir}
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div
@@ -70,11 +75,11 @@
             class="flex items-center justify-between gap-3 px-2 py-1 rounded cursor-pointer transition-all {isSelected
               ? 'bg-cyan-500/15 border border-cyan-500/30 text-zinc-100'
               : 'text-zinc-400 border border-transparent hover:bg-white/5 hover:text-zinc-200'}"
-            onclick={() => onSelect?.(dir)}
+            onclick={() => onSelect?.(dir, isTypedOption)}
           >
             <div class="flex items-baseline gap-1.5 whitespace-nowrap min-w-0">
               {#if isSelected}
-                <span class="text-[10px] text-cyan-400 font-bold shrink-0">📁</span>
+                <span class="text-[10px] text-cyan-400 font-bold shrink-0">{isTypedOption ? "⌨️" : "📁"}</span>
               {:else}
                 <span class="w-2.5 shrink-0"></span>
               {/if}
@@ -84,7 +89,7 @@
                   class={isSelected
                     ? "underline decoration-cyan-400 decoration-2 underline-offset-4 text-cyan-300 font-bold"
                     : "text-zinc-300 font-medium"}
-                >{matchedQuery}</span><span class={isSelected ? "text-zinc-100" : "text-zinc-400"}>{remaining}</span></span>
+                >{isTypedOption ? dir : matchedQuery}</span><span class={isSelected ? "text-zinc-100" : "text-zinc-400"}>{remaining}</span></span>
 
               <!-- Seta indicadora -->
               <span class="text-zinc-500 text-[10px] shrink-0">➔</span>
@@ -96,7 +101,7 @@
                   : 'text-cyan-500/80 bg-cyan-950/20 border-cyan-500/10'}"
                 title={dir}
               >
-                {dir.includes(" ") ? `"${dir}"` : dir}
+                {isTypedOption ? dir : dir.includes(" ") ? `"${dir}"` : dir}
               </span>
             </div>
 

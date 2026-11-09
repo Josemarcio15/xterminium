@@ -32,7 +32,7 @@ export interface ShortcutHandlers {
   hasActiveCd?: () => boolean;
   onCdNext?: () => void;
   onCdPrev?: () => void;
-  onCdSelect?: () => void;
+  onCdSelect?: () => boolean | void;
   onCdClose?: () => void;
 }
 
@@ -163,9 +163,13 @@ export function createTerminalKeyHandler(
         return false;
       }
       if (e.key === "Enter") {
+        const consumed = handlers.onCdSelect?.();
+        if (consumed === false) {
+          // A 1ª opção (texto digitado) foi selecionada: deixa o Enter passar para o terminal executar o comando!
+          return true;
+        }
         e.preventDefault();
         e.stopPropagation();
-        handlers.onCdSelect?.();
         return false;
       }
       if (e.key === "Escape") {

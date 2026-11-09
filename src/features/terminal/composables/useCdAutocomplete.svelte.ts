@@ -11,6 +11,7 @@ export function useCdAutocomplete(
   let totalMatches = $state(0);
   let selectedIndex = $state(0);
   let matchedQuery = $state("");
+  let typedFull = $state("");
   let position = $state({ x: 100, y: 100 });
   let isOpen = $state(false);
 
@@ -90,6 +91,7 @@ export function useCdAutocomplete(
     }
 
     const fullQuery = (cdMatch[1] || "").trimStart();
+    typedFull = fullQuery.trim();
 
     // Separa "MEGA/sub/pa" em pasta pai ("MEGA/sub/") e o trecho final ("pa").
     // Digitar "/" (ou "\" no Windows) dispara a sugestão do próximo nível.
@@ -117,7 +119,13 @@ export function useCdAutocomplete(
       return true;
     }
 
-    totalMatches = filtered.length;
+    // Se o usuário já digitou algo (ex: "cd ~/" ou "cd ant"), a primeira opção (índice 0)
+    // é sempre o que ele digitou (para que Enter execute direto se não apertar Tab),
+    // e as pastas começam na segunda opção em diante.
+    const hasTypedText = typedFull.length > 0;
+    const finalList = hasTypedText ? [typedFull, ...filtered] : filtered;
+
+    totalMatches = finalList.length;
     // Exibe 10 diretórios por vez; ao navegar até o último, carrega mais 10 (ver next())
     const queryKey = parentPath + "\u0000" + typedQuery;
     if (queryKey !== lastQueryKey) {
@@ -125,8 +133,8 @@ export function useCdAutocomplete(
       visibleCount = PAGE_SIZE;
       selectedIndex = 0;
     }
-    allFiltered = filtered;
-    directories = filtered.slice(0, visibleCount);
+    allFiltered = finalList;
+    directories = finalList.slice(0, visibleCount);
 
     if (selectedIndex >= directories.length) {
       selectedIndex = 0;
@@ -170,6 +178,7 @@ export function useCdAutocomplete(
     totalMatches = 0;
     selectedIndex = 0;
     matchedQuery = "";
+    typedFull = "";
   }
 
   function next() {
@@ -192,16 +201,35 @@ export function useCdAutocomplete(
     }
   }
 
-  function selectCurrent() {
+  function selectCurrent(): boolean {
     if (activeDirectory) {
-      apply(activeDirectory);
+      const isTypedOption = selectedIndex === 0 && typedFull.length > 0;
+      apply(activeDirectory, isTypedOption);
+      // Retorna true se o Enter foi consumido para autocompletar uma pasta (2ª opção em diante).
+      // Retorna false se estava na 1ª opção (o que o usuário digitou), permitindo que o Enter execute o comando no terminal!
+      return !isTypedOption;
     }
+    return false;
   }
 
-  function apply(dirName: string) {
+  function apply(dirName: string, isTypedOption = false) {
     if (!dirName) return;
 
     const term = getTerm();
+
+    // Se selecionou a 1ª opção (exatamente o que já foi digitado), não precisa reescrever nada
+    // ou executa o Enter direto se foi confirmado!
+    // Caso clique ou aperte Enter na 1ª opção que é o próprio texto digitado:
+    if (isTypedOption || (typedFull.length > 0 && dirName === typedFull && directories[0] === dirName)) {
+      lastAppliedDir = dirName;
+      close();
+      if (term) {
+        term.focus();
+        requestAnimationFrame(() => term.focus());
+      }
+      return;
+    }
+
     let textBeforeCursor = "";
     if (term) {
       const buffer = term.buffer.active;
@@ -253,6 +281,9 @@ export function useCdAutocomplete(
     },
     get matchedQuery() {
       return matchedQuery;
+    },
+    get typedFull() {
+      return typedFull;
     },
     get totalMatches() {
       return totalMatches;

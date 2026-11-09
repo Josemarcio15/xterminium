@@ -363,6 +363,7 @@
     directories={cdAuto.directories}
     selectedIndex={cdAuto.selectedIndex}
     matchedQuery={cdAuto.matchedQuery}
+    typedFull={cdAuto.typedFull}
     totalMatches={cdAuto.totalMatches}
     position={cdAuto.position}
     onSelect={cdAuto.apply}
