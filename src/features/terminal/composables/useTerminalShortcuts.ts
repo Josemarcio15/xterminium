@@ -91,7 +91,7 @@ export function createTerminalKeyHandler(
       }
 
       if (text) {
-        PtyService.writePty(ptyId, text).catch(console.error);
+        term.paste(text);
       }
     },
     selectAll: () => {
