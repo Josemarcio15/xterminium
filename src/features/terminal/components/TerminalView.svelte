@@ -123,9 +123,11 @@
     term = new Terminal({
       allowTransparency: true,
       cursorBlink: true,
-      fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+      cursorStyle: "block",
+      cursorInactiveStyle: "outline",
+      fontFamily: '"JetBrains Mono", "Fira Code", "DejaVu Sans Mono", ui-monospace, monospace',
       fontSize: 14,
-      lineHeight: 1.2,
+      lineHeight: 1.15,
       theme: {
         background: hasEffect
           ? "rgba(0, 0, 0, 0.45)"
@@ -315,7 +317,7 @@
 
 <div
   bind:this={container}
-  class="absolute inset-0 px-2.5 pt-2 pb-5 box-border {active
+  class="absolute inset-0 px-2.5 pt-2 pb-2 box-border overflow-hidden {active
     ? 'visible pointer-events-auto z-2'
     : 'invisible pointer-events-none z-1'}"
 ></div>
@@ -387,6 +389,7 @@
 
   :global(.xterm-viewport) {
     overflow-y: auto !important;
+    overflow-x: hidden !important;
   }
 
   /* Matrix theme: force xterm layers transparent so digital rain shows through */
