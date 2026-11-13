@@ -80,9 +80,14 @@ download_deb() {
 }
 
 # ── Elevação de privilégios ─────────────────────────────────
+# Remove qualquer função wrapper herdada do processo pai para garantir chamada direta ao binário
+unset -f sudo 2>/dev/null || true
+unalias sudo 2>/dev/null || true
+
 elevate_cmd() {
     local sudo_bin
-    sudo_bin=$(command -v sudo 2>/dev/null || echo "/usr/bin/sudo")
+    # 'type -P' busca estritamente o arquivo executável no PATH, ignorando funções shell
+    sudo_bin=$(type -P sudo 2>/dev/null || which sudo 2>/dev/null || echo "/usr/bin/sudo")
 
     if [ "${EUID:-$(id -u)}" -eq 0 ]; then
         "$@"
