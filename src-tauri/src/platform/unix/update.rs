@@ -17,15 +17,8 @@ pub fn update_needs_password() -> bool {
 #[cfg(target_os = "linux")]
 pub fn run_update_installer(password: Option<String>) -> Result<(), String> {
     let mut cmd = Command::new("bash");
-    // Se senha foi fornecida, exporta SUDO_PASSWORD e configura elevate inline
-    // caso o script do GitHub ainda não tenha sido atualizado na branch main
+    // O instalador oficial (install.sh) detecta SUDO_PASSWORD e eleva os privilégios com segurança
     let script = r#"
-        if [ -n "$SUDO_PASSWORD" ]; then
-            sudo() {
-                printf '%s\n' "$SUDO_PASSWORD" | /usr/bin/sudo -S -p '' "$@"
-            }
-            export -f sudo
-        fi
         curl -fsSL https://raw.githubusercontent.com/Josemarcio15/xterminium/main/install.sh | bash
     "#;
     cmd.arg("-c").arg(script);

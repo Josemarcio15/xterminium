@@ -1,7 +1,7 @@
 {
   "name": "xterminium",
   "private": true,
-  "version": "0.0.43-alpha",
+  "version": "0.0.44-alpha",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -81,13 +81,16 @@ download_deb() {
 
 # ── Elevação de privilégios ─────────────────────────────────
 elevate_cmd() {
-    if [ "$EUID" -eq 0 ]; then
+    local sudo_bin
+    sudo_bin=$(command -v sudo 2>/dev/null || echo "/usr/bin/sudo")
+
+    if [ "${EUID:-$(id -u)}" -eq 0 ]; then
         "$@"
     elif [ -n "${SUDO_PASSWORD:-}" ]; then
-        # Se a senha foi fornecida pelo aplicativo, repassa via stdin de forma segura
-        printf '%s\n' "$SUDO_PASSWORD" | sudo -S -p '' "$@"
-    elif command -v sudo &>/dev/null; then
-        sudo "$@"
+        # Se a senha foi fornecida pelo aplicativo, repassa via stdin direto ao binário do sudo
+        printf '%s\n' "$SUDO_PASSWORD" | "$sudo_bin" -S -p '' -- "$@"
+    elif [ -x "$sudo_bin" ]; then
+        "$sudo_bin" -- "$@"
     else
         error "Necessário permissões de root para instalar o pacote .deb."
     fi
