@@ -151,6 +151,27 @@ export function createRemoteFileActions(
     };
   }
 
+  async function handleCompress(isConnected: boolean, item: FileItem) {
+    if (!isConnected || !item) return;
+    setStatus(`Compactando "${item.name}" no servidor remoto...`);
+    try {
+      const destZip = await SftpService.compressRemote(item.path);
+      const zipName = destZip.split(/[/\\]/).pop() || destZip;
+      setStatus(`"${item.name}" compactado com sucesso no servidor em "${zipName}".`);
+      await refreshRemote();
+    } catch (err: any) {
+      if (isPermissionError(err) && onRequestSudo) {
+        // Fallback com sudo remoto caso não tenha permissão na pasta
+        const parentDir = item.path.substring(0, item.path.lastIndexOf('/')) || '/';
+        const zipName = `${item.name.replace(/\.zip$/i, '')}.zip`;
+        const cmd = `cd ${JSON.stringify(parentDir)} && zip -r -q ${JSON.stringify(zipName)} ${JSON.stringify(item.name)}`;
+        onRequestSudo('Compactar no Servidor', cmd, refreshRemote);
+      } else {
+        setStatus(`Erro ao compactar no servidor: ${err}`);
+      }
+    }
+  }
+
   return {
     get confirmDialog() { return confirmDialog; },
     setDialog: (dialog: ConfirmDialogState) => { confirmDialog = dialog; },
@@ -159,5 +180,6 @@ export function createRemoteFileActions(
     handleCreateFolder,
     handleRename,
     handleDelete,
+    handleCompress,
   };
 }

@@ -68,6 +68,8 @@ pub fn run() {
             sftp_rename_local,
             sftp_remove_local_file,
             sftp_remove_local_dir,
+            sftp_compress_local,
+            sftp_compress_remote,
             sftp_download_file,
             sftp_upload_file,
             sftp_cancel_transfer,

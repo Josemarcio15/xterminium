@@ -1,5 +1,6 @@
 pub mod checksum;
 pub mod commands;
+pub mod compress;
 pub mod local_fs;
 pub mod remote_fs;
 pub mod remote_sudo;
@@ -152,6 +153,16 @@ impl SftpState {
     /// Remove um diretório na máquina local
     pub async fn remove_local_dir(&self, path: &str) -> Result<(), String> {
         local_fs::remove_local_directory(path).await
+    }
+
+    /// Compacta um arquivo ou diretório na máquina local
+    pub async fn compress_local(&self, path: &str) -> Result<String, String> {
+        compress::compress_local_item(path).await
+    }
+
+    /// Compacta um arquivo ou diretório no servidor remoto
+    pub async fn compress_remote(&self, path: &str) -> Result<String, String> {
+        compress::compress_remote_item(&self.active_session, path).await
     }
 
     /// Executa comando com sudo no servidor remoto

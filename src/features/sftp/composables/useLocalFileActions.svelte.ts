@@ -128,10 +128,24 @@ export function createLocalFileActions(
     });
   }
 
+  async function handleCompress(item: FileItem) {
+    if (!item) return;
+    setStatus(`Compactando "${item.name}" localmente...`);
+    try {
+      const destZip = await SftpService.compressLocal(item.path);
+      const zipName = destZip.split(/[/\\]/).pop() || destZip;
+      setStatus(`"${item.name}" compactado com sucesso em "${zipName}".`);
+      await refreshLocal();
+    } catch (err: any) {
+      setStatus(`Erro ao compactar localmente: ${err}`);
+    }
+  }
+
   return {
     handleCreateFile,
     handleCreateFolder,
     handleRename,
     handleDelete,
+    handleCompress,
   };
 }

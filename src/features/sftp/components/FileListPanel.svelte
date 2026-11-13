@@ -14,10 +14,12 @@
     onSelect: (item: FileItem) => void;
     onDoubleClick: (item: FileItem) => void;
     onGoUp: () => void;
+    onRefresh?: () => void;
     onCreateFile?: () => void;
     onCreateFolder?: () => void;
     onRename?: (item: FileItem) => void;
     onDelete?: (item: FileItem) => void;
+    onCompress?: (item: FileItem) => void;
     activeTransfer?: {
       file_name: string;
       percentage: number;
@@ -38,7 +40,7 @@
     isRemote = false,
     onSelect,
     onDoubleClick,
-    onGoUp, onCreateFile, onCreateFolder, onRename, onDelete,
+    onGoUp, onRefresh, onCreateFile, onCreateFolder, onRename, onDelete, onCompress,
     activeTransfer = null, extraActionsSnippet, onNavigate,
   }: Props & { onNavigate?: (newPath: string) => void } = $props();
 
@@ -149,6 +151,32 @@
         </svg>
       </IconButton>
 
+      <!-- Botão Atualizar (Recarregar Diretório) -->
+      {#if onRefresh}
+        <IconButton
+          onclick={onRefresh}
+          variant="secondary"
+          size="sm"
+          title="Atualizar pasta (recarregar arquivos)"
+          disabled={loading}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class={loading ? 'animate-spin' : ''}
+          >
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+          </svg>
+        </IconButton>
+      {/if}
+
       <!-- Botão Menu Hambúrguer -->
       <div class="relative">
         <button
@@ -213,8 +241,29 @@
               </button>
             {/if}
 
-            {#if onRename || onDelete}
+            {#if onCompress || onRename || onDelete}
               <div class="my-1 border-t border-(--border-subtle)"></div>
+            {/if}
+
+            <!-- Compactar em ZIP -->
+            {#if onCompress}
+              <button
+                onclick={() => {
+                  isMenuOpen = false;
+                  if (selectedFile) onCompress(selectedFile);
+                }}
+                disabled={!selectedFile}
+                class="w-full px-3 py-1.5 text-left flex items-center gap-2 {selectedFile
+                  ? 'text-(--text-base) hover:bg-emerald-600/15 cursor-pointer'
+                  : 'text-(--text-faint) cursor-not-allowed opacity-50'}"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500 dark:text-emerald-400">
+                  <path d="M21 8v13H3V8"></path>
+                  <path d="M1 3h22v5H1z"></path>
+                  <path d="M10 12h4"></path>
+                </svg>
+                <span>Compactar (.zip)</span>
+              </button>
             {/if}
 
             <!-- Renomear Item Selecionado -->

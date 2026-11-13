@@ -43,7 +43,7 @@
     ],
     "linux": {
       "deb": {
-        "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0"],
+        "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0", "wl-clipboard | xclip"],
         "postInstallScript": "./postinst",
         "files": {
           "/usr/share/icons/hicolor/scalable/apps/xterminium.svg": "../public/terminal.svg"

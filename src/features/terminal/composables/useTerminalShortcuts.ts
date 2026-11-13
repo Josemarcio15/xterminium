@@ -69,15 +69,17 @@ export function createTerminalKeyHandler(
       lastPasteTime = now;
 
       let text = "";
-      // 1. Leitura robusta oficial do Tauri (Cross-platform nativo no Rust: Windows, Linux, macOS)
+
+      // 1. Prioriza o comando Rust nativo invoke('read_clipboard')
+      // No Linux/Wayland, o Rust acessa diretamente o wl-paste/xclip com suporte completo a apps externos
       try {
-        text = await readText();
+        text = await invoke<string>("read_clipboard");
       } catch {}
 
-      // 2. Fallback pelo comando Rust nativo invoke('read_clipboard')
+      // 2. Leitura pelo plugin oficial do Tauri
       if (!text) {
         try {
-          text = await invoke<string>("read_clipboard");
+          text = await readText();
         } catch {}
       }
 

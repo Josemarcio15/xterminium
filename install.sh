@@ -27,6 +27,11 @@ check_deps() {
     for cmd in curl dpkg sudo; do
         command -v "$cmd" &>/dev/null || error "Dependência não encontrada: '$cmd'. Instale e tente novamente."
     done
+
+    # Recomendações de utilitários de clipboard para Wayland/X11
+    if [[ "${XDG_SESSION_TYPE:-}" == "wayland" ]] && ! command -v wl-copy &>/dev/null; then
+        warn "Sessão Wayland detectada sem 'wl-clipboard'. É recomendado instalar 'wl-clipboard' para suporte total ao copiar/colar."
+    fi
 }
 
 # ── Busca a versão mais recente no GitHub ───────────────────

@@ -177,6 +177,22 @@ pub async fn sftp_remove_local_dir(
 }
 
 #[tauri::command]
+pub async fn sftp_compress_local(
+    path: String,
+    sftp_state: State<'_, SftpState>,
+) -> Result<String, String> {
+    sftp_state.compress_local(&path).await
+}
+
+#[tauri::command]
+pub async fn sftp_compress_remote(
+    path: String,
+    sftp_state: State<'_, SftpState>,
+) -> Result<String, String> {
+    sftp_state.compress_remote(&path).await
+}
+
+#[tauri::command]
 pub async fn sftp_exec_remote_sudo(
     password: String,
     command: String,

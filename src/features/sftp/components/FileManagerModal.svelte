@@ -153,9 +153,11 @@
             if (item.is_dir) fs.loadLocal(item.path);
           }}
           onGoUp={fs.goUpLocal}
+          onRefresh={() => fs.loadLocal(fs.localPath)}
           onNavigate={(newPath) => fs.loadLocal(newPath)}
           onCreateFile={() => localActions.handleCreateFile(fs.localPath)}
           onCreateFolder={() => localActions.handleCreateFolder(fs.localPath)}
+          onCompress={(item) => localActions.handleCompress(item)}
           onRename={(item) => localActions.handleRename(fs.localPath, item)}
           onDelete={(item) => localActions.handleDelete(item)}
         />
@@ -214,9 +216,11 @@
               if (item.is_dir) fs.loadRemote(item.path);
             }}
             onGoUp={fs.goUpRemote}
+            onRefresh={() => fs.loadRemote(fs.remotePath)}
             onNavigate={(newPath) => fs.loadRemote(newPath)}
             onCreateFile={() => actions.handleCreateFile(conn.isConnected, fs.remotePath)}
             onCreateFolder={() => actions.handleCreateFolder(conn.isConnected, fs.remotePath)}
+            onCompress={(item) => actions.handleCompress(conn.isConnected, item)}
             onRename={(item) => actions.handleRename(conn.isConnected, fs.remotePath, item)}
             onDelete={(item) => actions.handleDelete(conn.isConnected, item)}
             extraActionsSnippet={remoteActions}

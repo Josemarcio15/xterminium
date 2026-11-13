@@ -96,6 +96,14 @@ export class SftpService {
     return await invoke<void>('sftp_remove_local_dir', { path });
   }
 
+  static async compressLocal(path: string): Promise<string> {
+    return await invoke<string>('sftp_compress_local', { path });
+  }
+
+  static async compressRemote(path: string): Promise<string> {
+    return await invoke<string>('sftp_compress_remote', { path });
+  }
+
   static async downloadFile(remotePath: string, localPath: string): Promise<void> {
     return await invoke<void>('sftp_download_file', { remotePath, localPath });
   }
