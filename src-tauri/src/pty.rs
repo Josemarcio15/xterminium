@@ -7,7 +7,7 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::platform::{process_cwd, pty_foreground_process};
 
-/// Detecta o diretório inicial a partir dos argumentos de linha de comando ou do diretório de trabalho atual.
+/// Detecta o diretório inicial explicitamente passado via argumentos de linha de comando.
 fn detect_initial_directory() -> Option<std::path::PathBuf> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let mut iter = args.iter();
@@ -34,12 +34,6 @@ fn detect_initial_directory() -> Option<std::path::PathBuf> {
             if p.is_dir() {
                 return p.canonicalize().ok().or(Some(p));
             }
-        }
-    }
-
-    if let Ok(current) = std::env::current_dir() {
-        if current.is_dir() {
-            return Some(current);
         }
     }
 
@@ -335,8 +329,7 @@ pub fn spawn_pty(
     // Diretório inicial:
     // 1. Se explicitamente passado via parâmetro `cwd` (ex: nova aba na pasta atual ou SFTP)
     // 2. Se passado via argumentos de CLI (--dir, --working-directory, ou diretório como arg)
-    // 3. Diretório herdado de execução (ex: aberto pelo terminal, nautilus, explorer)
-    // 4. Fallback final: pasta home do usuário
+    // 3. Padrão ao iniciar: pasta home do usuário (~ tanto no Windows quanto no Linux)
     let target_dir = cwd
         .as_ref()
         .map(std::path::PathBuf::from)
