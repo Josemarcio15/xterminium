@@ -17,6 +17,20 @@ import {
 } from "../types";
 import { ConfigService } from "../services/config.service";
 
+const loaders = {
+  hosts: () => ConfigService.loadSshHosts(),
+  commands: () => ConfigService.loadCustomCommands(),
+  aliases: () => ConfigService.loadAliases(),
+  shortcuts: () => ConfigService.loadShortcuts(),
+  paths: () => ConfigService.loadPaths(),
+  theme: () => ConfigService.loadTheme(),
+  customThemes: () => ConfigService.loadCustomThemes(),
+  shells: () => ConfigService.loadShells(),
+  vpsPipeline: () => ConfigService.loadVpsPipeline(),
+} as const;
+
+type ConfigKey = keyof typeof loaders;
+
 export class ConfigStore {
   hosts = $state<SshHost[]>([]);
   commands = $state<CustomCommand[]>([]);
@@ -31,27 +45,16 @@ export class ConfigStore {
 
   #initPromise: Promise<void> | null = null;
 
-  static #loaders = {
-    hosts: () => ConfigService.loadSshHosts(),
-    commands: () => ConfigService.loadCustomCommands(),
-    aliases: () => ConfigService.loadAliases(),
-    shortcuts: () => ConfigService.loadShortcuts(),
-    paths: () => ConfigService.loadPaths(),
-    theme: () => ConfigService.loadTheme(),
-    customThemes: () => ConfigService.loadCustomThemes(),
-    shells: () => ConfigService.loadShells(),
-    vpsPipeline: () => ConfigService.loadVpsPipeline(),
-  } as const;
 
   /**
    * Relê do disco antes de alterar. Evita que um estado antigo em memória
    * (carregado antes da pasta sincronizada atualizar) sobrescreva arquivos
    * mais novos vindos do outro sistema.
    */
-  async #refresh(...keys: (keyof typeof ConfigStore.#loaders)[]) {
+  async #refresh(...keys: ConfigKey[]) {
     for (const k of keys) {
       try {
-        (this as any)[k] = await ConfigStore.#loaders[k]();
+        (this as any)[k] = await loaders[k]();
       } catch (e) {
         console.error(`[config] falha ao recarregar ${k}:`, e);
       }
