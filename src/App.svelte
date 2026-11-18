@@ -161,7 +161,12 @@
       terminalRefs[activeTabId]?.fitAndFocus();
     };
 
+    const handleWindowFocus = () => {
+      terminalRefs[activeTabId]?.fitAndFocus();
+    };
+
     window.addEventListener("resize", handleResize);
+    window.addEventListener("focus", handleWindowFocus);
 
     interface PtyStatusResponse {
       cwd: string;
@@ -233,6 +238,7 @@
 
     return () => {
       window.removeEventListener("resize", handleResize);
+      window.removeEventListener("focus", handleWindowFocus);
       clearInterval(titleInterval);
       clearTimeout(updateTimeout);
       if (unlistenOut) unlistenOut();
@@ -260,6 +266,9 @@
     }}
     onNavigatePath={(path) => {
       navigateSilently(path);
+    }}
+    onFocusActiveTab={() => {
+      terminalRefs[activeTabId]?.fitAndFocus();
     }}
   />
 

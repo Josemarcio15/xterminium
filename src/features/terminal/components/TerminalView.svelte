@@ -315,8 +315,13 @@
   });
 </script>
 
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div
   bind:this={container}
+  role="region"
+  aria-label="Terminal output and input"
+  onclick={() => term?.focus()}
+  onmousedown={() => term?.focus()}
   class="absolute inset-0 px-2.5 pt-2 pb-2 box-border overflow-hidden {active
     ? 'visible pointer-events-auto z-2'
     : 'invisible pointer-events-none z-1'}"

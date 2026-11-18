@@ -25,6 +25,7 @@
     onNavigatePath: (path: string) => void;
     onToggleFileManager?: () => void;
     showFileManager?: boolean;
+    onFocusActiveTab?: () => void;
   }
 
   let {
@@ -37,6 +38,7 @@
     onNavigatePath,
     onToggleFileManager,
     showFileManager,
+    onFocusActiveTab,
   }: Props = $props();
 
   let showMenu = $state(false);
@@ -61,6 +63,7 @@
     showConfigLocationModal = false;
     showShellModal = false;
     showAboutModal = false;
+    onFocusActiveTab?.();
   }
 
   function handleStartDragging(e: MouseEvent) {
@@ -540,7 +543,10 @@
       <!-- Modais Renderizados -->
       <SshModal
         show={showSshModal}
-        onClose={() => (showSshModal = false)}
+        onClose={() => {
+          showSshModal = false;
+          onFocusActiveTab?.();
+        }}
         onConnect={(h) => {
           showSshModal = false;
           onConnectSsh(h);
@@ -549,37 +555,58 @@
 
       <CommandTriggersModal
         show={showCommandsModal}
-        onClose={() => (showCommandsModal = false)}
+        onClose={() => {
+          showCommandsModal = false;
+          onFocusActiveTab?.();
+        }}
       />
 
       <AliasesModal
         show={showAliasesModal}
-        onClose={() => (showAliasesModal = false)}
+        onClose={() => {
+          showAliasesModal = false;
+          onFocusActiveTab?.();
+        }}
       />
 
       <ShortcutsModal
         show={showShortcutsModal}
-        onClose={() => (showShortcutsModal = false)}
+        onClose={() => {
+          showShortcutsModal = false;
+          onFocusActiveTab?.();
+        }}
       />
 
       <ThemeModal
         show={showThemeModal}
-        onClose={() => (showThemeModal = false)}
+        onClose={() => {
+          showThemeModal = false;
+          onFocusActiveTab?.();
+        }}
       />
 
       <ShellModal
         show={showShellModal}
-        onClose={() => (showShellModal = false)}
+        onClose={() => {
+          showShellModal = false;
+          onFocusActiveTab?.();
+        }}
       />
 
       <ConfigLocationModal
         show={showConfigLocationModal}
-        onClose={() => (showConfigLocationModal = false)}
+        onClose={() => {
+          showConfigLocationModal = false;
+          onFocusActiveTab?.();
+        }}
       />
 
       <AboutModal
         show={showAboutModal}
-        onClose={() => (showAboutModal = false)}
+        onClose={() => {
+          showAboutModal = false;
+          onFocusActiveTab?.();
+        }}
       />
     </div>
 
