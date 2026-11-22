@@ -253,9 +253,18 @@ pub fn load_config(filename: String) -> Result<String, String> {
 #[tauri::command]
 pub fn save_config(filename: String, content: String) -> Result<(), String> {
     let dir = get_config_dir();
+    let is_custom = dir != get_default_config_dir();
+    if is_custom && !dir.exists() {
+        // Pasta sincronizada ausente (drive não montado / sync offline):
+        // não recria vazia para não sobrescrever as configs reais depois.
+        return Err(format!(
+            "Pasta de configuração indisponível: {}",
+            dir.display()
+        ));
+    }
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let file_path = dir.join(format!("{}.json", filename));
-    std::fs::write(file_path, &content).map_err(|e| e.to_string())?;
+    write_atomic(&file_path, &content)?;
 
     if filename == "ssh" {
         if let Err(e) = sync_ssh_config(&content) {
@@ -264,6 +273,25 @@ pub fn save_config(filename: String, content: String) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+/// Escrita atômica: grava em arquivo temporário, faz fsync e renomeia.
+/// Mantém uma cópia `.bak` da versão anterior.
+fn write_atomic(path: &std::path::Path, content: &str) -> Result<(), String> {
+    use std::io::Write;
+    let tmp = path.with_extension("json.tmp");
+    {
+        let mut f = std::fs::File::create(&tmp).map_err(|e| e.to_string())?;
+        f.write_all(content.as_bytes()).map_err(|e| e.to_string())?;
+        f.sync_all().map_err(|e| e.to_string())?;
+    }
+    if path.exists() {
+        let _ = std::fs::copy(path, path.with_extension("json.bak"));
+    }
+    std::fs::rename(&tmp, path).map_err(|e| {
+        let _ = std::fs::remove_file(&tmp);
+        e.to_string()
+    })
 }
 
 #[derive(serde::Deserialize)]

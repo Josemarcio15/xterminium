@@ -17,6 +17,20 @@ import {
 } from "../types";
 import { ConfigService } from "../services/config.service";
 
+const loaders = {
+  hosts: () => ConfigService.loadSshHosts(),
+  commands: () => ConfigService.loadCustomCommands(),
+  aliases: () => ConfigService.loadAliases(),
+  shortcuts: () => ConfigService.loadShortcuts(),
+  paths: () => ConfigService.loadPaths(),
+  theme: () => ConfigService.loadTheme(),
+  customThemes: () => ConfigService.loadCustomThemes(),
+  shells: () => ConfigService.loadShells(),
+  vpsPipeline: () => ConfigService.loadVpsPipeline(),
+} as const;
+
+type ConfigKey = keyof typeof loaders;
+
 export class ConfigStore {
   hosts = $state<SshHost[]>([]);
   commands = $state<CustomCommand[]>([]);
@@ -30,6 +44,33 @@ export class ConfigStore {
   initialized = $state(false);
 
   #initPromise: Promise<void> | null = null;
+
+
+  /**
+   * Relê do disco antes de alterar. Evita que um estado antigo em memória
+   * (carregado antes da pasta sincronizada atualizar) sobrescreva arquivos
+   * mais novos vindos do outro sistema.
+   */
+  async #refresh(...keys: ConfigKey[]) {
+    for (const k of keys) {
+      try {
+        (this as any)[k] = await loaders[k]();
+      } catch (e) {
+        console.error(`[config] falha ao recarregar ${k}:`, e);
+      }
+    }
+  }
+
+  #focusHooked = false;
+  #hookFocusReload() {
+    if (this.#focusHooked || typeof window === "undefined") return;
+    this.#focusHooked = true;
+    window.addEventListener("focus", () => {
+      if (!this.initialized) return;
+      this.#refresh("hosts", "commands", "aliases", "shortcuts", "paths",
+        "customThemes", "shells", "vpsPipeline");
+    });
+  }
 
   async init() {
     if (this.initialized) return;
@@ -58,6 +99,7 @@ export class ConfigStore {
       this.vpsPipeline = vp;
       applyThemeToDom(t);
       this.initialized = true;
+      this.#hookFocusReload();
     })().catch((e) => {
       // Libera a promise para permitir nova tentativa e não quebra os chamadores
       console.error("[config] falha ao carregar configurações:", e);
@@ -69,11 +111,13 @@ export class ConfigStore {
 
   // SSH Hosts
   async addHost(host: SshHost) {
+    await this.#refresh("hosts");
     this.hosts.push(host);
     await ConfigService.saveSshHosts(this.hosts);
   }
 
   async updateHost(host: SshHost) {
+    await this.#refresh("hosts");
     const idx = this.hosts.findIndex((h) => h.id === host.id);
     if (idx !== -1) {
       this.hosts[idx] = host;
@@ -82,17 +126,20 @@ export class ConfigStore {
   }
 
   async removeHost(id: string) {
+    await this.#refresh("hosts");
     this.hosts = this.hosts.filter((h) => h.id !== id);
     await ConfigService.saveSshHosts(this.hosts);
   }
 
   // Custom Commands
   async addCommand(cmd: CustomCommand) {
+    await this.#refresh("commands");
     this.commands.push(cmd);
     await ConfigService.saveCustomCommands(this.commands);
   }
 
   async updateCommand(cmd: CustomCommand) {
+    await this.#refresh("commands");
     const idx = this.commands.findIndex((c) => c.id === cmd.id);
     if (idx !== -1) {
       this.commands[idx] = cmd;
@@ -101,17 +148,20 @@ export class ConfigStore {
   }
 
   async removeCommand(id: string) {
+    await this.#refresh("commands");
     this.commands = this.commands.filter((c) => c.id !== id);
     await ConfigService.saveCustomCommands(this.commands);
   }
 
   async resetCommands() {
+    await this.#refresh("commands");
     this.commands = [...defaultCustomCommands];
     await ConfigService.saveCustomCommands(this.commands);
   }
 
   // Métodos do Pipeline VPS Desacoplado
   async addPipelineTrigger(cmd: string) {
+    await this.#refresh("vpsPipeline");
     const val = cmd.trim().toLowerCase();
     if (val && !this.vpsPipeline.triggers.includes(val)) {
       this.vpsPipeline.triggers.push(val);
@@ -120,11 +170,13 @@ export class ConfigStore {
   }
 
   async removePipelineTrigger(cmd: string) {
+    await this.#refresh("vpsPipeline");
     this.vpsPipeline.triggers = this.vpsPipeline.triggers.filter((t) => t !== cmd);
     await ConfigService.saveVpsPipeline(this.vpsPipeline);
   }
 
   async addPipelinePrefixArg(arg: string) {
+    await this.#refresh("vpsPipeline");
     const val = arg.trim();
     if (val && !this.vpsPipeline.prefixArgs.includes(val)) {
       this.vpsPipeline.prefixArgs.push(val);
@@ -133,11 +185,13 @@ export class ConfigStore {
   }
 
   async removePipelinePrefixArg(arg: string) {
+    await this.#refresh("vpsPipeline");
     this.vpsPipeline.prefixArgs = this.vpsPipeline.prefixArgs.filter((a) => a !== arg);
     await ConfigService.saveVpsPipeline(this.vpsPipeline);
   }
 
   async addPipelineSuffixArg(arg: string) {
+    await this.#refresh("vpsPipeline");
     const val = arg.trim();
     if (val && !this.vpsPipeline.suffixArgs.includes(val)) {
       this.vpsPipeline.suffixArgs.push(val);
@@ -146,22 +200,26 @@ export class ConfigStore {
   }
 
   async removePipelineSuffixArg(arg: string) {
+    await this.#refresh("vpsPipeline");
     this.vpsPipeline.suffixArgs = this.vpsPipeline.suffixArgs.filter((a) => a !== arg);
     await ConfigService.saveVpsPipeline(this.vpsPipeline);
   }
 
   async resetVpsPipeline() {
+    await this.#refresh("vpsPipeline");
     this.vpsPipeline = { ...defaultVpsPipeline };
     await ConfigService.saveVpsPipeline(this.vpsPipeline);
   }
 
   // Custom Aliases
   async addAlias(alias: CustomAlias) {
+    await this.#refresh("aliases");
     this.aliases.push(alias);
     await ConfigService.saveAliases(this.aliases);
   }
 
   async updateAlias(alias: CustomAlias) {
+    await this.#refresh("aliases");
     const idx = this.aliases.findIndex((a) => a.id === alias.id);
     if (idx !== -1) {
       this.aliases[idx] = alias;
@@ -170,33 +228,39 @@ export class ConfigStore {
   }
 
   async removeAlias(id: string) {
+    await this.#refresh("aliases");
     this.aliases = this.aliases.filter((a) => a.id !== id);
     await ConfigService.saveAliases(this.aliases);
   }
 
   async resetAliases() {
+    await this.#refresh("aliases");
     this.aliases = [...defaultCustomAliases];
     await ConfigService.saveAliases(this.aliases);
   }
 
   // Shortcuts
   async updateShortcut(actionId: string, keys: string) {
+    await this.#refresh("shortcuts");
     this.shortcuts[actionId] = keys;
     await ConfigService.saveShortcuts(this.shortcuts);
   }
 
   async resetShortcuts() {
+    await this.#refresh("shortcuts");
     this.shortcuts = { ...defaultShortcuts };
     await ConfigService.saveShortcuts(this.shortcuts);
   }
 
   // Paths
   async addPath(path: SavedPath) {
+    await this.#refresh("paths");
     this.paths.push(path);
     await ConfigService.savePaths(this.paths);
   }
 
   async updatePath(path: SavedPath) {
+    await this.#refresh("paths");
     const idx = this.paths.findIndex((p) => p.id === path.id);
     if (idx !== -1) {
       this.paths[idx] = path;
@@ -205,6 +269,7 @@ export class ConfigStore {
   }
 
   async removePath(id: string) {
+    await this.#refresh("paths");
     this.paths = this.paths.filter((p) => p.id !== id);
     await ConfigService.savePaths(this.paths);
   }
@@ -220,12 +285,14 @@ export class ConfigStore {
   }
 
   async resetTheme() {
+    await this.#refresh("theme");
     this.applyTheme({ ...defaultTheme });
     await ConfigService.saveTheme(this.theme);
   }
 
   // Temas Customizados
   async addCustomTheme(theme: AppTheme) {
+    await this.#refresh("customThemes");
     // Evita nome duplicado
     const exists = this.customThemes.findIndex((t) => t.name === theme.name);
     if (exists !== -1) {
@@ -237,6 +304,7 @@ export class ConfigStore {
   }
 
   async renameCustomTheme(oldName: string, newName: string) {
+    await this.#refresh("customThemes", "theme");
     const idx = this.customThemes.findIndex((t) => t.name === oldName);
     if (idx !== -1) {
       this.customThemes[idx] = { ...this.customThemes[idx], name: newName };
@@ -250,6 +318,7 @@ export class ConfigStore {
   }
 
   async deleteCustomTheme(name: string) {
+    await this.#refresh("customThemes");
     this.customThemes = this.customThemes.filter((t) => t.name !== name);
     await ConfigService.saveCustomThemes(this.customThemes);
   }
@@ -257,12 +326,14 @@ export class ConfigStore {
   // Shell do Terminal
   /** Define o shell padrão das novas abas locais (null = padrão do sistema). */
   async setDefaultShell(shell: ShellPreference | null) {
+    await this.#refresh("shells");
     this.shells = { ...this.shells, default: shell ? { ...shell } : null };
     await ConfigService.saveShells(this.shells);
   }
 
   /** Ajusta apenas os argumentos do shell padrão atual. */
   async setDefaultShellArgs(args: string[]) {
+    await this.#refresh("shells");
     if (!this.shells.default) return;
     this.shells = {
       ...this.shells,
@@ -272,6 +343,7 @@ export class ConfigStore {
   }
 
   async addCustomShell(shell: ShellProfile) {
+    await this.#refresh("shells");
     this.shells = {
       ...this.shells,
       custom: [...this.shells.custom, shell],
@@ -280,6 +352,7 @@ export class ConfigStore {
   }
 
   async removeCustomShell(id: string) {
+    await this.#refresh("shells");
     this.shells = {
       ...this.shells,
       custom: this.shells.custom.filter((s) => s.id !== id),
