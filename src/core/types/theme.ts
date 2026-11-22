@@ -64,6 +64,8 @@ export interface AppTheme {
   // Formato & Arredondamento (Border Radius)
   btnRadius?: string; // ex: '6px' ou '0px'
   windowRadius?: string; // ex: '10px' ou '0px'
+  terminalPadding?: number; // ex: 0 a 40 (margem da janela em px, padrão 24)
+  lineHeight?: number; // ex: 1.0 a 1.6 (espaçamento interno entre linhas/letras, padrão 1.25)
   elevation?: number; // ex: 0 (flat) a 4 (alto relevo / sombras profundas)
 
   // Efeito de animação de fundo (ex: 'matrix' = chuva de binários)
@@ -742,6 +744,12 @@ export function applyThemeToDom(theme: AppTheme): void {
   // Arredondamento (border-radius)
   r.setProperty("--btn-radius", theme.btnRadius || "6px");
   r.setProperty("--window-radius", theme.windowRadius || "10px");
+
+  // Padding do Terminal
+  const termPad = typeof theme.terminalPadding === "number" ? theme.terminalPadding : 24;
+  r.setProperty("--terminal-padding-bottom", `${termPad}px`);
+  r.setProperty("--terminal-padding-x", `${Math.round(termPad * 0.5)}px`);
+  r.setProperty("--terminal-padding-top", `${Math.round(termPad * 0.35)}px`);
 
   // Nível de Elevação / Sombras (0: Flat, 1: Sutil, 2: Padrão/Médio, 3: Elevado, 4: Alto Relevo)
   const elev = typeof theme.elevation === "number" ? theme.elevation : 1;

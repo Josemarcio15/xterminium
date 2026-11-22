@@ -302,8 +302,26 @@ export function createTerminalKeyHandler(
     const isCtrlC = pressed === "ctrl+c";
     const hasSelection = term.hasSelection();
     const copyKey = normalizeShortcut(shortcuts.copy || "");
+    const stopKey = normalizeShortcut(shortcuts.stop || "ctrl+c");
 
-    if (pressed === copyKey || (isCtrlC && hasSelection)) {
+    // Se o usuário apertar Ctrl+C (ou o atalho configurado para stop) SEM seleção e o atalho de stop for essa tecla,
+    // não deve copiar, deve executar a ação de stop (SIGINT).
+    if (pressed === copyKey) {
+      if (copyKey === stopKey) {
+        // Se a mesma tecla está configurada para ambos, prioriza cópia apenas com texto selecionado
+        if (hasSelection) {
+          e.preventDefault();
+          e.stopPropagation();
+          actions.copy();
+          return false;
+        }
+      } else {
+        e.preventDefault();
+        e.stopPropagation();
+        actions.copy();
+        return false;
+      }
+    } else if (isCtrlC && hasSelection && stopKey !== "ctrl+c") {
       e.preventDefault();
       e.stopPropagation();
       actions.copy();

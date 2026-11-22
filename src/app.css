@@ -101,6 +101,9 @@
   --btn-border:           rgba(255, 255, 255, 0.15);
   --btn-radius:           6px;
   --window-radius:        10px;
+  --terminal-padding-bottom: 24px;
+  --terminal-padding-x:   12px;
+  --terminal-padding-top: 8px;
 
   /* Elevated / Sombras controladas */
   --shadow-btn:           0 1px 2px rgba(0, 0, 0, 0.15);

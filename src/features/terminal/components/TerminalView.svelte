@@ -125,9 +125,9 @@
       cursorBlink: true,
       cursorStyle: "block",
       cursorInactiveStyle: "outline",
-      fontFamily: '"JetBrains Mono", "Fira Code", "DejaVu Sans Mono", ui-monospace, monospace',
+      fontFamily: '"DejaVu Sans Mono", "Noto Sans Mono", "JetBrains Mono", "Fira Code", monospace',
       fontSize: 14,
-      lineHeight: 1.15,
+      lineHeight: configStore.theme.lineHeight || 1.25,
       theme: {
         background: hasEffect
           ? "rgba(0, 0, 0, 0.45)"
@@ -297,6 +297,12 @@
       cursor: type === "ssh" ? t.terminalCursorSsh : t.terminalCursorLocal,
       selectionBackground: t.terminalSelection,
     };
+    if (typeof t.lineHeight === "number") {
+      term.options.lineHeight = t.lineHeight;
+    }
+    // Recalcula o tamanho caso o padding, fonte ou formato tenha sido alterado
+    fitAddon?.fit();
+    PtyService.resizePty(id, term.cols, term.rows).catch(console.error);
   });
 
   // Liga/desliga o renderer WebGL conforme a aba fica visível
@@ -317,7 +323,8 @@
 
 <div
   bind:this={container}
-  class="absolute inset-0 px-2.5 pt-2 pb-2 box-border overflow-hidden {active
+  style="padding-bottom: var(--terminal-padding-bottom, 24px); padding-left: var(--terminal-padding-x, 12px); padding-right: var(--terminal-padding-x, 12px); padding-top: var(--terminal-padding-top, 8px);"
+  class="absolute inset-0 box-border overflow-hidden {active
     ? 'visible pointer-events-auto z-2'
     : 'invisible pointer-events-none z-1'}"
 ></div>
@@ -385,14 +392,20 @@
 <style>
   :global(.xterm) {
     height: 100%;
+    box-sizing: border-box;
+    background-color: var(--terminal-bg, var(--bg-base));
   }
 
   :global(.xterm-viewport) {
     overflow-y: auto !important;
     overflow-x: hidden !important;
+    background-color: var(--terminal-bg, var(--bg-base)) !important;
   }
 
-  /* Matrix theme: force xterm layers transparent so digital rain shows through */
+  /* Efeitos de fundo (Matrix, Fogo, Gelo, Chuva): torna as camadas transparentes para a animação aparecer */
+  :global(.matrix-rain-active .xterm) {
+    background-color: transparent !important;
+  }
   :global(.matrix-rain-active .xterm-viewport) {
     background-color: transparent !important;
   }

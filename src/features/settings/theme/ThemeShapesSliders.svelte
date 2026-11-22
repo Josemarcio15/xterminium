@@ -19,6 +19,14 @@
   const elevationNum = $derived(
     typeof draft.elevation === "number" ? draft.elevation : 1
   );
+
+  const terminalPaddingNum = $derived(
+    typeof draft.terminalPadding === "number" ? draft.terminalPadding : 24
+  );
+
+  const lineHeightNum = $derived(
+    typeof draft.lineHeight === "number" ? draft.lineHeight : 1.25
+  );
 </script>
 
 <div
@@ -146,6 +154,90 @@
           )}
       />
       <span class="text-[10px] text-(--text-faint) font-mono">4</span>
+    </div>
+  </div>
+
+  <div class="h-px bg-(--border-subtle)"></div>
+
+  <!-- Slider: Espaçamento / Padding do Terminal -->
+  <div class="flex flex-col gap-1">
+    <div class="flex items-center justify-between text-xs">
+      <span
+        class="text-[11px] text-(--text-base) font-medium flex items-center gap-1.5"
+      >
+        <span>Margem do Terminal (Padding)</span>
+        <span class="text-[9px] text-(--text-faint) font-mono">
+          ({terminalPaddingNum === 0
+            ? "Sem margem (0px)"
+            : terminalPaddingNum <= 12
+              ? `Compacto (${terminalPaddingNum}px)`
+              : terminalPaddingNum <= 24
+                ? `Padrão (${terminalPaddingNum}px)`
+                : `Amplo (${terminalPaddingNum}px)`})
+        </span>
+      </span>
+      <div
+        class="w-4 h-4 rounded-xs bg-(--bg-panel) border border-(--border-panel) shrink-0 flex items-center justify-center text-[9px] text-sky-400 font-mono"
+        title="Padding inferior"
+      >
+        ⇲
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-[10px] text-(--text-faint) font-mono">0px</span>
+      <input
+        type="range"
+        min="0"
+        max="40"
+        step="2"
+        class="flex-1 accent-(--accent-primary) cursor-pointer h-2 bg-slate-300 dark:bg-slate-700 border border-(--border-subtle) rounded-lg appearance-none"
+        value={terminalPaddingNum}
+        oninput={(e) =>
+          onUpdate(
+            "terminalPadding",
+            parseInt((e.target as HTMLInputElement).value, 10)
+          )}
+      />
+      <span class="text-[10px] text-(--text-faint) font-mono">40px</span>
+    </div>
+  </div>
+
+  <div class="h-px bg-(--border-subtle)"></div>
+
+  <!-- Slider: Espaçamento entre Linhas (Altura da Letra / Respiro Interno) -->
+  <div class="flex flex-col gap-1">
+    <div class="flex items-center justify-between text-xs">
+      <span
+        class="text-[11px] text-(--text-base) font-medium flex items-center gap-1.5"
+      >
+        <span>Altura da Linha (Respiro das Letras)</span>
+        <span class="text-[9px] text-(--text-faint) font-mono">
+          ({lineHeightNum.toFixed(2)})
+        </span>
+      </span>
+      <div
+        class="w-4 h-4 rounded-xs bg-(--bg-panel) border border-(--border-panel) shrink-0 flex items-center justify-center text-[9px] text-sky-400 font-mono font-bold"
+        title="Line Height"
+      >
+        ↕
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-[10px] text-(--text-faint) font-mono">1.0</span>
+      <input
+        type="range"
+        min="1.0"
+        max="1.6"
+        step="0.05"
+        class="flex-1 accent-(--accent-primary) cursor-pointer h-2 bg-slate-300 dark:bg-slate-700 border border-(--border-subtle) rounded-lg appearance-none"
+        value={lineHeightNum}
+        oninput={(e) =>
+          onUpdate(
+            "lineHeight",
+            parseFloat((e.target as HTMLInputElement).value)
+          )}
+      />
+      <span class="text-[10px] text-(--text-faint) font-mono">1.6</span>
     </div>
   </div>
 </div>
