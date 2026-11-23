@@ -114,6 +114,10 @@ export function createTerminalKeyHandler(
   };
 
   return (e: KeyboardEvent): boolean => {
+    // Teclas mortas (ex: ~ no layout ABNT2 / US-Intl) e composition IME:
+    // Nunca intercepta nem bloqueia para não quebrar a digitação de acentos e símbolos compostos.
+    if (e.isComposing || e.key === "Dead") return true;
+
     if (e.type !== "keydown") return true;
 
     const shortcuts = configStore.shortcuts;

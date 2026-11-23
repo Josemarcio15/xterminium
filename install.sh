@@ -3,7 +3,9 @@
 # xterminium — Instalador / Atualizador  (Linux .deb)
 # Uso:  bash <(curl -fsSL https://raw.githubusercontent.com/Josemarcio15/xterminium/main/install.sh)
 # ============================================================
-set -euo pipefail
+# Desativa saída em erro para testar pipefail com segurança
+set -eu
+(set -o pipefail 2>/dev/null) && set -o pipefail
 
 REPO="Josemarcio15/xterminium"
 API="https://api.github.com/repos/${REPO}/releases"
