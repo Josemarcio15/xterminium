@@ -161,8 +161,8 @@ impl SftpState {
     }
 
     /// Compacta um arquivo ou diretório no servidor remoto
-    pub async fn compress_remote(&self, path: &str) -> Result<String, String> {
-        compress::compress_remote_item(&self.active_session, path).await
+    pub async fn compress_remote(&self, app: &AppHandle, path: &str) -> Result<String, String> {
+        compress::compress_remote_item(&self.active_session, app, path).await
     }
 
     /// Executa comando com sudo no servidor remoto

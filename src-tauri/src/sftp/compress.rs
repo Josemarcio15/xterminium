@@ -2,10 +2,25 @@
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::Duration;
+use tauri::{AppHandle, Emitter};
 use tokio::sync::Mutex;
+use tokio::time::timeout;
 use russh::ChannelMsg;
 
 use super::types::ActiveSftpConnection;
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct SftpCompressProgress {
+    pub file_name: String,
+    pub processed_files: u64,
+    pub total_files: u64,
+    pub percentage: f64,
+    pub is_done: bool,
+}
+
+/// Timeout máximo para compactação remota (60 segundos)
+const REMOTE_COMPRESS_TIMEOUT: Duration = Duration::from_secs(60);
 
 /// Calcula o caminho de destino do arquivo zip evitando sobrescrever arquivos existentes.
 /// Se `arquivo.zip` existir, tenta `arquivo (2).zip`, `arquivo (3).zip`, etc.
@@ -134,6 +149,7 @@ pub async fn compress_local_item(target_path: &str) -> Result<String, String> {
 /// Compacta um arquivo ou diretório remoto via canal SSH na VPS
 pub async fn compress_remote_item(
     active_session: &Arc<Mutex<Option<ActiveSftpConnection>>>,
+    app: &AppHandle,
     remote_path: &str,
 ) -> Result<String, String> {
     let (ssh_handle, sftp) = {
@@ -168,16 +184,59 @@ pub async fn compress_remote_item(
         None => &zip_dest,
     };
 
-    // Abre um canal SSH para executar comandos no servidor remoto
-    let session_lock = ssh_handle.lock().await;
-    let mut channel = session_lock
-        .channel_open_session()
-        .await
-        .map_err(|e| format!("Erro ao abrir canal SSH para compactação: {}", e))?;
+    // Conta o total de arquivos para calcular a porcentagem real
+    let total_files: u64 = {
+        let mut count_channel = {
+            let session_lock = ssh_handle.lock().await;
+            session_lock.channel_open_session().await.ok()
+        };
+        let mut total = 1u64;
+        if let Some(ref mut ch) = count_channel {
+            let count_cmd = format!(
+                "cd {} && find {} -type f 2>/dev/null | wc -l",
+                shlex::try_quote(parent_dir).unwrap_or(std::borrow::Cow::Borrowed(parent_dir)),
+                shlex::try_quote(file_name).unwrap_or(std::borrow::Cow::Borrowed(file_name)),
+            );
+            if ch.exec(true, count_cmd).await.is_ok() {
+                let mut out = Vec::new();
+                while let Some(msg) = ch.wait().await {
+                    if let ChannelMsg::Data { data } = msg {
+                        out.extend_from_slice(&data);
+                    }
+                }
+                if let Ok(parsed) = String::from_utf8_lossy(&out).trim().parse::<u64>() {
+                    if parsed > 0 {
+                        total = parsed;
+                    }
+                }
+            }
+        }
+        total
+    };
 
-    // Script inteligente no servidor Linux: usa zip se disponível, senão python3
+    let _ = app.emit(
+        "sftp-compress-progress",
+        SftpCompressProgress {
+            file_name: file_name.to_string(),
+            processed_files: 0,
+            total_files,
+            percentage: 0.0,
+            is_done: false,
+        },
+    );
+
+    // Abre o canal SSH e LIBERA o lock de ssh_handle IMEDIATAMENTE
+    let mut channel = {
+        let session_lock = ssh_handle.lock().await;
+        session_lock
+            .channel_open_session()
+            .await
+            .map_err(|e| format!("Erro ao abrir canal SSH para compactação: {}", e))?
+    };
+
+    // Script inteligente no servidor Linux: usa zip (sem -q para ler progresso) se disponível, senão python3
     let cmd = format!(
-        "cd {parent_quoted} && if command -v zip >/dev/null 2>&1; then zip -r -q {dest_quoted} {target_quoted}; else python3 -c \"import shutil; shutil.make_archive('{stem_escaped}', 'zip', '.', '{target_escaped}')\"; fi",
+        "cd {parent_quoted} && if command -v zip >/dev/null 2>&1; then zip -r {dest_quoted} {target_quoted}; else python3 -c \"import shutil; shutil.make_archive('{stem_escaped}', 'zip', '.', '{target_escaped}')\"; fi",
         parent_quoted = shlex::try_quote(parent_dir).unwrap_or(std::borrow::Cow::Borrowed(parent_dir)),
         dest_quoted = shlex::try_quote(zip_file_name).unwrap_or(std::borrow::Cow::Borrowed(zip_file_name)),
         target_quoted = shlex::try_quote(file_name).unwrap_or(std::borrow::Cow::Borrowed(file_name)),
@@ -190,27 +249,81 @@ pub async fn compress_remote_item(
         .await
         .map_err(|e| format!("Erro ao executar comando de compactação remoto: {}", e))?;
 
-    let mut stderr_output = Vec::new();
-    let mut exit_status: Option<u32> = None;
+    let execution_fut = async {
+        let mut stderr_output = Vec::new();
+        let mut stdout_buf = String::new();
+        let mut processed_files = 0u64;
+        let mut exit_status: Option<u32> = None;
 
-    while let Some(msg) = channel.wait().await {
-        match msg {
-            ChannelMsg::ExtendedData { data, ext: 1 } => {
-                stderr_output.extend_from_slice(&data);
+        while let Some(msg) = channel.wait().await {
+            match msg {
+                ChannelMsg::Data { data } => {
+                    stdout_buf.push_str(&String::from_utf8_lossy(&data));
+                    while let Some(pos) = stdout_buf.find('\n') {
+                        let line = stdout_buf[..pos].trim().to_string();
+                        stdout_buf.drain(..=pos);
+                        if line.starts_with("adding:") || line.starts_with("updating:") {
+                            processed_files = (processed_files + 1).min(total_files);
+                            let pct = (processed_files as f64 / total_files as f64) * 100.0;
+                            let _ = app.emit(
+                                "sftp-compress-progress",
+                                SftpCompressProgress {
+                                    file_name: file_name.to_string(),
+                                    processed_files,
+                                    total_files,
+                                    percentage: pct.min(99.0),
+                                    is_done: false,
+                                },
+                            );
+                        }
+                    }
+                }
+                ChannelMsg::ExtendedData { data, ext: 1 } => {
+                    stderr_output.extend_from_slice(&data);
+                }
+                ChannelMsg::ExitStatus { exit_status: status } => {
+                    exit_status = Some(status);
+                }
+                _ => {}
             }
-            ChannelMsg::ExitStatus { exit_status: status } => {
-                exit_status = Some(status);
+        }
+
+        if let Some(status) = exit_status {
+            if status != 0 {
+                let _ = app.emit(
+                    "sftp-compress-progress",
+                    SftpCompressProgress {
+                        file_name: file_name.to_string(),
+                        processed_files,
+                        total_files,
+                        percentage: 0.0,
+                        is_done: true,
+                    },
+                );
+                let err_msg = String::from_utf8_lossy(&stderr_output);
+                return Err(format!("Erro ao compactar no servidor (código {}): {}", status, err_msg.trim()));
             }
-            _ => {}
+        }
+
+        let _ = app.emit(
+            "sftp-compress-progress",
+            SftpCompressProgress {
+                file_name: file_name.to_string(),
+                processed_files: total_files,
+                total_files,
+                percentage: 100.0,
+                is_done: true,
+            },
+        );
+
+        Ok(zip_dest)
+    };
+
+    match timeout(REMOTE_COMPRESS_TIMEOUT, execution_fut).await {
+        Ok(res) => res,
+        Err(_) => {
+            let _ = channel.close().await;
+            Err("Tempo limite excedido ao compactar arquivo no servidor remoto.".to_string())
         }
     }
-
-    if let Some(status) = exit_status {
-        if status != 0 {
-            let err_msg = String::from_utf8_lossy(&stderr_output);
-            return Err(format!("Erro ao compactar no servidor (código {}): {}", status, err_msg.trim()));
-        }
-    }
-
-    Ok(zip_dest)
 }

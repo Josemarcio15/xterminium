@@ -9,9 +9,14 @@
 
 use russh::ChannelMsg;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::Mutex;
+use tokio::time::timeout;
 
 use super::types::ActiveSftpConnection;
+
+/// Timeout padrão para execução de comando via sudo remoto (45 segundos)
+const SUDO_COMMAND_TIMEOUT: Duration = Duration::from_secs(45);
 
 /// Executa um comando via SSH com privilégios sudo (fornecendo a senha de forma segura via stdin)
 pub async fn exec_remote_sudo(
@@ -27,14 +32,19 @@ pub async fn exec_remote_sudo(
         session.ssh_handle.clone()
     };
 
-    let session_lock = ssh_handle.lock().await;
-    let mut channel = session_lock
-        .channel_open_session()
-        .await
-        .map_err(|e| format!("Erro ao abrir canal SSH para sudo: {}", e))?;
+    // Abre o canal SSH e LIBERA o lock de ssh_handle IMEDIATAMENTE para evitar deadlocks
+    let mut channel = {
+        let session_lock = ssh_handle.lock().await;
+        session_lock
+            .channel_open_session()
+            .await
+            .map_err(|e| format!("Erro ao abrir canal SSH para sudo: {}", e))?
+    };
 
     // Executa sudo com -S (lê senha do stdin) e -p '' (não emite prompt)
-    let full_command = format!("sudo -S -p '' {}", command);
+    // Usa `sh -c "$command"` para suportar comandos built-in como `cd`, pipelines (`&&`, `|`) e redirecionamentos
+    let escaped_command = command.replace("'", "'\\''");
+    let full_command = format!("sudo -S -p '' sh -c '{}'", escaped_command);
     channel
         .exec(true, full_command)
         .await
@@ -46,41 +56,55 @@ pub async fn exec_remote_sudo(
         .await
         .map_err(|e| format!("Erro ao enviar senha via canal seguro: {}", e))?;
 
-    let mut stderr_output = Vec::new();
-    let mut exit_status: Option<u32> = None;
+    // Fecha o canal de escrita (EOF) para que o sudo/processo saiba que o input encerrou
+    let _ = channel.eof().await;
 
-    while let Some(msg) = channel.wait().await {
-        match msg {
-            ChannelMsg::ExtendedData { data, ext: 1 } => {
-                stderr_output.extend_from_slice(&data);
+    let execution_fut = async {
+        let mut stderr_output = Vec::new();
+        let mut exit_status: Option<u32> = None;
+
+        while let Some(msg) = channel.wait().await {
+            match msg {
+                ChannelMsg::ExtendedData { data, ext: 1 } => {
+                    stderr_output.extend_from_slice(&data);
+                }
+                ChannelMsg::ExitStatus {
+                    exit_status: status,
+                } => {
+                    exit_status = Some(status);
+                }
+                _ => {}
             }
-            ChannelMsg::ExitStatus {
-                exit_status: status,
-            } => {
-                exit_status = Some(status);
+        }
+
+        if let Some(status) = exit_status {
+            if status != 0 {
+                let err_msg = String::from_utf8_lossy(&stderr_output);
+                let cleaned_err = err_msg.trim();
+                let lower = cleaned_err.to_lowercase();
+                if lower.contains("incorrect password")
+                    || lower.contains("try again")
+                    || lower.contains("authentication failed")
+                    || lower.contains("authentication failure")
+                {
+                    return Err("Senha sudo incorreta.".to_string());
+                }
+                return Err(format!(
+                    "Erro ao executar sudo (código {}): {}",
+                    status, cleaned_err
+                ));
             }
-            _ => {}
+        }
+
+        Ok(())
+    };
+
+    // Protege contra travamentos infinitos com timeout
+    match timeout(SUDO_COMMAND_TIMEOUT, execution_fut).await {
+        Ok(res) => res,
+        Err(_) => {
+            let _ = channel.close().await;
+            Err("Tempo limite excedido (timeout) ao executar comando com sudo no servidor remoto.".to_string())
         }
     }
-
-    if let Some(status) = exit_status {
-        if status != 0 {
-            let err_msg = String::from_utf8_lossy(&stderr_output);
-            let cleaned_err = err_msg.trim();
-            let lower = cleaned_err.to_lowercase();
-            if lower.contains("incorrect password")
-                || lower.contains("try again")
-                || lower.contains("authentication failed")
-                || lower.contains("authentication failure")
-            {
-                return Err("Senha sudo incorreta.".to_string());
-            }
-            return Err(format!(
-                "Erro ao executar sudo (código {}): {}",
-                status, cleaned_err
-            ));
-        }
-    }
-
-    Ok(())
 }

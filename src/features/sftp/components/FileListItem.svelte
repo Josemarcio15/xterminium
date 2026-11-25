@@ -11,6 +11,12 @@
       total_bytes: number;
       direction: 'upload' | 'download';
     } | null;
+    compressProgress?: {
+      file_name: string;
+      processed_files: number;
+      total_files: number;
+      percentage: number;
+    } | null;
     onSelect: (item: FileItem) => void;
     onDoubleClick: (item: FileItem) => void;
   }
@@ -19,12 +25,17 @@
     item,
     isSelected,
     activeTransfer,
+    compressProgress = null,
     onSelect,
     onDoubleClick,
   }: Props = $props();
 
   let isCurrentTransfer = $derived(activeTransfer && activeTransfer.file_name === item.name);
-  let transferProgress = $derived(isCurrentTransfer ? activeTransfer!.percentage : 0);
+  let isCurrentCompress = $derived(compressProgress && compressProgress.file_name === item.name);
+  let isActiveProgress = $derived(isCurrentTransfer || isCurrentCompress);
+  let transferProgress = $derived(
+    isCurrentTransfer ? activeTransfer!.percentage : isCurrentCompress ? compressProgress!.percentage : 0
+  );
 </script>
 
 <div
@@ -40,9 +51,9 @@
     }
   }}
   class="relative flex items-center justify-between px-2.5 py-1.5 rounded cursor-pointer transition-all text-xs overflow-hidden {isSelected
-    ? 'border-b-2 ' + (isCurrentTransfer ? 'border-purple-500 text-purple-600 dark:text-purple-200' : 'border-blue-500 bg-blue-500/15 text-blue-600 dark:text-blue-300') + ' font-medium'
-    : (isCurrentTransfer ? 'border-b-2 border-purple-500 text-purple-600 dark:text-purple-200 font-medium' : 'hover:bg-(--bg-item-hover) text-(--text-base)')}"
-  style={isCurrentTransfer
+    ? 'border-b-2 ' + (isActiveProgress ? 'border-purple-500 text-purple-600 dark:text-purple-200' : 'border-blue-500 bg-blue-500/15 text-blue-600 dark:text-blue-300') + ' font-medium'
+    : (isActiveProgress ? 'border-b-2 border-purple-500 text-purple-600 dark:text-purple-200 font-medium' : 'hover:bg-(--bg-item-hover) text-(--text-base)')}"
+  style={isActiveProgress
     ? (isSelected
         ? `background: linear-gradient(to right, rgba(147, 51, 234, 0.7) 0%, rgba(168, 85, 247, 0.6) ${transferProgress}%, rgba(37, 99, 235, 0.35) ${transferProgress}%);`
         : `background: linear-gradient(to right, rgba(147, 51, 234, 0.6) 0%, rgba(168, 85, 247, 0.5) ${transferProgress}%, rgba(255, 255, 255, 0.03) ${transferProgress}%);`)

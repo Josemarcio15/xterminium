@@ -27,6 +27,12 @@
       total_bytes: number;
       direction: 'upload' | 'download';
     } | null;
+    compressProgress?: {
+      file_name: string;
+      processed_files: number;
+      total_files: number;
+      percentage: number;
+    } | null;
     extraActionsSnippet?: import('svelte').Snippet;
   }
 
@@ -41,7 +47,7 @@
     onSelect,
     onDoubleClick,
     onGoUp, onRefresh, onCreateFile, onCreateFolder, onRename, onDelete, onCompress,
-    activeTransfer = null, extraActionsSnippet, onNavigate,
+    activeTransfer = null, compressProgress = null, extraActionsSnippet, onNavigate,
   }: Props & { onNavigate?: (newPath: string) => void } = $props();
 
   let isEditingPath = $state(false);
@@ -329,6 +335,7 @@
           {item}
           isSelected={selectedFile?.path === item.path}
           {activeTransfer}
+          {compressProgress}
           {onSelect}
           {onDoubleClick}
         />

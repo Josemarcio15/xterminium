@@ -1,5 +1,7 @@
 <script lang="ts">
   import type { SshHost, FileItem, SftpTransferProgress } from '../types';
+  import type { SftpCompressProgress } from '../../../core/services';
+  import { listen } from '@tauri-apps/api/event';
   import { createSftpConnection } from '../composables/useSftpConnection.svelte';
   import { createSftpFileSystem } from '../composables/useSftpFileSystem.svelte';
   import { createSftpTransfer } from '../composables/useSftpTransfer.svelte';
@@ -38,6 +40,23 @@
   // Estados Globais de UI
   let showHiddenFiles = $state(false);
   let showChecksumModal = $state(false);
+  let compressProgress = $state<SftpCompressProgress | null>(null);
+
+  $effect(() => {
+    let unlisten: (() => void) | undefined;
+    listen<SftpCompressProgress>('sftp-compress-progress', (event) => {
+      if (event.payload.is_done) {
+        compressProgress = null;
+      } else {
+        compressProgress = event.payload;
+      }
+    }).then((fn) => {
+      unlisten = fn;
+    });
+    return () => {
+      if (unlisten) unlisten();
+    };
+  });
 
   // Composable de Notificações
   const notif = createSftpNotifications();
@@ -48,6 +67,7 @@
 
   // Composables por Responsabilidade
   const fs = createSftpFileSystem(setStatus);
+  const sudo = createSftpSudo(setStatus);
 
   const conn = createSftpConnection(
     setStatus,
@@ -58,11 +78,11 @@
     () => {
       fs.clearRemote();
       notif.clearNotifications();
+      sudo.deactivateRootMode();
     },
   );
 
   const transfer = createSftpTransfer(setStatus);
-  const sudo = createSftpSudo(setStatus);
 
   const actions = createRemoteFileActions(
     setStatus,
@@ -70,6 +90,7 @@
       await fs.loadRemote(fs.remotePath);
     },
     (actionName, cmd, onSuccess) => sudo.requestRemoteSudo(actionName, cmd, onSuccess),
+    () => sudo.isRootModeActive,
   );
 
   const localActions = createLocalFileActions(
@@ -116,6 +137,7 @@
     if (transfer.isTransferring) {
       transfer.cancelTransfer();
     }
+    sudo.deactivateRootMode();
     conn.disconnect();
     onClose?.();
   }
@@ -187,19 +209,43 @@
           </div>
         {:else}
           {#snippet remoteActions()}
-            <IconButton
-              onclick={conn.disconnect}
-              variant="danger"
-              size="sm"
-              title="Desconectar do SFTP"
-              aria-label="Desconectar"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                <polyline points="16 17 21 12 16 7"></polyline>
-                <line x1="21" y1="12" x2="9" y2="12"></line>
-              </svg>
-            </IconButton>
+            <div class="flex items-center gap-1.5">
+              <!-- Botão / Indicador de Modo Root Sudo -->
+              <button
+                type="button"
+                onclick={() => {
+                  if (sudo.isRootModeActive) {
+                    sudo.deactivateRootMode();
+                  } else {
+                    sudo.requestEnableRootMode();
+                  }
+                }}
+                class="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border transition-colors cursor-pointer select-none {sudo.isRootModeActive
+                  ? 'bg-amber-500/20 text-amber-500 dark:text-amber-400 border-amber-500/40 hover:bg-amber-500/30 shadow-xs'
+                  : 'bg-black/5 dark:bg-white/5 text-(--text-muted) border-(--border-subtle) hover:text-(--text-base) hover:bg-black/10 dark:hover:bg-white/10'}"
+                title={sudo.isRootModeActive ? 'Modo Root Ativo: clique para desativar' : 'Ativar Modo Root (Sudo) contínuo'}
+              >
+                <svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                  <rect x="9" y="10" width="6" height="5" rx="1"></rect>
+                </svg>
+                <span>{sudo.isRootModeActive ? 'Root: ON' : 'Sudo: OFF'}</span>
+              </button>
+
+              <IconButton
+                onclick={conn.disconnect}
+                variant="danger"
+                size="sm"
+                title="Desconectar do SFTP"
+                aria-label="Desconectar"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                  <polyline points="16 17 21 12 16 7"></polyline>
+                  <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+              </IconButton>
+            </div>
           {/snippet}
 
           <FileListPanel
@@ -211,6 +257,7 @@
             tagColor="blue"
             isRemote={true}
             activeTransfer={transfer.activeTransfer?.direction === 'download' ? transfer.activeTransfer : null}
+            {compressProgress}
             onSelect={(item) => (fs.selectedRemote = item)}
             onDoubleClick={(item) => {
               if (item.is_dir) fs.loadRemote(item.path);
@@ -301,7 +348,7 @@
     description={sudo.sudoPrompt.description}
     isSubmitting={sudo.sudoPrompt.isSubmitting}
     errorMessage={sudo.sudoPrompt.errorMessage}
-    onSubmit={(pwd) => sudo.handleSudoSubmit(pwd)}
+    onSubmit={(pwd, remember) => sudo.handleSudoSubmit(pwd, remember)}
     onClose={sudo.closeSudoPrompt}
   />
 {/if}

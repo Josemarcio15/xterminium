@@ -28,6 +28,14 @@ export interface SftpTransferProgress {
   is_done: boolean;
 }
 
+export interface SftpCompressProgress {
+  file_name: string;
+  processed_files: number;
+  total_files: number;
+  percentage: number;
+  is_done: boolean;
+}
+
 export class SftpService {
   static async connect(config: SftpConnectionConfig): Promise<string> {
     return await invoke<string>('sftp_connect', {

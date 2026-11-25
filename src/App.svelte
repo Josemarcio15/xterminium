@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import { listen } from "@tauri-apps/api/event";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
   import { invoke } from "@tauri-apps/api/core";
   import Titlebar from "./shared/layout/Titlebar.svelte";
   import ResizeHandles from "./shared/layout/ResizeHandles.svelte";
@@ -139,6 +140,18 @@
 
     let unlistenOut: (() => void) | undefined;
     let unlistenExit: (() => void) | undefined;
+    let unlistenCloseRequested: (() => void) | undefined;
+
+    // Garante o encerramento limpo da sessão SFTP ao fechar a janela
+    getCurrentWindow()
+      .onCloseRequested(async () => {
+        try {
+          await invoke("sftp_disconnect");
+        } catch {}
+      })
+      .then((fn) => {
+        unlistenCloseRequested = fn;
+      });
 
     listen<{ id: string; data: string }>("pty-out", (event) => {
       if (muteTabs.has(event.payload.id)) {
@@ -243,6 +256,7 @@
       clearTimeout(updateTimeout);
       if (unlistenOut) unlistenOut();
       if (unlistenExit) unlistenExit();
+      if (unlistenCloseRequested) unlistenCloseRequested();
     };
   });
 </script>

@@ -7,7 +7,8 @@
     description?: string;
     isSubmitting?: boolean;
     errorMessage?: string;
-    onSubmit: (password: string) => void;
+    showRememberOption?: boolean;
+    onSubmit: (password: string, rememberForSession: boolean) => void;
     onClose: () => void;
   }
 
@@ -17,11 +18,13 @@
     description = 'Permissão negada. Digite a senha do usuário para executar esta ação como root:',
     isSubmitting = false,
     errorMessage = '',
+    showRememberOption = true,
     onSubmit,
     onClose,
   }: Props = $props();
 
   let passwordValue = $state('');
+  let rememberForSession = $state(true);
   let showPassword = $state(false);
   let passwordInputRef = $state<HTMLInputElement | null>(null);
 
@@ -38,7 +41,7 @@
   function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
     if (!passwordValue || isSubmitting) return;
-    onSubmit(passwordValue);
+    onSubmit(passwordValue, rememberForSession);
   }
 
   function handleKeydown(e: KeyboardEvent) {
@@ -140,6 +143,17 @@
             </button>
           </div>
         </div>
+
+        {#if showRememberOption}
+          <label class="flex items-center gap-2 cursor-pointer select-none text-xs text-(--text-muted) hover:text-(--text-base)">
+            <input
+              type="checkbox"
+              bind:checked={rememberForSession}
+              class="w-3.5 h-3.5 rounded border-(--border-subtle) text-amber-500 focus:ring-0 cursor-pointer"
+            />
+            <span>Manter <strong>Modo Root ativo</strong> nesta sessão (não pedir senha de novo)</span>
+          </label>
+        {/if}
 
         <div class="flex items-center justify-end gap-2 pt-2 border-t border-(--border-subtle)">
           <Button

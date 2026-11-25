@@ -644,7 +644,13 @@
 
     <button
       class="bg-transparent border-none outline-none text-(--text-muted) w-11 h-full flex items-center justify-center cursor-pointer hover:bg-[#e81123] hover:text-white transition-all"
-      onclick={() => appWindow.close()}
+      onclick={async () => {
+        try {
+          const { invoke } = await import("@tauri-apps/api/core");
+          await invoke("sftp_disconnect");
+        } catch {}
+        appWindow.close();
+      }}
       title="Fechar"
     >
       <svg width="11" height="11" viewBox="0 0 12 12"

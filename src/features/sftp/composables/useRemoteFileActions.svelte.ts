@@ -19,6 +19,7 @@ export function createRemoteFileActions(
   setStatus: (msg: string) => void,
   refreshRemote: () => Promise<void>,
   onRequestSudo?: (actionName: string, command: string, onSuccess: () => Promise<void>) => void,
+  isRootActive?: () => boolean,
 ) {
   let confirmDialog = $state<ConfirmDialogState>({
     isOpen: false,
@@ -45,6 +46,10 @@ export function createRemoteFileActions(
       onConfirm: async (name) => {
         if (!name) return;
         const target = remotePath.endsWith('/') ? `${remotePath}${name}` : `${remotePath}/${name}`;
+        if (isRootActive?.() && onRequestSudo) {
+          onRequestSudo('Criar Arquivo', `touch ${JSON.stringify(target)}`, refreshRemote);
+          return;
+        }
         try {
           await SftpService.createFile(target);
           setStatus(`Arquivo "${name}" criado com sucesso.`);
@@ -74,6 +79,10 @@ export function createRemoteFileActions(
       onConfirm: async (name) => {
         if (!name) return;
         const target = remotePath.endsWith('/') ? `${remotePath}${name}` : `${remotePath}/${name}`;
+        if (isRootActive?.() && onRequestSudo) {
+          onRequestSudo('Criar Arquivo', `touch ${JSON.stringify(target)}`, refreshRemote);
+          return;
+        }
         try {
           await SftpService.createDir(target);
           setStatus(`Pasta "${name}" criada com sucesso.`);
@@ -105,6 +114,11 @@ export function createRemoteFileActions(
         const parentDir = item.path.substring(0, item.path.lastIndexOf('/')) || '/';
         const newPath = parentDir.endsWith('/') ? `${parentDir}${newName}` : `${parentDir}/${newName}`;
 
+        if (isRootActive?.() && onRequestSudo) {
+          onRequestSudo('Renomear/Mover', `mv ${JSON.stringify(item.path)} ${JSON.stringify(newPath)}`, refreshRemote);
+          return;
+        }
+
         try {
           await SftpService.rename(item.path, newPath);
           setStatus(`"${item.name}" renomeado para "${newName}".`);
@@ -131,6 +145,11 @@ export function createRemoteFileActions(
       variant: 'danger',
       inputMode: false,
       onConfirm: async () => {
+        if (isRootActive?.() && onRequestSudo) {
+          const cmd = item.is_dir ? `rm -rf ${JSON.stringify(item.path)}` : `rm -f ${JSON.stringify(item.path)}`;
+          onRequestSudo('Excluir', cmd, refreshRemote);
+          return;
+        }
         try {
           if (item.is_dir) {
             await SftpService.removeDir(item.path);
@@ -153,6 +172,13 @@ export function createRemoteFileActions(
 
   async function handleCompress(isConnected: boolean, item: FileItem) {
     if (!isConnected || !item) return;
+    if (isRootActive?.() && onRequestSudo) {
+      const parentDir = item.path.substring(0, item.path.lastIndexOf('/')) || '/';
+      const zipName = `${item.name.replace(/\.zip$/i, '')}.zip`;
+      const cmd = `cd ${JSON.stringify(parentDir)} && zip -r -q ${JSON.stringify(zipName)} ${JSON.stringify(item.name)}`;
+      onRequestSudo('Compactar no Servidor', cmd, refreshRemote);
+      return;
+    }
     setStatus(`Compactando "${item.name}" no servidor remoto...`);
     try {
       const destZip = await SftpService.compressRemote(item.path);

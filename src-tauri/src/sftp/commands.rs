@@ -186,10 +186,11 @@ pub async fn sftp_compress_local(
 
 #[tauri::command]
 pub async fn sftp_compress_remote(
+    app: AppHandle,
     path: String,
     sftp_state: State<'_, SftpState>,
 ) -> Result<String, String> {
-    sftp_state.compress_remote(&path).await
+    sftp_state.compress_remote(&app, &path).await
 }
 
 #[tauri::command]
