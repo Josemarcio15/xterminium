@@ -5,7 +5,8 @@
   import { WebglAddon } from "@xterm/addon-webgl";
   import "@xterm/xterm/css/xterm.css";
   import { type SshHost, hasBackgroundEffect } from "../../../core/types";
-  import { PtyService } from "../../../core/services";
+  import { PtyService, SftpService } from "../../../core/services";
+  import PasswordModal from "../../sftp/components/PasswordModal.svelte";
   import { configStore } from "../../../core/stores/config.svelte";
   import SshAutocompleteDropdown from "./SshAutocompleteDropdown.svelte";
   import VpsPipelineDropdown from "./VpsPipelineDropdown.svelte";
@@ -26,15 +27,65 @@
     initialPath?: string;
     active: boolean;
     onNewTab: () => void;
+    onConnectSsh?: (host: SshHost) => void;
   }
 
-  let { id, type, sshInfo, initialPath, active, onNewTab }: Props = $props();
+  let { id, type, sshInfo, initialPath, active, onNewTab, onConnectSsh }: Props = $props();
 
   let container = $state<HTMLDivElement | null>(null);
   let term: Terminal | null = null;
   let fitAddon: FitAddon | null = null;
   let webglAddon: WebglAddon | null = null;
   let resizeObserver: ResizeObserver | null = null;
+
+  // Autenticação SFTP em background para Path Suggestion no SSH
+  let hasAttemptedSftpConnect = false;
+  let showSshAuthModal = $state(false);
+  let sshAuthPassphraseOnly = $state(false);
+  let sshAuthRequirePassword = $state(false);
+  let sshAuthError = $state("");
+  let isSshAuthConnecting = $state(false);
+
+  $effect(() => {
+    if (type === "ssh" && sshInfo && !hasAttemptedSftpConnect) {
+      hasAttemptedSftpConnect = true;
+      connectSftpForPathSuggestion();
+    }
+  });
+
+  async function connectSftpForPathSuggestion(password?: string, keyPassphrase?: string) {
+    if (!sshInfo?.ip || !sshInfo?.user) return;
+    isSshAuthConnecting = true;
+    sshAuthError = "";
+    try {
+      await SftpService.connect({
+        host: sshInfo.ip,
+        port: sshInfo.port ? parseInt(sshInfo.port, 10) || 22 : 22,
+        user: sshInfo.user,
+        password,
+        key_path: sshInfo.key || undefined,
+        key_passphrase: keyPassphrase,
+      });
+      showSshAuthModal = false;
+      if (password) {
+        PtyService.writePty(id, `${password}\n`).catch(() => {});
+      }
+    } catch (err: any) {
+      const msg = String(err);
+      if (msg.includes("PASSPHRASE_REQUIRED")) {
+        sshAuthPassphraseOnly = true;
+        sshAuthRequirePassword = false;
+        showSshAuthModal = true;
+      } else if (msg.includes("AUTH_FAILED")) {
+        sshAuthPassphraseOnly = false;
+        sshAuthRequirePassword = true;
+        sshAuthError = showSshAuthModal ? "Senha ou passphrase incorreta." : "";
+        showSshAuthModal = true;
+      }
+    } finally {
+      isSshAuthConnecting = false;
+    }
+  }
 
   /**
    * Renderer WebGL (GPU): texto mais fluido e fonte nítida em muitas linhas.
@@ -77,6 +128,7 @@
     () => type,
     () => term,
     () => container,
+    (host) => onConnectSsh?.(host),
   );
 
   const dirAuto = useDirectoryAutocomplete(
@@ -223,6 +275,19 @@
     term.onData((data) => {
       aliasSug.onUserInput();
 
+      // Limpa o scrollback de verdade no xterm quando o usuário executa `clear` ou `cls`
+      if (data === "\r" && term) {
+        const buf = term.buffer.active;
+        const line = buf.getLine(buf.baseY + buf.cursorY)?.translateToString(true).trim() || "";
+        if (/(?:^|\s|[$#>❯])\s*(clear|cls)$/i.test(line)) {
+          setTimeout(() => term?.clear(), 60);
+        }
+        // Limpa o cache de diretórios SSH ao mudar de pasta com `cd`
+        if (/(?:^|\s|[$#>❯])\s*cd\b/i.test(line)) {
+          cdAuto.clearRemoteCache();
+        }
+      }
+
       // Ignora teclas de navegação vazadas para o terminal caso algum dropdown ou sugestão esteja aberto
       if (
         (vpsAuto.showDropdown ||
@@ -367,7 +432,7 @@
   />
 {/if}
 
-{#if cdAuto.isOpen && cdAuto.directories.length > 0 && active}
+{#if ((cdAuto.isOpen && cdAuto.directories.length > 0) || cdAuto.isLoading) && active}
   <CdInlineAutocompletePopup
     directories={cdAuto.directories}
     selectedIndex={cdAuto.selectedIndex}
@@ -375,6 +440,7 @@
     typedFull={cdAuto.typedFull}
     totalMatches={cdAuto.totalMatches}
     position={cdAuto.position}
+    isLoading={cdAuto.isLoading}
     onSelect={cdAuto.apply}
   />
 {/if}
@@ -386,6 +452,23 @@
     matchedPrefix={aliasSug.matchedPrefix}
     position={aliasSug.position}
     onSelect={aliasSug.apply}
+  />
+{/if}
+
+{#if showSshAuthModal && sshInfo && active}
+  <PasswordModal
+    isOpen={showSshAuthModal}
+    sshUser={sshInfo.user}
+    sshHost={sshInfo.ip}
+    hasKey={!!sshInfo.key}
+    initialPassphraseOnly={sshAuthPassphraseOnly}
+    requireVpsPassword={sshAuthRequirePassword}
+    errorMessage={sshAuthError}
+    isConnecting={isSshAuthConnecting}
+    onSubmit={(data) => connectSftpForPathSuggestion(data.password, data.passphrase)}
+    onClose={() => {
+      showSshAuthModal = false;
+    }}
   />
 {/if}
 

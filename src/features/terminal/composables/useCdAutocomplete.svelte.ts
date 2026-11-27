@@ -1,5 +1,5 @@
 import { Terminal } from "@xterm/xterm";
-import { PtyService } from "../../../core/services";
+import { PtyService, SftpService } from "../../../core/services";
 
 export function useCdAutocomplete(
   getId: () => string,
@@ -23,8 +23,11 @@ export function useCdAutocomplete(
   // Cache para evitar spam de chamadas assíncronas ao Rust
   let cachedCwd = "";
   let cachedDirs: string[] = [];
+  const remoteCache = new Map<string, string[]>();
+  let isLoading = $state(false);
   let isFetching = false;
   let lastAppliedDir = "";
+  let checkSeq = 0;
 
   const activeDirectory = $derived(
     directories.length > 0 && selectedIndex < directories.length
@@ -32,9 +35,47 @@ export function useCdAutocomplete(
       : null
   );
 
-  async function fetchDirectoriesIfNeeded(relativePath?: string): Promise<string[]> {
+  function extractRemotePromptCwd(term: Terminal, textBeforeCd: string): string {
+    const buffer = term.buffer.active;
+    const absY = buffer.baseY + buffer.cursorY;
+    const prevLine = absY > 0 ? (buffer.getLine(absY - 1)?.translateToString(true) || "") : "";
+    // Junta a linha anterior (prompts de 2 linhas) com o trecho antes do `cd` na linha atual
+    const combined = `${prevLine} ${textBeforeCd}`;
+    // Procura caminho estilo `~/algo`, `~` ou `/algo` após espaço ou `:`
+    const matches = [...combined.matchAll(/(?:^|[\s:])(~(?:\/[^\s$#>]*)?|\/[^\s$#>]*)/g)];
+    if (matches.length === 0) return ".";
+    const raw = matches[matches.length - 1][1];
+    if (raw === "~" || raw === "~/") return ".";
+    if (raw.startsWith("~/")) return `./${raw.slice(2)}`;
+    return raw;
+  }
+
+  async function fetchDirectoriesIfNeeded(relativePath?: string, remoteBasePath = "."): Promise<string[]> {
     if (getType() === "ssh") {
-      return [];
+      const targetPath = relativePath && relativePath.startsWith("/")
+        ? relativePath
+        : relativePath
+          ? (remoteBasePath === "." ? `./${relativePath}` : `${remoteBasePath.replace(/\/+$/, "")}/${relativePath}`)
+          : remoteBasePath;
+
+      const cached = remoteCache.get(targetPath);
+      if (cached) {
+        return cached;
+      }
+
+      try {
+        isFetching = true;
+        isLoading = true;
+        updatePosition();
+        const entries = await SftpService.listRemote(targetPath);
+        const dirs = (entries || []).filter((e) => e.is_dir).map((e) => e.name);
+        remoteCache.set(targetPath, dirs);
+        return dirs;
+      } catch {
+        return [];
+      } finally {
+        isFetching = false;
+      }
     }
 
     try {
@@ -51,13 +92,9 @@ export function useCdAutocomplete(
   }
 
   async function check(isOtherDropdownOpen: boolean): Promise<boolean> {
+    const seq = ++checkSeq;
     const term = getTerm();
     if (!term || isOtherDropdownOpen) {
-      close();
-      return false;
-    }
-
-    if (getType() === "ssh") {
       close();
       return false;
     }
@@ -101,7 +138,11 @@ export function useCdAutocomplete(
     matchedQuery = typedQuery;
 
     // Busca diretórios (relativos à pasta pai, se houver)
-    const allDirs = await fetchDirectoriesIfNeeded(parentPath || undefined);
+    const remoteBasePath = getType() === "ssh"
+      ? extractRemotePromptCwd(term, textBeforeCursor.slice(0, cdMatch.index ?? 0))
+      : ".";
+    const allDirs = await fetchDirectoriesIfNeeded(parentPath || undefined, remoteBasePath);
+    if (seq !== checkSeq) return false;
     console.log("[CD Autocomplete] Matched CD!", { textBeforeCursor, typedQuery, allDirsCount: allDirs.length });
     if (!allDirs || allDirs.length === 0) {
       close();
@@ -142,6 +183,7 @@ export function useCdAutocomplete(
 
     updatePosition();
     isOpen = true;
+    isLoading = false;
     return true;
   }
 
@@ -272,6 +314,10 @@ export function useCdAutocomplete(
     }
   }
 
+  function clearRemoteCache() {
+    remoteCache.clear();
+  }
+
   return {
     get directories() {
       return directories;
@@ -294,9 +340,13 @@ export function useCdAutocomplete(
     get isOpen() {
       return isOpen;
     },
+    get isLoading() {
+      return isLoading;
+    },
     get activeDirectory() {
       return activeDirectory;
     },
+    clearRemoteCache,
     check,
     close,
     next,

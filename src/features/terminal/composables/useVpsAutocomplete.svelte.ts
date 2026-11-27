@@ -3,12 +3,14 @@ import { PtyService } from "../../../core/services";
 import { configStore } from "../../../core/stores/config.svelte";
 import type { PipelineItem } from "../components/VpsPipelineDropdown.svelte";
 import type { PipelineArgOption } from "../components/ArgsDualColumnModal.svelte";
+import type { SshHost } from "../../../core/types";
 
 export function useVpsAutocomplete(
   getId: () => string,
   getType: () => "local" | "ssh",
   getTerm: () => Terminal | null,
   getContainer: () => HTMLDivElement | null,
+  onConnectSsh?: (host: SshHost) => void,
 ) {
   // Modal de Colunas Duplas (Args 1 & Args 2)
   let showDualModal = $state(false);

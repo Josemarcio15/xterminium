@@ -229,6 +229,43 @@
       />
     </div>
 
+    <!-- Atalho rápido: Conexões SSH -->
+    <button
+      class="bg-transparent border-none outline-none p-1.5 rounded-md cursor-pointer flex items-center justify-center transition-all hover:bg-black/5 dark:hover:bg-white/10 {showSshModal
+        ? 'bg-sky-400/15 text-sky-400'
+        : 'text-(--text-muted) hover:text-sky-400'}"
+      onclick={() => {
+        showMenu = false;
+        closeAllModals();
+        showSshModal = true;
+      }}
+      title="Conexões SSH"
+    >
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+        <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+        <line x1="6" y1="6" x2="6.01" y2="6"></line>
+        <line x1="6" y1="18" x2="6.01" y2="18"></line>
+      </svg>
+    </button>
+
+    <!-- Atalho rápido: Gerenciador SFTP -->
+    <button
+      class="bg-transparent border-none outline-none p-1.5 rounded-md cursor-pointer flex items-center justify-center transition-all hover:bg-black/5 dark:hover:bg-white/10 {showFileManager
+        ? 'bg-indigo-400/15 text-indigo-400'
+        : 'text-(--text-muted) hover:text-indigo-400'}"
+      onclick={() => {
+        showMenu = false;
+        closeAllModals();
+        onToggleFileManager?.();
+      }}
+      title="Gerenciador de Arquivos (SFTP)"
+    >
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2z"></path>
+      </svg>
+    </button>
+
     <!-- Menu Hamburguer com Ferramentas -->
     <div class="relative">
       <button
@@ -644,13 +681,7 @@
 
     <button
       class="bg-transparent border-none outline-none text-(--text-muted) w-11 h-full flex items-center justify-center cursor-pointer hover:bg-[#e81123] hover:text-white transition-all"
-      onclick={async () => {
-        try {
-          const { invoke } = await import("@tauri-apps/api/core");
-          await invoke("sftp_disconnect");
-        } catch {}
-        appWindow.close();
-      }}
+      onclick={() => appWindow.close()}
       title="Fechar"
     >
       <svg width="11" height="11" viewBox="0 0 12 12"

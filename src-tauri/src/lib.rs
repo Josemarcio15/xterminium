@@ -99,6 +99,16 @@ pub fn run() {
 
             Ok(())
         })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { .. } = event {
+                use tauri::Manager;
+                let app_handle = window.app_handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    let sftp_state = app_handle.state::<SftpState>();
+                    sftp_state.disconnect().await;
+                });
+            }
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

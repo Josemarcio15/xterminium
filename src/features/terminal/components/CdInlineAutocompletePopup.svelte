@@ -6,6 +6,7 @@
     typedFull?: string;
     totalMatches: number;
     position: { x: number; y: number };
+    isLoading?: boolean;
     onSelect?: (dirName: string, isTypedOption?: boolean) => void;
   }
 
@@ -16,6 +17,7 @@
     typedFull = "",
     totalMatches,
     position,
+    isLoading = false,
     onSelect,
   }: Props = $props();
 
@@ -29,7 +31,19 @@
   });
 </script>
 
-{#if directories.length > 0}
+{#if isLoading && directories.length === 0}
+  <div
+    class="fixed z-50 pointer-events-none select-none animate-in fade-in zoom-in-95 duration-100 ease-out"
+    style="left: {position.x}px; top: {position.y}px;"
+  >
+    <div
+      class="flex items-center gap-2 px-3 py-2 rounded-lg bg-(--bg-card,#18181b)/95 backdrop-blur-md border border-cyan-500/30 shadow-2xl shadow-black/50 text-xs font-mono text-(--text-muted)"
+    >
+      <span class="w-3 h-3 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin"></span>
+      <span>Carregando pastas...</span>
+    </div>
+  </div>
+{:else if directories.length > 0}
   <div
     class="fixed z-50 pointer-events-auto select-none animate-in fade-in zoom-in-95 duration-100 ease-out"
     style="left: {position.x}px; top: {position.y}px;"

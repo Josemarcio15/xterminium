@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import type { SshHost, FileItem, SftpTransferProgress } from '../types';
   import type { SftpCompressProgress } from '../../../core/services';
   import { listen } from '@tauri-apps/api/event';
@@ -113,23 +114,25 @@
 
   $effect(() => {
     if (isOpen) {
-      conn.loadHosts();
+      untrack(() => {
+        conn.loadHosts();
 
-      if (initialLocalPath) {
-        fs.loadLocal(initialLocalPath);
-      } else {
-        fs.loadLocal();
-      }
+        if (initialLocalPath) {
+          fs.loadLocal(initialLocalPath);
+        } else {
+          fs.loadLocal();
+        }
 
-      if (currentSshInfo?.ip && currentSshInfo?.user) {
-        conn.setConnectionInfo({
-          ip: currentSshInfo.ip,
-          user: currentSshInfo.user,
-          port: currentSshInfo.port ? parseInt(currentSshInfo.port, 10) || 22 : 22,
-          key: currentSshInfo.key,
-        });
-        conn.connect();
-      }
+        if (currentSshInfo?.ip && currentSshInfo?.user) {
+          conn.setConnectionInfo({
+            ip: currentSshInfo.ip,
+            user: currentSshInfo.user,
+            port: currentSshInfo.port ? parseInt(currentSshInfo.port, 10) || 22 : 22,
+            key: currentSshInfo.key,
+          });
+          conn.connect();
+        }
+      });
     }
   });
 
